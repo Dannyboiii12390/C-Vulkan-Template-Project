@@ -2,6 +2,13 @@
 // Vulkan ver 1.3 based
 //====================================================
 
+//need to install Vulkan SDK.
+//project expects C:\VulkanSDK\1.4.313.2\Include
+// if upgrade vulkan version need to change the project settings
+// linker -> input -> additional dependencies
+// VC++ directories -> include directories
+
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
