@@ -1,7 +1,20 @@
-#include "VulkanApp.h"
+
+#include "VulkanApplication.h"
+#include <iostream>
 
 int main() {
-    VulkanApp app;
+    // Cube vertices
+    std::vector<Vertex> cube1 = {
+        {{-0.5f,-0.5f,-0.5f},{1,0,0}}, {{0.5f,-0.5f,-0.5f},{0,1,0}},
+        {{0.5f,0.5f,-0.5f},{0,0,1}}, {{-0.5f,0.5f,-0.5f},{1,1,0}},
+        {{-0.5f,-0.5f,0.5f},{1,0,1}}, {{0.5f,-0.5f,0.5f},{0,1,1}},
+        {{0.5f,0.5f,0.5f},{1,1,1}}, {{-0.5f,0.5f,0.5f},{0,0,0}}
+    };
+
+    std::vector<Vertex> cube2 = cube1;
+    for (auto& v : cube2) v.pos.x += 1.0f; // offset second cube
+
+    VulkanApplication app;
     try {
         app.run();
     }
