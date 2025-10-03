@@ -62,13 +62,20 @@ struct Vertex {
     glm::vec3 color;
 
     static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+    static std::array<VkVertexInputBindingDescription, 2> getBindingDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
 };
 
 struct UniformBufferObject {
-    alignas(16) glm::mat4 model;
+    //alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
+};
+struct PushConstantModel {
+    glm::mat4 model;
+};
+struct InstanceData {
+    glm::vec3 offset;
 };
 
 class VulkanApplication {
@@ -126,6 +133,12 @@ private:
     // --- Vertex Data ---
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
+
+    std::vector<InstanceData> instanceData;
+    VkBuffer instanceBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
+    void loadInstanceData();
+    void createInstanceBuffer();
 
     // --- Main Flow ---
     void initWindow();
@@ -196,4 +209,5 @@ private:
     static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
         VkDebugUtilsMessengerEXT debugMessenger,
         const VkAllocationCallbacks* pAllocator);
+
 };
