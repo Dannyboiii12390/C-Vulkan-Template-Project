@@ -18,10 +18,10 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VulkanApplication.cpp">
+    <ClCompile Include="VulkanObjects\VulkanApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Window.cpp">
+    <ClCompile Include="VulkanObjects\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MathsObjects\Vertex.cpp">
@@ -32,10 +32,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VulkanApplication.h">
+    <ClInclude Include="VulkanObjects\VulkanApplication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Window.h">
+    <ClInclude Include="VulkanObjects\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Debug Utils.h">
@@ -45,6 +45,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MathsObjects\InstanceData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MathsObjects\PushConstantModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

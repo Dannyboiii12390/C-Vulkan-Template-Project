@@ -3,8 +3,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include "Window.h"
-#include "MathsObjects/Vertex.h"
-#include "MathsObjects/InstanceData.h"
+#include "../MathsObjects/Vertex.h"
+#include "../MathsObjects/InstanceData.h"
+#include "../MathsObjects/PushConstantModel.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -37,11 +38,6 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
 
 // --- Helper Structs for Vulkan Objects ---
 struct QueueFamilyIndices {
@@ -64,9 +60,7 @@ struct UniformBufferObject {
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
-struct PushConstantModel {
-    glm::mat4 model;
-};
+
 
 class VulkanApplication {
 public:
@@ -130,7 +124,6 @@ private:
     void createInstanceBuffer();
 
     // --- Main Flow ---
-    //create window
     void initVulkan();
     void mainLoop();
     void cleanup();

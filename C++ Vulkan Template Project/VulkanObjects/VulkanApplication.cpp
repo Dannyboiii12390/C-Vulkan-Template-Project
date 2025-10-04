@@ -1,6 +1,6 @@
 #include "VulkanApplication.h"
-#include "MathsObjects/Vertex.h"
-#include "MathsObjects/InstanceData.h"
+#include "../MathsObjects/Vertex.h"
+#include "../MathsObjects/InstanceData.h"
 
 
 // --- Model Loading ---
@@ -38,12 +38,14 @@ void VulkanApplication::loadModel() {
 
 
 // --- Main Application Flow ---
-VulkanApplication::VulkanApplication() : window(800, 600, "Vulkan 3D Application") {
-    //framebufferResized = false;
+VulkanApplication::VulkanApplication() : window(800, 600, "Vulkan 3D Application") 
+{ 
+    initVulkan();
 }
+
 void VulkanApplication::run() {
 
-    initVulkan();
+    //initVulkan();
     mainLoop();
     cleanup();
 }
@@ -131,8 +133,9 @@ void VulkanApplication::cleanup() {
 // --- Vulkan Initialization Methods ---
 void VulkanApplication::createInstance() {
     if (enableValidationLayers && !checkValidationLayerSupport()) {
-        throw std::runtime_error("Validation layers requested, but not available!");
+        std::runtime_error("Validation layers requested, but not available!");
     }
+    //ASSERT_MSG((enableValidationLayers && !checkValidationLayerSupport()), "Validation layers requested, but not available!");
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -162,13 +165,11 @@ void VulkanApplication::createInstance() {
         createInfo.pNext = nullptr;
     }
 
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create instance!");
-    }
+    ASSERT(vkCreateInstance(&createInfo, nullptr, &instance) == VK_SUCCESS);
 }
 void VulkanApplication::setupDebugMessenger() {
     if (!enableValidationLayers) return;
-
+    
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
@@ -177,9 +178,7 @@ void VulkanApplication::setupDebugMessenger() {
     }
 }
 void VulkanApplication::createSurface() {
-    if (glfwCreateWindowSurface(instance, window.getGLFWwindow(), nullptr, &surface) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create window surface!");
-    }
+    ASSERT_MSG((glfwCreateWindowSurface(instance, window.getGLFWwindow(), nullptr, &surface) == VK_SUCCESS), "Failed to create window surface!");
 }
 void VulkanApplication::pickPhysicalDevice() {
     uint32_t deviceCount = 0;
@@ -422,7 +421,7 @@ void VulkanApplication::createGraphicsPipeline() {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(PushConstantModel);
+    pushConstantRange.size = sizeof(Engine::PushConstantModel);
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -740,7 +739,7 @@ void VulkanApplication::recordCommandBuffer(VkCommandBuffer commandBuffer, uint3
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
-    PushConstantModel pushConstant{};
+    Engine::PushConstantModel pushConstant{};
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float>(currentTime - startTime).count();
@@ -751,7 +750,7 @@ void VulkanApplication::recordCommandBuffer(VkCommandBuffer commandBuffer, uint3
         pipelineLayout,
         VK_SHADER_STAGE_VERTEX_BIT,
         0,
-        sizeof(PushConstantModel),
+        sizeof(Engine::PushConstantModel),
         &pushConstant
     );
 
@@ -1031,6 +1030,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApplication::debugCallback(
     return VK_FALSE;
 }
 
+// --- Custom Methods ---
 void VulkanApplication::loadInstanceData()
 {
     instanceData.clear();
