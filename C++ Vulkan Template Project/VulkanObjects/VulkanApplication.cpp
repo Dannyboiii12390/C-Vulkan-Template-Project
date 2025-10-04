@@ -132,10 +132,7 @@ void VulkanApplication::cleanup() {
 
 // --- Vulkan Initialization Methods ---
 void VulkanApplication::createInstance() {
-    if (enableValidationLayers && !checkValidationLayerSupport()) {
-        std::runtime_error("Validation layers requested, but not available!");
-    }
-    //ASSERT_MSG((enableValidationLayers && !checkValidationLayerSupport()), "Validation layers requested, but not available!");
+    ASSERT_MSG(!(enableValidationLayers && !checkValidationLayerSupport()), "Validation layers requested, but not available!");
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
