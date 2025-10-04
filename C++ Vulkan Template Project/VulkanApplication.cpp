@@ -1,55 +1,7 @@
 #include "VulkanApplication.h"
+#include "MathsObjects/Vertex.h"
+#include "MathsObjects/InstanceData.h"
 
-// --- Vertex Implementation ---
-VkVertexInputBindingDescription Vertex::getBindingDescription() {
-    VkVertexInputBindingDescription bindingDescription{};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    return bindingDescription;
-}
-std::array<VkVertexInputBindingDescription, 2> Vertex::getBindingDescriptions() {
-    std::array<VkVertexInputBindingDescription, 2> bindingDescriptions{};
-    bindingDescriptions[0].binding = 0;
-    bindingDescriptions[0].stride = sizeof(Vertex);
-    bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    bindingDescriptions[1].binding = 1;
-    bindingDescriptions[1].stride = sizeof(InstanceData);
-    bindingDescriptions[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
-    return bindingDescriptions;
-}
-std::array<VkVertexInputAttributeDescription, 3> Vertex::getAttributeDescriptions() 
-{
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-    attributeDescriptions[0] = { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) };
-    attributeDescriptions[1] = { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color) };
-    attributeDescriptions[2] = { 2, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, offset) };
-    return attributeDescriptions;
-}
-
-// --- Debug Utils Functions ---
-VkResult VulkanApplication::CreateDebugUtilsMessengerEXT(VkInstance instance,
-    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-    const VkAllocationCallbacks* pAllocator,
-    VkDebugUtilsMessengerEXT* pDebugMessenger) {
-
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    }
-    else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
-void VulkanApplication::DestroyDebugUtilsMessengerEXT(VkInstance instance,
-    VkDebugUtilsMessengerEXT debugMessenger,
-    const VkAllocationCallbacks* pAllocator) {
-
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        func(instance, debugMessenger, pAllocator);
-    }
-}
 
 // --- Model Loading ---
 void VulkanApplication::loadModel() {
@@ -86,19 +38,14 @@ void VulkanApplication::loadModel() {
 
 
 // --- Main Application Flow ---
+VulkanApplication::VulkanApplication() : window(800, 600, "Vulkan 3D Application") {
+    //framebufferResized = false;
+}
 void VulkanApplication::run() {
-    initWindow();
+
     initVulkan();
     mainLoop();
     cleanup();
-}
-
-void VulkanApplication::initWindow() {
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan 3D Application", nullptr, nullptr);
-    glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 }
 void VulkanApplication::initVulkan() {
     createInstance();
@@ -113,7 +60,7 @@ void VulkanApplication::initVulkan() {
     createCommandPool();
 
     loadModel();
-	loadInstanceData();
+    loadInstanceData();
 
     createVertexBuffer();
     createIndexBuffer();
@@ -125,7 +72,7 @@ void VulkanApplication::initVulkan() {
     createSyncObjects();
 }
 void VulkanApplication::mainLoop() {
-    while (!glfwWindowShouldClose(window)) {
+    while (!window.shouldClose()) {
         glfwPollEvents();
         drawFrame();
     }
@@ -177,10 +124,6 @@ void VulkanApplication::cleanup() {
     // Surface & instance
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
-
-    // GLFW cleanup
-    glfwDestroyWindow(window);
-    glfwTerminate();
 }
 
 
@@ -234,7 +177,7 @@ void VulkanApplication::setupDebugMessenger() {
     }
 }
 void VulkanApplication::createSurface() {
-    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(instance, window.getGLFWwindow(), nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create window surface!");
     }
 }
@@ -305,7 +248,8 @@ void VulkanApplication::createLogicalDevice() {
     if (enableValidationLayers) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
-    } else {
+    }
+    else {
         createInfo.enabledLayerCount = 0;
     }
 
@@ -422,9 +366,9 @@ void VulkanApplication::createGraphicsPipeline() {
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
-    auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
-    auto bindingDescriptions = Vertex::getBindingDescriptions();
+    auto bindingDescription = Engine::Vertex::getBindingDescription();
+    auto attributeDescriptions = Engine::Vertex::getAttributeDescriptions();
+    auto bindingDescriptions = Engine::Vertex::getBindingDescriptions();
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -708,8 +652,8 @@ void VulkanApplication::drawFrame() {
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
-        framebufferResized = false;
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.wasFramebufferResized()) {
+        //framebufferResized = false;
         recreateSwapChain();
     }
     else if (result != VK_SUCCESS) {
@@ -720,9 +664,9 @@ void VulkanApplication::drawFrame() {
 }
 void VulkanApplication::recreateSwapChain() {
     int width = 0, height = 0;
-    glfwGetFramebufferSize(window, &width, &height);
+    glfwGetFramebufferSize(window.getGLFWwindow(), &width, &height);
     while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(window.getGLFWwindow(), &width, &height);
         glfwWaitEvents();
     }
     vkDeviceWaitIdle(device);
@@ -736,7 +680,6 @@ void VulkanApplication::cleanupSwapChain() {
     }
     swapChainImageViews.clear();
     vkDestroySwapchainKHR(device, swapChain, nullptr);
-    //swapChainImageViews.clear();
 }
 void VulkanApplication::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
     VkCommandBufferBeginInfo beginInfo{};
@@ -796,12 +739,12 @@ void VulkanApplication::recordCommandBuffer(VkCommandBuffer commandBuffer, uint3
     vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-    
+
     PushConstantModel pushConstant{};
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float>(currentTime - startTime).count();
-    
+
     pushConstant.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     vkCmdPushConstants(
         commandBuffer,
@@ -949,7 +892,7 @@ VkExtent2D VulkanApplication::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& c
     }
     else {
         int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(window.getGLFWwindow(), &width, &height);
         VkExtent2D actualExtent = {
             static_cast<uint32_t>(width),
             static_cast<uint32_t>(height)
@@ -1077,10 +1020,6 @@ uint32_t VulkanApplication::findMemoryType(uint32_t typeFilter, VkMemoryProperty
 }
 
 // --- Callback Implementations ---
-void VulkanApplication::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-    auto app = reinterpret_cast<VulkanApplication*>(glfwGetWindowUserPointer(window));
-    app->framebufferResized = true;
-}
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApplication::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -1092,7 +1031,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApplication::debugCallback(
     return VK_FALSE;
 }
 
-void VulkanApplication::loadInstanceData() 
+void VulkanApplication::loadInstanceData()
 {
     instanceData.clear();
     // Place cubes at x = -1.0 and x = +1.0
@@ -1100,7 +1039,7 @@ void VulkanApplication::loadInstanceData()
     instanceData.push_back({ glm::vec3(1.0f, 0.0f, 0.0f) });
 }
 void VulkanApplication::createInstanceBuffer() {
-    VkDeviceSize bufferSize = sizeof(InstanceData) * instanceData.size();
+    VkDeviceSize bufferSize = sizeof(Engine::InstanceData) * instanceData.size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);

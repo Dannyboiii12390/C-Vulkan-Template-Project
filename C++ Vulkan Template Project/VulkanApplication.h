@@ -2,6 +2,9 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include "Window.h"
+#include "MathsObjects/Vertex.h"
+#include "MathsObjects/InstanceData.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -56,16 +59,6 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-// --- Vertex Data ---
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-
-    static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputBindingDescription, 2> getBindingDescriptions();
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
-};
-
 struct UniformBufferObject {
     //alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
@@ -74,19 +67,15 @@ struct UniformBufferObject {
 struct PushConstantModel {
     glm::mat4 model;
 };
-struct InstanceData {
-    glm::vec3 offset;
-};
 
 class VulkanApplication {
 public:
     void run();
-    //~VulkanApplication();
+	VulkanApplication();
 
 private:
     // --- Core Application Members ---
-    GLFWwindow* window = nullptr;
-    bool framebufferResized = false;
+    Engine::Window window;
     uint32_t currentFrame = 0;
 
     // --- Vulkan Core Components ---
@@ -131,17 +120,17 @@ private:
     std::vector<VkFence> inFlightFences;
 
     // --- Vertex Data ---
-    std::vector<Vertex> vertices;
+    std::vector<Engine::Vertex> vertices;
     std::vector<uint16_t> indices;
 
-    std::vector<InstanceData> instanceData;
+    std::vector<Engine::InstanceData> instanceData;
     VkBuffer instanceBuffer = VK_NULL_HANDLE;
     VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
     void loadInstanceData();
     void createInstanceBuffer();
 
     // --- Main Flow ---
-    void initWindow();
+    //create window
     void initVulkan();
     void mainLoop();
     void cleanup();
@@ -190,24 +179,12 @@ private:
         VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-    void loadModel();
+    void loadModel();       
 
-    // --- Callbacks ---
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+    // Declare the debugCallback function
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData);
-
-    // --- Debug Utils Functions ---
-    static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-        const VkAllocationCallbacks* pAllocator,
-        VkDebugUtilsMessengerEXT* pDebugMessenger);
-
-    static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
-        VkDebugUtilsMessengerEXT debugMessenger,
-        const VkAllocationCallbacks* pAllocator);
-
 };
