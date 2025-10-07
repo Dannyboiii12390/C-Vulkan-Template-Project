@@ -1,9 +1,9 @@
 #pragma once
 
 #ifdef DEBUG
-#define ASSERT(x) if(!(x)) __debugbreak();
+#define ASSERT(x) if(!(x)) __debugbreak()
 #define ASSERT_MSG(x, msg) if(!(x)) { std::cerr << "ASSERTION FAILED: " << msg << std::endl; __debugbreak(); }
-#define LOG(msg) std::cout << msg << std::endl;
+#define LOG(msg) std::cout << msg << std::endl
 
 #else
 #define ASSERT(x) x
