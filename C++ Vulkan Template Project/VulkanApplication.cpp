@@ -1,43 +1,6 @@
 #include "VulkanApplication.h"
-
-// --- Vertex Implementation ---
-VkVertexInputBindingDescription Vertex::getBindingDescription() {
-    VkVertexInputBindingDescription bindingDescription{};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    return bindingDescription;
-}
-std::array<VkVertexInputAttributeDescription, 2> Vertex::getAttributeDescriptions() {
-    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-    attributeDescriptions[0] = { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) };
-    attributeDescriptions[1] = { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color) };
-    return attributeDescriptions;
-}
-
-// --- Debug Utils Functions ---
-VkResult VulkanApplication::CreateDebugUtilsMessengerEXT(VkInstance instance,
-    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-    const VkAllocationCallbacks* pAllocator,
-    VkDebugUtilsMessengerEXT* pDebugMessenger) {
-
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    }
-    else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
-void VulkanApplication::DestroyDebugUtilsMessengerEXT(VkInstance instance,
-    VkDebugUtilsMessengerEXT debugMessenger,
-    const VkAllocationCallbacks* pAllocator) {
-
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        func(instance, debugMessenger, pAllocator);
-    }
-}
+#include "Core/Vertex.h"
+#include "Debug Utils.h"
 
 // --- Model Loading ---
 void VulkanApplication::loadModel() {
@@ -74,19 +37,12 @@ void VulkanApplication::loadModel() {
 
 // --- Main Application Flow ---
 void VulkanApplication::run() {
-    initWindow();
     initVulkan();
     mainLoop();
     cleanup();
 }
 
-void VulkanApplication::initWindow() {
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan 3D Application", nullptr, nullptr);
-    glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-}
+
 void VulkanApplication::initVulkan() {
     createInstance();
     setupDebugMessenger();
@@ -110,7 +66,7 @@ void VulkanApplication::initVulkan() {
     createSyncObjects();
 }
 void VulkanApplication::mainLoop() {
-    while (!glfwWindowShouldClose(window)) {
+    while (!window.shouldClose()) {
         glfwPollEvents();
         drawFrame();
     }
@@ -150,16 +106,12 @@ void VulkanApplication::cleanup() {
 
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
 }
 
 // --- Vulkan Initialization Methods ---
 void VulkanApplication::createInstance() {
-    if (enableValidationLayers && !checkValidationLayerSupport()) {
-        throw std::runtime_error("Validation layers requested, but not available!");
-    }
+
+    ASSERT_MSG(!(enableValidationLayers && !checkValidationLayerSupport()), "Validation layers requested, but not available!");
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -189,9 +141,7 @@ void VulkanApplication::createInstance() {
         createInfo.pNext = nullptr;
     }
 
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create instance!");
-    }
+    ASSERT_MSG(vkCreateInstance(&createInfo, nullptr, &instance) == VK_SUCCESS, "Failed to create instance!");
 }
 void VulkanApplication::setupDebugMessenger() {
     if (!enableValidationLayers) return;
@@ -204,7 +154,7 @@ void VulkanApplication::setupDebugMessenger() {
     }
 }
 void VulkanApplication::createSurface() {
-    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(instance, window.getGLFWwindow(), nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create window surface!");
     }
 }
@@ -679,9 +629,9 @@ void VulkanApplication::drawFrame() {
 }
 void VulkanApplication::recreateSwapChain() {
     int width = 0, height = 0;
-    glfwGetFramebufferSize(window, &width, &height);
+    glfwGetFramebufferSize(window.getGLFWwindow(), &width, &height);
     while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(window.getGLFWwindow(), &width, &height);
         glfwWaitEvents();
     }
     vkDeviceWaitIdle(device);
@@ -892,7 +842,7 @@ VkExtent2D VulkanApplication::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& c
     }
     else {
         int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(window.getGLFWwindow(), &width, &height);
         VkExtent2D actualExtent = {
             static_cast<uint32_t>(width),
             static_cast<uint32_t>(height)
@@ -1017,20 +967,4 @@ uint32_t VulkanApplication::findMemoryType(uint32_t typeFilter, VkMemoryProperty
         }
     }
     throw std::runtime_error("failed to find suitable memory type!");
-}
-
-// --- Callback Implementations ---
-void VulkanApplication::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-    auto app = reinterpret_cast<VulkanApplication*>(glfwGetWindowUserPointer(window));
-    app->framebufferResized = true;
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApplication::debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) {
-
-    std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl;
-    return VK_FALSE;
 }

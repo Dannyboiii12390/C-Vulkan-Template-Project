@@ -7,6 +7,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "Core/Vertex.h"
+#include "Core/UBO.h"
+#include "Core/QueueFamilyIndices.h"
+#include "Core/SwapChainSupportDetails.h"
+#include "Core/Window.h"
+
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -26,59 +32,30 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::vector<const char*> validationLayers = {
+// Inline globals to avoid multiple-definition across translation units (C++17 inline variables)
+inline const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
-const std::vector<const char*> deviceExtensions = {
+inline const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
 #ifdef NDEBUG
-const bool enableValidationLayers = false;
+inline const bool enableValidationLayers = false;
 #else
-const bool enableValidationLayers = true;
+inline const bool enableValidationLayers = true;
 #endif
-
-// --- Helper Structs for Vulkan Objects ---
-struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete() const {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities{};
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
-// --- Vertex Data ---
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-
-    static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
-};
-
-struct UniformBufferObject {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
 
 class VulkanApplication {
 public:
     void run();
-    //~VulkanApplication();
+
+	VulkanApplication() : window(WIDTH, HEIGHT, "Vulkan Window") {}
 
 private:
     // --- Core Application Members ---
-    GLFWwindow* window = nullptr;
+    Window window;
     bool framebufferResized = false;
     uint32_t currentFrame = 0;
 
@@ -128,7 +105,6 @@ private:
     std::vector<uint16_t> indices;
 
     // --- Main Flow ---
-    void initWindow();
     void initVulkan();
     void mainLoop();
     void cleanup();
@@ -178,22 +154,4 @@ private:
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     void loadModel();
-
-    // --- Callbacks ---
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData);
-
-    // --- Debug Utils Functions ---
-    static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-        const VkAllocationCallbacks* pAllocator,
-        VkDebugUtilsMessengerEXT* pDebugMessenger);
-
-    static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
-        VkDebugUtilsMessengerEXT debugMessenger,
-        const VkAllocationCallbacks* pAllocator);
 };

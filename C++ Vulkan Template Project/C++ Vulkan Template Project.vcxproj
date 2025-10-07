@@ -140,11 +140,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Window.cpp" />
+    <ClCompile Include="Graphics\Mesh.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Core\Vertex.cpp" />
     <ClCompile Include="VulkanApplication.cpp" />
+    <ClCompile Include="Graphics\VulkanContext.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\SwapChainSupportDetails.h" />
+    <ClInclude Include="Core\Vertex.h" />
+    <ClInclude Include="Core\UBO.h" />
+    <ClInclude Include="Core\QueueFamilyIndices.h" />
+    <ClInclude Include="Core\Window.h" />
+    <ClInclude Include="Debug Utils.h" />
+    <ClInclude Include="Graphics\Mesh.h" />
     <ClInclude Include="VulkanApplication.h" />
+    <ClInclude Include="Graphics\VulkanContext.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
