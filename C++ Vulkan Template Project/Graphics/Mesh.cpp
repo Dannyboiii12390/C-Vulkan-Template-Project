@@ -111,14 +111,29 @@ void Engine::Mesh::create(VulkanContext& context, const std::vector<Vertex>& pVe
     createVertexBuffer(context);
     createIndexBuffer(context);
 }
-void Engine::Mesh::bind(VkCommandBuffer commandBuffer) 
+//void Engine::Mesh::bind(VkCommandBuffer commandBuffer) 
+//{
+//    VkBuffer vertexBuffers[] = { vertexBuffer };
+//    VkDeviceSize offsets[] = { 0 };
+//    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+//    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+//}
+void Engine::Mesh::bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer)
 {
-    VkBuffer vertexBuffers[] = { vertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    if (instanceBuffer != VK_NULL_HANDLE) {
+        // Bind vertex buffer (binding 0) and instance buffer (binding 1)
+        VkBuffer vertexBuffers[] = { vertexBuffer, instanceBuffer };
+        VkDeviceSize offsets[] = { 0, 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+    }
+    else {
+        VkBuffer vertexBuffers[] = { vertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    }
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 }
-void Engine::Mesh::draw(VkCommandBuffer commandBuffer) {
-    vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
+void Engine::Mesh::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount) {
+    vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
 }
 

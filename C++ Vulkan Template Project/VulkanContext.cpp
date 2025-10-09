@@ -699,7 +699,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     //VkDeviceSize offsets[] = { 0, 0 };
     //vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
     //vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-	mesh.bind(commandBuffer);
+	mesh.bind(commandBuffer, instanceBuffer);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
 
     Engine::PushConstantModel pushConstant{};
@@ -719,7 +719,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
     // Now draw all instances in one call
     //vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), static_cast<uint32_t>(instanceData.size()), 0, 0, 0);
-	mesh.draw(commandBuffer);
+	mesh.draw(commandBuffer, instanceData.size());
     vkCmdEndRendering(commandBuffer);
 
     VkImageMemoryBarrier2 imageBarrierToPresent{};

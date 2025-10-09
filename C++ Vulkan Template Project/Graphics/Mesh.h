@@ -34,8 +34,8 @@ namespace Engine
 		Mesh() = default;
 		void create(VulkanContext& context, const std::vector<Vertex>& pVertices, const std::vector<uint16_t>& pIndices);
 		void cleanup(VulkanContext& context);
-		void bind(VkCommandBuffer commandBuffer);
-		void draw(VkCommandBuffer commandBuffer);
+		void bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer = VK_NULL_HANDLE);
+		void draw(VkCommandBuffer commandBuffer, uint32_t instanceCount = 1);
 
 	};
 }
