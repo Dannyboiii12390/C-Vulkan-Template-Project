@@ -1003,6 +1003,8 @@ void VulkanContext::loadInstanceData()
     // Place cubes at x = -1.0 and x = +1.0
     instanceData.push_back({ glm::vec3(-1.0f, 0.0f, 0.0f) });
     instanceData.push_back({ glm::vec3(1.0f, 0.0f, 0.0f) });
+    //instanceData.push_back({ glm::vec3(-3.0f, 0.0f, 0.0f) });
+    //instanceData.push_back({ glm::vec3(3.0f, 0.0f, 0.0f) });
 }
 void VulkanContext::createInstanceBuffer() {
     VkDeviceSize bufferSize = sizeof(Engine::InstanceData) * instanceData.size();

@@ -88,14 +88,8 @@ private:
     std::vector<VkFence> inFlightFences;
 
     // --- Mesh Data ---
-    //std::vector<Engine::Vertex> vertices;
-    //std::vector<uint16_t> indices;
-    //VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    //VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
-    //VkBuffer indexBuffer = VK_NULL_HANDLE;
-    //VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
     Engine::Mesh mesh;
-
+    // --- Instance Data ---
     std::vector<Engine::InstanceData> instanceData;
     VkBuffer instanceBuffer = VK_NULL_HANDLE;
     VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
@@ -120,8 +114,6 @@ private:
     void createGraphicsPipeline();
     void createCommandPool();
 
-    //void createVertexBuffer();
-    //void createIndexBuffer();
     void createUniformBuffers();
     void createDescriptorPool();
     void createDescriptorSets();
