@@ -2,10 +2,10 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include "Window.h"
-#include "../MathsObjects/Vertex.h"
-#include "../MathsObjects/InstanceData.h"
-#include "../MathsObjects/PushConstantModel.h"
+#include "Core/Window.h"
+#include "Graphics/Vertex.h"
+#include "Graphics/InstanceData.h"
+#include "Graphics/PushConstantModel.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -39,38 +39,14 @@ const std::vector<const char*> deviceExtensions = {
 };
 
 
-// --- Helper Structs for Vulkan Objects ---
-struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete() const {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities{};
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
-struct UniformBufferObject {
-    //alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
-
-
-class VulkanApplication {
+class VulkanContext {
 public:
     void run();
-	VulkanApplication();
+    VulkanContext();
 
 private:
     // --- Core Application Members ---
     Engine::Window window;
-    uint32_t currentFrame = 0;
 
     // --- Vulkan Core Components ---
     VkInstance instance = VK_NULL_HANDLE;
@@ -159,8 +135,8 @@ private:
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     bool isDeviceSuitable(VkPhysicalDevice device);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    Engine::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    Engine::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);

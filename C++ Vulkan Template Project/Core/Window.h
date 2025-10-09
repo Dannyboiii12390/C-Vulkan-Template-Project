@@ -1,7 +1,7 @@
 #pragma once
 #include <GLFW/glfw3.h>
 #include "../Debug Utils.h"
-#include "VulkanApplication.h"
+//#include "VulkanApplication.h"
 #include <vector>
 
 namespace Engine 
@@ -14,6 +14,8 @@ namespace Engine
 		const char* title;
 		bool framebufferResized = false;
 		GLFWwindow* window;
+		uint32_t currentFrame = 0;
+
 
 		static void framebufferResizeCallback(GLFWwindow* window, int width, int height) 
 		{
@@ -41,6 +43,8 @@ namespace Engine
 			glfwDestroyWindow(window);
 			glfwTerminate();
 		}
+		const uint32_t getCurrentFrame() const { return currentFrame; }
+		void resetCurrentFrame(size_t size) { currentFrame = (currentFrame + 1) % size; }
 		GLFWwindow* getGLFWwindow() const { return window; }
 		int getWidth() const { return width; }
 		int getHeight() const { return height; }

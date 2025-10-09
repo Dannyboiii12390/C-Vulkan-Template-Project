@@ -1,5 +1,5 @@
 
-#include "VulkanObjects/VulkanApplication.h"
+#include "VulkanContext.h"
 #include <iostream>
 
 int main() {
@@ -14,7 +14,7 @@ int main() {
     std::vector<Engine::Vertex> cube2 = cube1;
     for (auto& v : cube2) v.pos.x += 1.0f; // offset second cube
 
-    VulkanApplication app;
+    VulkanContext app;
     try {
         app.run();
     }

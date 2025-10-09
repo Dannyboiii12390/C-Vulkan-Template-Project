@@ -142,17 +142,17 @@
   <ItemGroup>
     <ClCompile Include="DebugUtils.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MathsObjects\Vertex.cpp" />
-    <ClCompile Include="VulkanObjects\VulkanApplication.cpp" />
-    <ClCompile Include="VulkanObjects\Window.cpp" />
+    <ClCompile Include="Graphics\Vertex.cpp" />
+    <ClCompile Include="VulkanContext.cpp" />
+    <ClCompile Include="Core\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debug Utils.h" />
-    <ClInclude Include="MathsObjects\InstanceData.h" />
-    <ClInclude Include="MathsObjects\PushConstantModel.h" />
-    <ClInclude Include="MathsObjects\Vertex.h" />
-    <ClInclude Include="VulkanObjects\VulkanApplication.h" />
-    <ClInclude Include="VulkanObjects\Window.h" />
+    <ClInclude Include="Graphics\InstanceData.h" />
+    <ClInclude Include="Graphics\PushConstantModel.h" />
+    <ClInclude Include="Graphics\Vertex.h" />
+    <ClInclude Include="VulkanContext.h" />
+    <ClInclude Include="Core\Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
