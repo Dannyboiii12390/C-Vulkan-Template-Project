@@ -89,6 +89,7 @@ private:
 
     // --- Mesh Data ---
     Engine::Mesh mesh;
+
     // --- Instance Data ---
     std::vector<Engine::InstanceData> instanceData;
     VkBuffer instanceBuffer = VK_NULL_HANDLE;
@@ -98,7 +99,6 @@ private:
     void createInstanceBuffer();
 
     // --- Main Flow ---
-    void initVulkan();
     void mainLoop();
     void cleanup();
 

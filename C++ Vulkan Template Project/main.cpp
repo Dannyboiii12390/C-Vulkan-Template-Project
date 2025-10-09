@@ -2,6 +2,11 @@
 #include "VulkanContext.h"
 #include <iostream>
 
+//todo
+//swapchain
+//graphics pipeline
+//command pool?
+
 int main() {
     // Cube vertices
     std::vector<Engine::Vertex> cube1 = {

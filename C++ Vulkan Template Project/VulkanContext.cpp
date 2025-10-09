@@ -6,9 +6,7 @@
 // --- Model Loading ---
 void VulkanContext::loadModel() {
     
-    
-    
-    // Create a simple 3D cube instead of a 2D quad
+
     std::vector<Engine::Vertex> vertices {
         // Front face
         {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
@@ -22,7 +20,6 @@ void VulkanContext::loadModel() {
         {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
         {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}}
     };
-
     std::vector<uint16_t> indices = {
         // Front face
         0, 1, 2, 2, 3, 0,
@@ -37,23 +34,14 @@ void VulkanContext::loadModel() {
         // Left face
         0, 3, 7, 7, 4, 0
     };
-	mesh.create(*this, vertices, indices);
+    //moving values into the mesh
+	mesh.create(*this, std::move(vertices), std::move(indices));
 };
 
 
 // --- Main Application Flow ---
 VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
 { 
-    initVulkan();
-}
-
-void VulkanContext::run() {
-
-    //initVulkan();
-    mainLoop();
-    cleanup();
-}
-void VulkanContext::initVulkan() {
     createInstance();
     setupDebugMessenger();
     createSurface();
@@ -68,14 +56,18 @@ void VulkanContext::initVulkan() {
     loadModel();
     loadInstanceData();
 
-    //createVertexBuffer();
-    //createIndexBuffer();
     createInstanceBuffer();
     createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
     createCommandBuffers();
     createSyncObjects();
+}
+
+void VulkanContext::run() 
+{
+    mainLoop();
+    cleanup();
 }
 void VulkanContext::mainLoop() {
     while (!window.shouldClose()) {

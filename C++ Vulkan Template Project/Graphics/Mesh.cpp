@@ -2,7 +2,7 @@
 #include "../VulkanContext.h"
 
 //private:
-void Engine::Mesh::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VulkanContext& context) {
+void Engine::Mesh::copyBuffer(VulkanContext& context, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -69,7 +69,7 @@ void Engine::Mesh::createVertexBuffer(VulkanContext& context) {
     vkUnmapMemory(context.device, stagingBufferMemory);
 
     createBuffer(context, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-    copyBuffer(stagingBuffer, vertexBuffer, bufferSize, context);
+    copyBuffer(context, stagingBuffer, vertexBuffer, bufferSize);
 
     vkDestroyBuffer(context.device, stagingBuffer, nullptr);
     vkFreeMemory(context.device, stagingBufferMemory, nullptr);
@@ -86,19 +86,22 @@ void Engine::Mesh::createIndexBuffer(VulkanContext& context) {
     vkUnmapMemory(context.device, stagingBufferMemory);
 
     createBuffer(context, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-    copyBuffer(stagingBuffer, indexBuffer, bufferSize, context);
+    copyBuffer(context, stagingBuffer, indexBuffer, bufferSize);
 
     vkDestroyBuffer(context.device, stagingBuffer, nullptr);
     vkFreeMemory(context.device, stagingBufferMemory, nullptr);
 }
 
 //public
-void Engine::Mesh::cleanup(VulkanContext& context) 
+
+void Engine::Mesh::create(VulkanContext& context, std::vector<Vertex>&& pVertices, std::vector<uint16_t>&& pIndices)
 {
-    vkDestroyBuffer(context.device, indexBuffer, nullptr);
-    vkFreeMemory(context.device, indexBufferMemory, nullptr);
-    vkDestroyBuffer(context.device, vertexBuffer, nullptr);
-    vkFreeMemory(context.device, vertexBufferMemory, nullptr);
+	//LOG("Creating Mesh with move semantics");
+    vertices = std::move(pVertices);
+    indices = std::move(pIndices);
+    indexCount = static_cast<uint32_t>(indices.size());
+    createVertexBuffer(context);
+    createIndexBuffer(context);
 }
 void Engine::Mesh::create(VulkanContext& context, const std::vector<Vertex>& pVertices, const std::vector<uint16_t>& pIndices)
 {
@@ -111,13 +114,13 @@ void Engine::Mesh::create(VulkanContext& context, const std::vector<Vertex>& pVe
     createVertexBuffer(context);
     createIndexBuffer(context);
 }
-//void Engine::Mesh::bind(VkCommandBuffer commandBuffer) 
-//{
-//    VkBuffer vertexBuffers[] = { vertexBuffer };
-//    VkDeviceSize offsets[] = { 0 };
-//    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-//    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-//}
+void Engine::Mesh::cleanup(VulkanContext& context)
+{
+    vkDestroyBuffer(context.device, indexBuffer, nullptr);
+    vkFreeMemory(context.device, indexBufferMemory, nullptr);
+    vkDestroyBuffer(context.device, vertexBuffer, nullptr);
+    vkFreeMemory(context.device, vertexBufferMemory, nullptr);
+}
 void Engine::Mesh::bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer)
 {
     if (instanceBuffer != VK_NULL_HANDLE) {
