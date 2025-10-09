@@ -25,8 +25,8 @@ namespace Engine
 			app->height = height;
 		}
 	public:
-		Window() {};
-		Window(int w, int h, const char* t) : width(w), height(h), title(t) 
+		//Window() {};
+		Window(int w = 800, int h = 600, const char* t = "Template") : width(w), height(h), title(t)
 		{
 			ASSERT(glfwInit()); // create glfw instance
 

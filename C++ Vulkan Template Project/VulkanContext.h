@@ -6,6 +6,7 @@
 #include "Graphics/Vertex.h"
 #include "Graphics/InstanceData.h"
 #include "Graphics/PushConstantModel.h"
+#include "Graphics/Mesh.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -43,20 +44,21 @@ class VulkanContext {
 public:
     void run();
     VulkanContext();
-
-private:
-    // --- Core Application Members ---
-    Engine::Window window;
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     // --- Vulkan Core Components ---
     VkInstance instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device = VK_NULL_HANDLE;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkQueue graphicsQueue = VK_NULL_HANDLE;
     VkQueue presentQueue = VK_NULL_HANDLE;
     VkCommandPool commandPool = VK_NULL_HANDLE;
+
+private:
+    // --- Core Application Members ---
+    Engine::Window window;
 
     // --- Swapchain ---
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
@@ -71,10 +73,6 @@ private:
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
     // --- Buffers and Memory ---
-    VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
-    VkBuffer indexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
@@ -89,13 +87,19 @@ private:
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
 
-    // --- Vertex Data ---
-    std::vector<Engine::Vertex> vertices;
-    std::vector<uint16_t> indices;
+    // --- Mesh Data ---
+    //std::vector<Engine::Vertex> vertices;
+    //std::vector<uint16_t> indices;
+    //VkBuffer vertexBuffer = VK_NULL_HANDLE;
+    //VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
+    //VkBuffer indexBuffer = VK_NULL_HANDLE;
+    //VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
+    Engine::Mesh mesh;
 
     std::vector<Engine::InstanceData> instanceData;
     VkBuffer instanceBuffer = VK_NULL_HANDLE;
     VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
+    
     void loadInstanceData();
     void createInstanceBuffer();
 
@@ -116,8 +120,8 @@ private:
     void createGraphicsPipeline();
     void createCommandPool();
 
-    void createVertexBuffer();
-    void createIndexBuffer();
+    //void createVertexBuffer();
+    //void createIndexBuffer();
     void createUniformBuffers();
     void createDescriptorPool();
     void createDescriptorSets();
@@ -147,7 +151,6 @@ private:
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
         VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     void loadModel();       
 
     // Declare the debugCallback function

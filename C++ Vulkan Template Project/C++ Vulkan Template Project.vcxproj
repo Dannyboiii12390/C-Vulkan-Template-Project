@@ -143,6 +143,7 @@
     <ClCompile Include="DebugUtils.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphics\Vertex.cpp" />
+    <ClCompile Include="Graphics\Mesh.cpp" />
     <ClCompile Include="VulkanContext.cpp" />
     <ClCompile Include="Core\Window.cpp" />
   </ItemGroup>
@@ -151,6 +152,7 @@
     <ClInclude Include="Graphics\InstanceData.h" />
     <ClInclude Include="Graphics\PushConstantModel.h" />
     <ClInclude Include="Graphics\Vertex.h" />
+    <ClInclude Include="Graphics\Mesh.h" />
     <ClInclude Include="VulkanContext.h" />
     <ClInclude Include="Core\Window.h" />
   </ItemGroup>

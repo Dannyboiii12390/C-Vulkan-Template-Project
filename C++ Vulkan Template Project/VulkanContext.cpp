@@ -5,8 +5,11 @@
 
 // --- Model Loading ---
 void VulkanContext::loadModel() {
+    
+    
+    
     // Create a simple 3D cube instead of a 2D quad
-    vertices = {
+    std::vector<Engine::Vertex> vertices {
         // Front face
         {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
         {{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
@@ -20,7 +23,7 @@ void VulkanContext::loadModel() {
         {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}}
     };
 
-    indices = {
+    std::vector<uint16_t> indices = {
         // Front face
         0, 1, 2, 2, 3, 0,
         // Back face
@@ -34,6 +37,7 @@ void VulkanContext::loadModel() {
         // Left face
         0, 3, 7, 7, 4, 0
     };
+	mesh.create(*this, vertices, indices);
 };
 
 
@@ -64,8 +68,8 @@ void VulkanContext::initVulkan() {
     loadModel();
     loadInstanceData();
 
-    createVertexBuffer();
-    createIndexBuffer();
+    //createVertexBuffer();
+    //createIndexBuffer();
     createInstanceBuffer();
     createUniformBuffers();
     createDescriptorPool();
@@ -87,12 +91,7 @@ void VulkanContext::cleanup() {
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-    // Buffers
-    vkDestroyBuffer(device, indexBuffer, nullptr);
-    vkFreeMemory(device, indexBufferMemory, nullptr);
-
-    vkDestroyBuffer(device, vertexBuffer, nullptr);
-    vkFreeMemory(device, vertexBufferMemory, nullptr);
+    mesh.cleanup(*this);
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
         vkDestroyBuffer(device, uniformBuffers[i], nullptr);
@@ -469,40 +468,6 @@ void VulkanContext::createCommandPool() {
         throw std::runtime_error("Failed to create command pool!");
     }
 }
-void VulkanContext::createVertexBuffer() {
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
-}
-void VulkanContext::createIndexBuffer() {
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
-}
 void VulkanContext::createUniformBuffers() {
     VkDeviceSize bufferSize = sizeof(Engine::UniformBufferObject);
     uniformBuffers.resize(swapChainImages.size());
@@ -730,10 +695,11 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     scissor.extent = swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkBuffer vertexBuffers[] = { vertexBuffer, instanceBuffer };
-    VkDeviceSize offsets[] = { 0, 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    //VkBuffer vertexBuffers[] = { vertexBuffer, instanceBuffer };
+    //VkDeviceSize offsets[] = { 0, 0 };
+    //vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+    //vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+	mesh.bind(commandBuffer);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
 
     Engine::PushConstantModel pushConstant{};
@@ -752,7 +718,8 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     );
 
     // Now draw all instances in one call
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), static_cast<uint32_t>(instanceData.size()), 0, 0, 0);
+    //vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), static_cast<uint32_t>(instanceData.size()), 0, 0, 0);
+	mesh.draw(commandBuffer);
     vkCmdEndRendering(commandBuffer);
 
     VkImageMemoryBarrier2 imageBarrierToPresent{};
@@ -950,6 +917,7 @@ VkShaderModule VulkanContext::createShaderModule(const std::vector<char>& code) 
     }
     return shaderModule;
 }
+// slated for deprecation as definition is in mesh
 void VulkanContext::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -975,6 +943,7 @@ void VulkanContext::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
 
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
+// slated for deprecation - as definition is in mesh
 void VulkanContext::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
