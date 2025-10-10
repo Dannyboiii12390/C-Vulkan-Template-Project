@@ -204,53 +204,54 @@ void VulkanContext::generateCylinder(float radius, float height, int segmentCoun
     }
 	mesh.create(*this, std::move(vertices), std::move(indices));
 }
-//Engine::Mesh VulkanContext::loadObj(const char* filepath)
-//{
-//    //load the model 
-//    Assimp::Importer importer;
-//
-//    const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
-//
-//    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-//    {
-//        std::cerr << "ASSIMP ERROR: " << importer.GetErrorString() << std::endl;
-//    }
-//
-//    std::vector<Engine::Vertex> vertices;
-//    std::vector<uint16_t> indices;
-//
-//    // Get first mesh
-//    aiMesh* aimesh = scene->mMeshes[0];
-//
-//    // === Vertices ===
-//    for (unsigned int i = 0; i < aimesh->mNumVertices; ++i)
-//    {
-//        Engine::Vertex vertex{};
-//
-//        vertex.pos = glm::vec3(
-//            aimesh->mVertices[i].x,
-//            aimesh->mVertices[i].y,
-//            aimesh->mVertices[i].z
-//        );
-//
-//        vertices.push_back(vertex);
-//    }
-//
-//    // === Indices ===
-//    for (unsigned int i = 0; i < aimesh->mNumFaces; ++i)
-//    {
-//        aiFace face = aimesh->mFaces[i];
-//        for (unsigned int j = 0; j < face.mNumIndices; ++j)
-//        {
-//            indices.push_back(face.mIndices[j]);
-//        }
-//    }
-//
-//	Engine::Mesh resultMesh;
-//    resultMesh.create(*this, std::move(vertices), std::move(indices));
-//	return resultMesh;
-//
-//}
+Engine::Mesh VulkanContext::loadObj(const char* filepath)
+{
+    //load the model 
+    Assimp::Importer importer;
+
+    const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+    {
+        std::cerr << "ASSIMP ERROR: " << importer.GetErrorString() << std::endl;
+    }
+
+    std::vector<Engine::Vertex> vertices;
+    std::vector<uint16_t> indices;
+
+    // Get first mesh
+    aiMesh* aimesh = scene->mMeshes[0];
+
+    // === Vertices ===
+    for (unsigned int i = 0; i < aimesh->mNumVertices; ++i)
+    {
+        Engine::Vertex vertex{};
+
+        vertex.pos = glm::vec3(
+            aimesh->mVertices[i].x,
+            aimesh->mVertices[i].y,
+            aimesh->mVertices[i].z
+        );
+		vertex.color = glm::vec3(1.0f, 1.0f, 1.0f); // Default white color
+
+        vertices.push_back(vertex);
+    }
+
+    // === Indices ===
+    for (unsigned int i = 0; i < aimesh->mNumFaces; ++i)
+    {
+        aiFace face = aimesh->mFaces[i];
+        for (unsigned int j = 0; j < face.mNumIndices; ++j)
+        {
+            indices.push_back(face.mIndices[j]);
+        }
+    }
+
+	Engine::Mesh resultMesh;
+    resultMesh.create(*this, std::move(vertices), std::move(indices));
+	return resultMesh;
+
+}
 
 // --- Main Application Flow ---
 VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
@@ -269,8 +270,8 @@ VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
     //loadModel();
 	//createGrid(10, 10); // Create a simple grid instead of loading a model
 	//createTerrain(20, 20, 0.5f); // Create a terrain mesh
-    generateCylinder(1.0f, 2.0f, 64);
-	//mesh = loadObj("Objects/drone.obj");
+    //generateCylinder(1.0f, 2.0f, 64);
+	mesh = loadObj("Objects/drone.obj");
     loadInstanceData();
 
     createInstanceBuffer();
