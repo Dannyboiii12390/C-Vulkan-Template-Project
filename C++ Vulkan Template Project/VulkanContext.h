@@ -89,6 +89,7 @@ private:
 
     // --- Mesh Data ---
     Engine::Mesh mesh;
+    Engine::Mesh terrain;
 
     // --- Instance Data ---
     std::vector<Engine::InstanceData> instanceData;
@@ -143,7 +144,12 @@ private:
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
         VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-    void loadModel();       
+    
+    void loadModel();  
+	void createGrid(int width, int depth);
+	void createTerrain(int width, int depth, float cellSize);
+	void generateCylinder(float radius, float height, int segmentCount);
+	Engine::Mesh loadObj(const char* filepath);
 
     // Declare the debugCallback function
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

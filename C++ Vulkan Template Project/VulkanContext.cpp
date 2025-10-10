@@ -2,6 +2,9 @@
 #include "Graphics/Vertex.h"
 #include "Graphics/InstanceData.h"
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 // --- Model Loading ---
 void VulkanContext::loadModel() {
@@ -37,7 +40,217 @@ void VulkanContext::loadModel() {
     //moving values into the mesh
 	mesh.create(*this, std::move(vertices), std::move(indices));
 };
+void VulkanContext::createGrid(int width, int depth)
+{
+	std::vector<Engine::Vertex> vertices;
+	std::vector<uint16_t> indices;
 
+    int halfWidth = width / 2;
+    int halfDepth = depth / 2;
+
+    // Generate vertices
+    for (int z = -halfDepth; z <= halfDepth; ++z)
+    {
+        for (int x = -halfWidth; x <= halfWidth; ++x)
+        {
+            Engine::Vertex v{};
+            v.pos = { glm::vec3(static_cast<float>(x), 0.0f, static_cast<float>(z)) };
+			v.color = { 1.0f,1.0f,1.0f };
+            vertices.push_back(v);
+        }
+    }
+
+    // Generate indices for line segments (horizontal and vertical lines)
+    for (int z = 0; z <= depth; ++z)
+    {
+        for (int x = 0; x < width; ++x)
+        {
+            uint32_t start = z * (width + 1) + x;
+            indices.push_back(start);
+            indices.push_back(start + 1);
+        }
+    }
+
+    for (int x = 0; x <= width; ++x)
+    {
+        for (int z = 0; z < depth; ++z)
+        {
+            uint32_t start = z * (width + 1) + x;
+            indices.push_back(start);
+            indices.push_back(start + (width + 1));
+        }
+    }
+    
+	mesh.create(*this, std::move(vertices), std::move(indices));
+
+}
+void VulkanContext::createTerrain(int width, int depth, float cellSize)
+{
+    std::vector<Engine::Vertex> vertices;
+    std::vector<uint16_t> indices;
+
+    int halfWidth = width / 2;
+    int halfDepth = depth / 2;
+
+    // Generate vertices
+    for (int z = -halfDepth; z <= halfDepth; ++z)
+    {
+        for (int x = -halfWidth; x <= halfWidth; ++x)
+        {
+            Engine::Vertex v{};
+			float y = sin(x) * cos(z); // Simple height function for terrain
+            v.pos = { glm::vec3(static_cast<float>(x), y, static_cast<float>(z)) };
+            v.color = { 1.0f,1.0f,1.0f };
+            vertices.push_back(v);
+        }
+    }
+
+    // Generate indices for line segments (horizontal and vertical lines)
+    for (int z = 0; z <= depth; ++z)
+    {
+        for (int x = 0; x < width; ++x)
+        {
+            uint32_t start = z * (width + 1) + x;
+            indices.push_back(start);
+            indices.push_back(start + 1);
+        }
+    }
+
+    for (int x = 0; x <= width; ++x)
+    {
+        for (int z = 0; z < depth; ++z)
+        {
+            uint32_t start = z * (width + 1) + x;
+            indices.push_back(start);
+            indices.push_back(start + (width + 1));
+        }
+    }
+
+    mesh.create(*this, std::move(vertices), std::move(indices));
+}
+void VulkanContext::generateCylinder(float radius, float height, int segmentCount)
+{
+	std::vector<Engine::Vertex> vertices;
+	std::vector<uint16_t> indices;
+
+    float halfHeight = height / 2.0f;
+    float angleStep = glm::two_pi<float>() / segmentCount;
+
+    // === Bottom cap vertices ===
+    uint32_t bottomCenterIndex = static_cast<uint32_t>(vertices.size());
+    vertices.push_back({ {0.0f, -halfHeight, 0.0f}, {1.0f, 1.0f, 1.0f} });  // center vertex
+
+    for (int i = 0; i <= segmentCount; ++i)
+    {
+        float angle = i * angleStep;
+        float x = radius * cos(angle);
+        float z = radius * sin(angle);
+        vertices.push_back({ {x, -halfHeight, z}, {1.0f, 0.0f, 0.0f} });
+    }
+
+    // === Top cap vertices ===
+    uint32_t topCenterIndex = static_cast<uint32_t>(vertices.size());
+    vertices.push_back({ {0.0f, +halfHeight, 0.0f}, {1.0f, 1.0f, 1.0f} });  // center vertex
+
+    for (int i = 0; i <= segmentCount; ++i)
+    {
+        float angle = i * angleStep;
+        float x = radius * cos(angle);
+        float z = radius * sin(angle);
+        vertices.push_back({ {x, +halfHeight, z}, {0.0f, 0.0f, 1.0f} });
+    }
+
+    // === Side wall vertices ===
+    // We already have all positions — we'll just reference them in indices
+    // bottom: [1 ... segmentCount+1]
+    // top:    [topCenterIndex+1 ... topCenterIndex+segmentCount+1]
+
+    // === Indices for bottom cap ===
+    for (int i = 1; i <= segmentCount; ++i)
+    {
+        indices.push_back(bottomCenterIndex);
+        indices.push_back(bottomCenterIndex + i);
+        indices.push_back(bottomCenterIndex + i + 1);
+    }
+
+    // === Indices for top cap ===
+    for (int i = 1; i <= segmentCount; ++i)
+    {
+        indices.push_back(topCenterIndex);
+        indices.push_back(topCenterIndex + i + 1);
+        indices.push_back(topCenterIndex + i);
+    }
+
+    // === Indices for side walls ===
+    uint32_t bottomStart = bottomCenterIndex + 1;
+    uint32_t topStart = topCenterIndex + 1;
+
+    for (int i = 0; i < segmentCount; ++i)
+    {
+        uint32_t bl = bottomStart + i;
+        uint32_t br = bottomStart + i + 1;
+        uint32_t tl = topStart + i;
+        uint32_t tr = topStart + i + 1;
+
+        // First triangle
+        indices.push_back(bl);
+        indices.push_back(tl);
+        indices.push_back(tr);
+
+        // Second triangle
+        indices.push_back(bl);
+        indices.push_back(tr);
+        indices.push_back(br);
+    }
+	mesh.create(*this, std::move(vertices), std::move(indices));
+}
+//Engine::Mesh VulkanContext::loadObj(const char* filepath)
+//{
+//    //load the model 
+//    Assimp::Importer importer;
+//
+//    const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+//
+//    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+//    {
+//        std::cerr << "ASSIMP ERROR: " << importer.GetErrorString() << std::endl;
+//    }
+//
+//    std::vector<Engine::Vertex> vertices;
+//    std::vector<uint16_t> indices;
+//
+//    // Get first mesh
+//    aiMesh* aimesh = scene->mMeshes[0];
+//
+//    // === Vertices ===
+//    for (unsigned int i = 0; i < aimesh->mNumVertices; ++i)
+//    {
+//        Engine::Vertex vertex{};
+//
+//        vertex.pos = glm::vec3(
+//            aimesh->mVertices[i].x,
+//            aimesh->mVertices[i].y,
+//            aimesh->mVertices[i].z
+//        );
+//
+//        vertices.push_back(vertex);
+//    }
+//
+//    // === Indices ===
+//    for (unsigned int i = 0; i < aimesh->mNumFaces; ++i)
+//    {
+//        aiFace face = aimesh->mFaces[i];
+//        for (unsigned int j = 0; j < face.mNumIndices; ++j)
+//        {
+//            indices.push_back(face.mIndices[j]);
+//        }
+//    }
+//
+//	Engine::Mesh resultMesh;
+//    resultMesh.create(*this, std::move(vertices), std::move(indices));
+//	return resultMesh;
+//
+//}
 
 // --- Main Application Flow ---
 VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
@@ -53,7 +266,11 @@ VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
     createGraphicsPipeline();
     createCommandPool();
 
-    loadModel();
+    //loadModel();
+	//createGrid(10, 10); // Create a simple grid instead of loading a model
+	//createTerrain(20, 20, 0.5f); // Create a terrain mesh
+    generateCylinder(1.0f, 2.0f, 64);
+	//mesh = loadObj("Objects/drone.obj");
     loadInstanceData();
 
     createInstanceBuffer();
@@ -687,10 +904,6 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     scissor.extent = swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    //VkBuffer vertexBuffers[] = { vertexBuffer, instanceBuffer };
-    //VkDeviceSize offsets[] = { 0, 0 };
-    //vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
-    //vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 	mesh.bind(commandBuffer, instanceBuffer);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
 
@@ -699,7 +912,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float>(currentTime - startTime).count();
 
-    pushConstant.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	pushConstant.model = glm::mat4(1.0f);
     vkCmdPushConstants(
         commandBuffer,
         pipelineLayout,
@@ -709,9 +922,9 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
         &pushConstant
     );
 
-    // Now draw all instances in one call
-    //vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), static_cast<uint32_t>(instanceData.size()), 0, 0, 0);
 	mesh.draw(commandBuffer, instanceData.size());
+
+
     vkCmdEndRendering(commandBuffer);
 
     VkImageMemoryBarrier2 imageBarrierToPresent{};
@@ -741,9 +954,17 @@ void VulkanContext::updateUniformBuffer(uint32_t currentImage) {
 
     Engine::UniformBufferObject ubo{};
     //ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    /*ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-    ubo.proj[1][1] *= -1;
+    ubo.proj[1][1] *= -1;*/
+    ubo.view = glm::lookAt(
+        glm::vec3(0.0f, 5.0f, 10.0f),  // eye position
+        glm::vec3(0.0f, 0.0f, 0.0f),  // looking at origin
+        glm::vec3(0.0f, 1.0f, 0.0f)   // up
+    );
+
+    ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f);
+    ubo.proj[1][1] *= -1;  // Flip Y for Vulkan
 
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

@@ -29,4 +29,5 @@ namespace Engine
         attributeDescriptions[2] = { 2, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, offset) };
         return attributeDescriptions;
     }
+
 }
