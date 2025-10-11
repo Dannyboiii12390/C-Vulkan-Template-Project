@@ -38,9 +38,7 @@ void Engine::Mesh::createBuffer(VulkanContext& context, VkDeviceSize size, VkBuf
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(context.device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create buffer!");
-    }
+	ASSERT(vkCreateBuffer(context.device, &bufferInfo, nullptr, &buffer) == VK_SUCCESS);
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(context.device, buffer, &memRequirements);
@@ -50,9 +48,7 @@ void Engine::Mesh::createBuffer(VulkanContext& context, VkDeviceSize size, VkBuf
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = context.findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(context.device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
+	ASSERT(vkAllocateMemory(context.device, &allocInfo, nullptr, &bufferMemory) == VK_SUCCESS);
 
     vkBindBufferMemory(context.device, buffer, bufferMemory, 0);
 }
@@ -91,8 +87,6 @@ void Engine::Mesh::createIndexBuffer(VulkanContext& context) {
     vkDestroyBuffer(context.device, stagingBuffer, nullptr);
     vkFreeMemory(context.device, stagingBufferMemory, nullptr);
 }
-
-//public
 
 void Engine::Mesh::create(VulkanContext& context, std::vector<Vertex>&& pVertices, std::vector<uint16_t>&& pIndices)
 {

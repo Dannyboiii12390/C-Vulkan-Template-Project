@@ -7,6 +7,7 @@
 #include "Graphics/InstanceData.h"
 #include "Graphics/PushConstantModel.h"
 #include "Graphics/Mesh.h"
+#include "Graphics/Pipeline.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -69,8 +70,7 @@ private:
 
     // --- Graphics Pipeline ---
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+	Pipeline pipeline;
 
     // --- Buffers and Memory ---
     std::vector<VkBuffer> uniformBuffers;
@@ -112,9 +112,7 @@ private:
     void createSwapChain();
     void createImageViews();
     void createDescriptorSetLayout();
-    void createGraphicsPipeline();
     void createCommandPool();
-
     void createUniformBuffers();
     void createDescriptorPool();
     void createDescriptorSets();
@@ -139,17 +137,12 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
-    static std::vector<char> readFile(const std::string& filename);
-    VkShaderModule createShaderModule(const std::vector<char>& code);
+
+
+    // to be removed later - once buffer class is implemented
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
         VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-    
-    void loadModel();  
-	void createGrid(int width, int depth);
-	void createTerrain(int width, int depth, float cellSize);
-	void generateCylinder(float radius, float height, int segmentCount);
-	Engine::Mesh loadObj(const char* filepath);
 
     // Declare the debugCallback function
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

@@ -22,7 +22,7 @@ namespace Engine
 		VkBuffer indexBuffer = VK_NULL_HANDLE;
 		VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
 
-		uint32_t indexCount;
+		uint32_t indexCount = 0;
 
 		void createVertexBuffer(VulkanContext& context);
 		void createIndexBuffer(VulkanContext& context);
