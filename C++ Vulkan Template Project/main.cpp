@@ -2,9 +2,36 @@
 #include "VulkanContext.h"
 #include <iostream>
 
-//todo
-//swapchain
-//command pool?
+
+/* todo: break into components
+Device — Physical/logical device and queue setup
+
+Swapchain — Swapchain and image management
+
+RenderPass — Render pass setup
+
+Framebuffer — Framebuffers for each swapchain image
+
+CommandPool/CommandBuffer — Command buffer management
+
+ShaderModule — Shader loading and management
+
+Buffer — Vertex/index/uniform buffers
+
+Texture — Texture image and sampler
+
+DescriptorSet — Descriptor set layouts and updates
+
+Synchronization — Fences, semaphores for frame sync
+
+MemoryAllocator — Memory management abstraction
+
+Camera — Camera matrices and controls
+
+InputHandler — Input processing
+
+DebugUtils — Validation and profiling helpers
+*/
 
 int main() {
 
