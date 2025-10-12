@@ -1,49 +1,50 @@
 #include "Mesh.h"
 #include "../VulkanContext.h"
-
-void Engine::Mesh::create(VulkanContext& context, std::vector<Vertex>&& pVertices, std::vector<uint16_t>&& pIndices)
+namespace Engine
 {
-	//LOG("Creating Mesh with move semantics");
-    vertices = std::move(pVertices);
-    indices = std::move(pIndices);
-    indexCount = static_cast<uint32_t>(indices.size());
-    //createVertexBuffer(context);
-    //createIndexBuffer(context);
-	vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
-	indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
-}
-void Engine::Mesh::create(VulkanContext& context, const std::vector<Vertex>& pVertices, const std::vector<uint16_t>& pIndices)
-{
-    //move later on
-    vertices = pVertices;
-    indices = pIndices;
-    indexCount = static_cast<uint32_t>(indices.size());
-    //createVertexBuffer(context);
-    //createIndexBuffer(context);
-	vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
-	indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
-}
-void Engine::Mesh::cleanup(VulkanContext& context)
-{
-	indexBuffer.destroy(context.device);
-	vertexBuffer.destroy(context.device);
-}
-void Engine::Mesh::bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer)
-{
-    if (instanceBuffer != VK_NULL_HANDLE) {
-        // Bind vertex buffer (binding 0) and instance buffer (binding 1)
-        VkBuffer vertexBuffers[] = { vertexBuffer.buffer, instanceBuffer };
-        VkDeviceSize offsets[] = { 0, 0 };
-        vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+    void Mesh::create(VulkanContext& context, std::vector<Vertex>&& pVertices, std::vector<uint16_t>&& pIndices)
+    {
+        //LOG("Creating Mesh with move semantics");
+        vertices = std::move(pVertices);
+        indices = std::move(pIndices);
+        indexCount = static_cast<uint32_t>(indices.size());
+        //createVertexBuffer(context);
+        //createIndexBuffer(context);
+        vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
+        indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
     }
-    else {
-        VkBuffer vertexBuffers[] = { vertexBuffer.buffer };
-        VkDeviceSize offsets[] = { 0 };
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    void Mesh::create(VulkanContext& context, const std::vector<Vertex>& pVertices, const std::vector<uint16_t>& pIndices)
+    {
+        //move later on
+        vertices = pVertices;
+        indices = pIndices;
+        indexCount = static_cast<uint32_t>(indices.size());
+        //createVertexBuffer(context);
+        //createIndexBuffer(context);
+        vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
+        indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
     }
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+    void Mesh::cleanup(VulkanContext& context)
+    {
+        indexBuffer.destroy(context.device);
+        vertexBuffer.destroy(context.device);
+    }
+    void Mesh::bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer)
+    {
+        if (instanceBuffer != VK_NULL_HANDLE) {
+            // Bind vertex buffer (binding 0) and instance buffer (binding 1)
+            VkBuffer vertexBuffers[] = { vertexBuffer.buffer, instanceBuffer };
+            VkDeviceSize offsets[] = { 0, 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+        }
+        else {
+            VkBuffer vertexBuffers[] = { vertexBuffer.buffer };
+            VkDeviceSize offsets[] = { 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        }
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+    }
+    void Mesh::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount) {
+        vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
+    }
 }
-void Engine::Mesh::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount) {
-    vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
-}
-

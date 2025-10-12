@@ -32,8 +32,14 @@ DebugUtils — Validation and profiling helpers
 int main() {
 
     VulkanContext app;
-    try {
-        app.run();
+    try 
+    {
+        while (!app.window.shouldClose()) {
+            glfwPollEvents();
+            app.drawFrame();
+        }
+        vkDeviceWaitIdle(app.device);
+        app.cleanup();
     }
     catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;

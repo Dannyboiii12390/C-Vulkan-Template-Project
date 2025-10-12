@@ -3,9 +3,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include "Core/Window.h"
-#include "Graphics/Vertex.h"
-#include "Graphics/InstanceData.h"
-#include "Graphics/PushConstantModel.h"
+#include "Graphics/VulkanTypes.h"
 #include "Graphics/Mesh.h"
 #include "Graphics/Pipeline.h"
 #include "Graphics/Swapchain.h"
@@ -44,7 +42,6 @@ const std::vector<const char*> deviceExtensions = {
 
 class VulkanContext {
 public:
-    void run();
     VulkanContext();
 
     // --- Vulkan Core Components ---
@@ -62,15 +59,15 @@ public:
 	Engine::Mesh mesh;
 
     // --- Swapchain ---
-	Swapchain swapChain;
+	Engine::Swapchain swapChain;
 
     // --- Graphics Pipeline ---
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-	Pipeline pipeline;
+	Engine::Pipeline pipeline;
 
 	// --- Buffers ---
-    std::vector<Buffer> uniformBuffers;
-    Buffer instanceBuffer;
+    std::vector<Engine::Buffer> uniformBuffers;
+    Engine::Buffer instanceBuffer;
     std::vector<Engine::InstanceData> instanceData;
 
     // --- Descriptors ---
