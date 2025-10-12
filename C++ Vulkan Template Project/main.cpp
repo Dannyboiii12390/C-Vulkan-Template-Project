@@ -6,8 +6,6 @@
 /* todo: break into components
 Device — Physical/logical device and queue setup
 
-Swapchain — Swapchain and image management
-
 RenderPass — Render pass setup
 
 Framebuffer — Framebuffers for each swapchain image
@@ -15,8 +13,6 @@ Framebuffer — Framebuffers for each swapchain image
 CommandPool/CommandBuffer — Command buffer management
 
 ShaderModule — Shader loading and management
-
-Buffer — Vertex/index/uniform buffers
 
 Texture — Texture image and sampler
 

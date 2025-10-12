@@ -8,6 +8,7 @@
 #include "Graphics/PushConstantModel.h"
 #include "Graphics/Mesh.h"
 #include "Graphics/Pipeline.h"
+#include "Graphics/Swapchain.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -57,29 +58,21 @@ public:
     VkQueue presentQueue = VK_NULL_HANDLE;
     VkCommandPool commandPool = VK_NULL_HANDLE;
 
-private:
     // --- Core Application Members ---
     Engine::Window window;
+	Engine::Mesh mesh;
 
     // --- Swapchain ---
-    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat = VK_FORMAT_UNDEFINED;
-    VkExtent2D swapChainExtent{ 0, 0 };
-    std::vector<VkImageView> swapChainImageViews;
+	Swapchain swapChain;
 
     // --- Graphics Pipeline ---
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 	Pipeline pipeline;
 
-    // --- Buffers and Memory ---
-    // replace existing uniform buffer members...
-    // std::vector<VkBuffer> uniformBuffers;
-    // std::vector<VkDeviceMemory> uniformBuffersMemory;
-    // std::vector<void*> uniformBuffersMapped;
-
-    // with:
+	// --- Buffers ---
     std::vector<Buffer> uniformBuffers;
+    Buffer instanceBuffer;
+    std::vector<Engine::InstanceData> instanceData;
 
     // --- Descriptors ---
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -90,14 +83,6 @@ private:
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
-
-    // --- Mesh Data ---
-    Engine::Mesh mesh;
-    //Engine::Mesh terrain;
-
-    // --- Instance Data ---
-    std::vector<Engine::InstanceData> instanceData;
-	Buffer instanceBuffer;
     
     void loadInstanceData();
     void createInstanceBuffer();
@@ -112,11 +97,8 @@ private:
     void createSurface();
     void pickPhysicalDevice();
     void createLogicalDevice();
-    void createSwapChain();
-    void createImageViews();
     void createDescriptorSetLayout();
     void createCommandPool();
-    void createUniformBuffers();
     void createDescriptorPool();
     void createDescriptorSets();
     void createCommandBuffers();
@@ -124,8 +106,6 @@ private:
 
     // --- Drawing and Swapchain Handling ---
     void drawFrame();
-    void recreateSwapChain();
-    void cleanupSwapChain();
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void updateUniformBuffer(uint32_t currentImage);
 
@@ -140,6 +120,19 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
+
+	template<typename T>
+    void cleanSemaphores(std::vector<T>& semaphores) 
+    {
+        for (T& sem : semaphores) {
+            if (sem != VK_NULL_HANDLE) {
+                vkDestroySemaphore(device, sem, nullptr);
+                sem = VK_NULL_HANDLE;
+            }
+        }
+        semaphores.clear();
+    }
+    void cleanFences(std::vector<VkFence>& fences);
 
     // Declare the debugCallback function
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
