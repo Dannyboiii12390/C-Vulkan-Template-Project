@@ -3,9 +3,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include "Core/Window.h"
-#include "Graphics/Vertex.h"
-#include "Graphics/InstanceData.h"
-#include "Graphics/PushConstantModel.h"
+#include "Graphics/VulkanTypes.h"
 #include "Graphics/Mesh.h"
 #include "Graphics/Pipeline.h"
 #include "Graphics/Swapchain.h"

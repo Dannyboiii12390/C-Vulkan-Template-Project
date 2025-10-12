@@ -44,16 +44,22 @@ private:
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
+    std::vector<VkDynamicState> dynamicStates = 
+    {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+
     // Helper methods
     std::vector<char> readFile(const std::string& filename);
     VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code);
 
     // Pipeline state setup methods
-    VkPipelineVertexInputStateCreateInfo createVertexInputState();
+    VkPipelineVertexInputStateCreateInfo createVertexInputState(const std::vector<VkVertexInputAttributeDescription>& attributeDescriptions, const std::vector<VkVertexInputBindingDescription>& bindingDescriptions);
     VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState();
     VkPipelineViewportStateCreateInfo createViewportState();
     VkPipelineRasterizationStateCreateInfo createRasterizationState();
     VkPipelineMultisampleStateCreateInfo createMultisampleState();
-    VkPipelineColorBlendStateCreateInfo createColorBlendState();
+    VkPipelineColorBlendStateCreateInfo createColorBlendState(const VkPipelineColorBlendAttachmentState& colorBlendAttachment);
     VkPipelineDynamicStateCreateInfo createDynamicState();
 };

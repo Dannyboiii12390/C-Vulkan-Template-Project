@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "Vertex.h"
+#include "VulkanTypes.h"
 #include <vulkan/vulkan.h>
 #include "Buffer.h"
 

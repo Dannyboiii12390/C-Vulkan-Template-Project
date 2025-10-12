@@ -1,14 +1,9 @@
 #include "Pipeline.h"
 #include "../VulkanContext.h"
-#include "../Graphics/Vertex.h"
-#include "../Graphics/InstanceData.h"
-
+#include "VulkanTypes.h"
 #include <stdexcept>
 
-Pipeline::~Pipeline() {
-    // Note: We don't call destroy here as VkDevice might be invalid
-    // Destruction must be explicitly handled by the owner
-}
+Pipeline::~Pipeline() {}
 
 void Pipeline::create(
     VulkanContext& context,
@@ -42,46 +37,15 @@ void Pipeline::create(
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
     // Get vertex binding and attribute descriptions
-    auto bindingDescription = Engine::Vertex::getBindingDescription();
     auto attributeDescriptions = Engine::Vertex::getAttributeDescriptions();
     auto bindingDescriptions = Engine::Vertex::getBindingDescriptions();
 
-    // Vertex input
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-    // Input assembly
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-    // Viewport state
-    VkPipelineViewportStateCreateInfo viewportState{};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.scissorCount = 1;
-
-    // Rasterization state
-    VkPipelineRasterizationStateCreateInfo rasterizer{};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_LINE; // Wireframe mode
-    rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_NONE;
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
-
-    // Multisample state
-    VkPipelineMultisampleStateCreateInfo multisampling{};
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	VkPipelineVertexInputStateCreateInfo vertexInputInfo = createVertexInputState(attributeDescriptions, bindingDescriptions);
+	VkPipelineInputAssemblyStateCreateInfo inputAssembly = createInputAssemblyState();
+	VkPipelineViewportStateCreateInfo viewportState = createViewportState();
+	VkPipelineRasterizationStateCreateInfo rasterizer = createRasterizationState();
+	VkPipelineMultisampleStateCreateInfo multisampling = createMultisampleState();
 
     // Color blend attachment
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
@@ -90,23 +54,8 @@ void Pipeline::create(
         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_FALSE;
 
-    // Color blend state
-    VkPipelineColorBlendStateCreateInfo colorBlending{};
-    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
-
-    // Dynamic state
-    std::vector<VkDynamicState> dynamicStates = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
-
-    VkPipelineDynamicStateCreateInfo dynamicState{};
-    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-    dynamicState.pDynamicStates = dynamicStates.data();
+	VkPipelineColorBlendStateCreateInfo colorBlending = createColorBlendState(colorBlendAttachment);
+	VkPipelineDynamicStateCreateInfo dynamicState = createDynamicState();
 
     // Push constants
     VkPushConstantRange pushConstantRange{};
@@ -129,6 +78,7 @@ void Pipeline::create(
     renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     renderingCreateInfo.colorAttachmentCount = 1;
     renderingCreateInfo.pColorAttachmentFormats = &colorFormat;
+
 
     // Create the graphics pipeline
     VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -191,17 +141,15 @@ VkShaderModule Pipeline::createShaderModule(VkDevice device, const std::vector<c
     return shaderModule;
 }
 
-// The following methods are not used in the current implementation but are kept for potential future use
-// Not Tested either
-VkPipelineVertexInputStateCreateInfo Pipeline::createVertexInputState() {
-    auto bindingDescriptions = Engine::Vertex::getBindingDescriptions();
-    auto attributeDescriptions = Engine::Vertex::getAttributeDescriptions();
+VkPipelineVertexInputStateCreateInfo Pipeline::createVertexInputState(const std::vector<VkVertexInputAttributeDescription>& attributeDescriptions, const std::vector<VkVertexInputBindingDescription>& bindingDescriptions) 
+{
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
     vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
     return vertexInputInfo;
 }
 VkPipelineInputAssemblyStateCreateInfo Pipeline::createInputAssemblyState() {
@@ -223,9 +171,9 @@ VkPipelineRasterizationStateCreateInfo Pipeline::createRasterizationState() {
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.depthClampEnable = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL; // Change to LINE for wireframe
+    rasterizer.polygonMode = VK_POLYGON_MODE_LINE; // Wireframe mode
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
     return rasterizer;
@@ -237,24 +185,16 @@ VkPipelineMultisampleStateCreateInfo Pipeline::createMultisampleState() {
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     return multisampling;
 }
-VkPipelineColorBlendStateCreateInfo Pipeline::createColorBlendState() {
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask =
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
+VkPipelineColorBlendStateCreateInfo Pipeline::createColorBlendState(const VkPipelineColorBlendAttachmentState& colorBlendAttachment) {
+
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
+	colorBlending.pAttachments = &colorBlendAttachment; // if attachment is created in this method. it will go out of scope when method ends. so must be declared in caller
     return colorBlending;
 }
 VkPipelineDynamicStateCreateInfo Pipeline::createDynamicState() {
-    std::vector<VkDynamicState> dynamicStates = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());

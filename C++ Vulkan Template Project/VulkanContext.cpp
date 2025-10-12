@@ -1,6 +1,5 @@
 #include "VulkanContext.h"
-#include "Graphics/Vertex.h"
-#include "Graphics/InstanceData.h"
+#include "Graphics/VulkanTypes.h"
 #include "Core/ModelLoader.h"
 #include "Graphics/Swapchain.h"
 

@@ -143,7 +143,7 @@
     <ClCompile Include="Graphics\Buffer.cpp" />
     <ClCompile Include="DebugUtils.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Graphics\Vertex.cpp" />
+    <ClCompile Include="Graphics\VulkanTypes.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
     <ClCompile Include="Graphics\Pipeline.cpp" />
     <ClCompile Include="Core\ModelLoader.cpp" />
@@ -154,9 +154,7 @@
   <ItemGroup>
     <ClInclude Include="Graphics\Buffer.h" />
     <ClInclude Include="Debug Utils.h" />
-    <ClInclude Include="Graphics\InstanceData.h" />
-    <ClInclude Include="Graphics\PushConstantModel.h" />
-    <ClInclude Include="Graphics\Vertex.h" />
+    <ClInclude Include="Graphics\VulkanTypes.h" />
     <ClInclude Include="Graphics\Mesh.h" />
     <ClInclude Include="Graphics\Pipeline.h" />
     <ClInclude Include="Core\ModelLoader.h" />
