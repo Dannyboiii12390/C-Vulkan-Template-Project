@@ -42,7 +42,6 @@ const std::vector<const char*> deviceExtensions = {
 
 class VulkanContext {
 public:
-    void run();
     VulkanContext();
 
     // --- Vulkan Core Components ---

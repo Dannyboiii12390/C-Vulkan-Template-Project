@@ -51,11 +51,6 @@ VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
     createSyncObjects();
 }
 
-void VulkanContext::run() 
-{
-    mainLoop();
-    cleanup();
-}
 void VulkanContext::mainLoop() {
     while (!window.shouldClose()) {
         glfwPollEvents();
@@ -390,7 +385,9 @@ void VulkanContext::drawFrame() {
 
     window.resetCurrentFrame(swapChain.imageCount);
 }
-void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+// called every frame - only these 2
+void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+{
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
