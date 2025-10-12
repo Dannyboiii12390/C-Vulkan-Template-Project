@@ -24,7 +24,7 @@ VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
     createDescriptorSetLayout();
 
 	// --- create graphics pipeline ---
-    pipeline.create(*this, "shaders/vert.spv", "shaders/frag.spv", swapChain.imageFormat, descriptorSetLayout);
+    pipeline.create(*this, "shaders/shader.vert.spv", "shaders/shader.frag.spv", swapChain.imageFormat, descriptorSetLayout);
 
     createCommandPool();
 

@@ -120,6 +120,10 @@
       <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)packages\Assimp.3.0.0\build\native\lib\x64;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalDependencies)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -138,6 +142,10 @@
       <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)packages\Assimp.3.0.0\build\native\lib\x64;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalDependencies)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Graphics\Buffer.cpp" />
@@ -166,6 +174,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="shaders\compile.bat" />
+    <None Include="shaders\shader.frag" />
+    <None Include="shaders\shader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
