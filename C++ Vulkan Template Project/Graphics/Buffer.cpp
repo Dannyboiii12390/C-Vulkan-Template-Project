@@ -26,7 +26,7 @@ void Buffer::create(VulkanContext& ctx, VkDeviceSize bufferSize, VkBufferUsageFl
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = ctx.findMemoryType(memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex = findMemoryType(ctx, memRequirements.memoryTypeBits, properties);
 
     if (vkAllocateMemory(device, &allocInfo, nullptr, &memory) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate buffer memory");
@@ -124,6 +124,7 @@ void Buffer::copy(VulkanContext& context, const Buffer& src, Buffer& dst, VkDevi
     vkQueueWaitIdle(context.graphicsQueue);
     vkFreeCommandBuffers(context.device, context.commandPool, 1, &commandBuffer);
 }
+
 Buffer Buffer::createVertexBuffer(VulkanContext& ctx, const void* data, VkDeviceSize dataSize) {
     // Create staging buffer
     Buffer staging{};
@@ -170,4 +171,15 @@ Buffer Buffer::createUniformBuffer(VulkanContext& ctx, VkDeviceSize dataSize) {
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     return ub;
+}
+
+uint32_t Buffer::findMemoryType(VulkanContext& context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(context.physicalDevice, &memProperties);
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            return i;
+        }
+    }
+    ASSERT(1 != 0); // Failed to find suitable memory type!
 }

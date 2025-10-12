@@ -46,7 +46,6 @@ class VulkanContext {
 public:
     void run();
     VulkanContext();
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     // --- Vulkan Core Components ---
     VkInstance instance = VK_NULL_HANDLE;
@@ -110,7 +109,6 @@ public:
     void updateUniformBuffer(uint32_t currentImage);
 
     // --- Helper Functions ---
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     bool isDeviceSuitable(VkPhysicalDevice device);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     Engine::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
@@ -121,6 +119,7 @@ public:
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
 
+	// --- Cleanup Helpers ---
 	template<typename T>
     void cleanSemaphores(std::vector<T>& semaphores) 
     {
@@ -133,11 +132,4 @@ public:
         semaphores.clear();
     }
     void cleanFences(std::vector<VkFence>& fences);
-
-    // Declare the debugCallback function
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData);
 };
