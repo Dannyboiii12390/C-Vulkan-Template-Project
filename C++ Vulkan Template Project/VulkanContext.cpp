@@ -62,7 +62,7 @@ void VulkanContext::mainLoop() {
 }
 void VulkanContext::cleanup() {
 
-    ASSERT(device == VK_NULL_HANDLE); 
+    ASSERT(device != VK_NULL_HANDLE); 
 	vkDeviceWaitIdle(device);
 
 	cleanSemaphores(renderFinishedSemaphores);
@@ -76,11 +76,8 @@ void VulkanContext::cleanup() {
 
     mesh.cleanup(*this);
 
-    for (auto& buf : uniformBuffers) {
-        buf.destroy(device);
-    }
+    for (auto& buf : uniformBuffers) buf.destroy(device);
     uniformBuffers.clear();
-
     instanceBuffer.destroy(device);
 
 	// Descriptor pool
@@ -98,6 +95,13 @@ void VulkanContext::cleanup() {
 	vkDestroyDevice(device, nullptr);
 	device = VK_NULL_HANDLE;
     
+    // Debug messenger (instance object)
+    if (enableValidationLayers)
+    {
+        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        debugMessenger = VK_NULL_HANDLE;
+    }
+
     // Surface
 	ASSERT(instance != VK_NULL_HANDLE);
     vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -107,13 +111,6 @@ void VulkanContext::cleanup() {
 	ASSERT(instance != VK_NULL_HANDLE);
     vkDestroyInstance(instance, nullptr);
 	instance = VK_NULL_HANDLE;
-
-    // Debug messenger (instance object)
-    if (enableValidationLayers) 
-    {
-        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-        debugMessenger = VK_NULL_HANDLE;
-    }
 }
 
 // --- Vulkan Initialization Methods ---
