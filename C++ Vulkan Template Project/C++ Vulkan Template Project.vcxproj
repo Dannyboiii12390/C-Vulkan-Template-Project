@@ -164,6 +164,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="SHADERS\compile.bat" />
+    <None Include="SHADERS\frag.spv" />
+    <None Include="SHADERS\shader.frag" />
+    <None Include="SHADERS\shader.vert" />
+    <None Include="SHADERS\vert.spv" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

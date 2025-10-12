@@ -27,7 +27,11 @@ VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
 
     createCommandPool();
 
-    mesh = ModelLoader::loadCube(*this);
+    mesh = Engine::ModelLoader::loadCube(*this);
+	//mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
+	//mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
+	//mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
+	//mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
 
     loadInstanceData();
 
@@ -38,7 +42,7 @@ VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
     uniformBuffers.reserve(swapChain.imageCount);
 
     for (size_t i = 0; i < swapChain.imageCount; i++) {
-        uniformBuffers.emplace_back(Buffer::createUniformBuffer(*this, sizeof(Engine::UniformBufferObject)));
+        uniformBuffers.emplace_back(Engine::Buffer::createUniformBuffer(*this, sizeof(Engine::UniformBufferObject)));
     }
 
     createDescriptorPool();
@@ -642,7 +646,7 @@ void VulkanContext::createInstanceBuffer()
     if (bufferSize == 0) return;
 
     // create host-visible staging buffer and upload data
-    Buffer stagingBuffer;
+    Engine::Buffer stagingBuffer;
     stagingBuffer.create(*this, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     stagingBuffer.write(device, instanceData.data(), bufferSize);
@@ -651,7 +655,7 @@ void VulkanContext::createInstanceBuffer()
     instanceBuffer.create(*this, bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    Buffer::copy(*this, stagingBuffer, instanceBuffer, bufferSize);
+    Engine::Buffer::copy(*this, stagingBuffer, instanceBuffer, bufferSize);
 
     // cleanup staging buffer
     stagingBuffer.destroy(device);

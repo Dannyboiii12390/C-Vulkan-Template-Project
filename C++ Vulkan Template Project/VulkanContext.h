@@ -60,15 +60,15 @@ public:
 	Engine::Mesh mesh;
 
     // --- Swapchain ---
-	Swapchain swapChain;
+	Engine::Swapchain swapChain;
 
     // --- Graphics Pipeline ---
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-	Pipeline pipeline;
+	Engine::Pipeline pipeline;
 
 	// --- Buffers ---
-    std::vector<Buffer> uniformBuffers;
-    Buffer instanceBuffer;
+    std::vector<Engine::Buffer> uniformBuffers;
+    Engine::Buffer instanceBuffer;
     std::vector<Engine::InstanceData> instanceData;
 
     // --- Descriptors ---
