@@ -73,9 +73,13 @@ private:
 	Pipeline pipeline;
 
     // --- Buffers and Memory ---
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
-    std::vector<void*> uniformBuffersMapped;
+    // replace existing uniform buffer members...
+    // std::vector<VkBuffer> uniformBuffers;
+    // std::vector<VkDeviceMemory> uniformBuffersMemory;
+    // std::vector<void*> uniformBuffersMapped;
+
+    // with:
+    std::vector<Buffer> uniformBuffers;
 
     // --- Descriptors ---
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -89,12 +93,11 @@ private:
 
     // --- Mesh Data ---
     Engine::Mesh mesh;
-    Engine::Mesh terrain;
+    //Engine::Mesh terrain;
 
     // --- Instance Data ---
     std::vector<Engine::InstanceData> instanceData;
-    VkBuffer instanceBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
+	Buffer instanceBuffer;
     
     void loadInstanceData();
     void createInstanceBuffer();
@@ -137,12 +140,6 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
-
-
-    // to be removed later - once buffer class is implemented
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-        VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
     // Declare the debugCallback function
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

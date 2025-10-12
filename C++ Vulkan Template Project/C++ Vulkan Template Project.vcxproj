@@ -140,6 +140,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Graphics\Buffer.cpp" />
     <ClCompile Include="DebugUtils.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphics\Vertex.cpp" />
@@ -150,6 +151,7 @@
     <ClCompile Include="Core\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Graphics\Buffer.h" />
     <ClInclude Include="Debug Utils.h" />
     <ClInclude Include="Graphics\InstanceData.h" />
     <ClInclude Include="Graphics\PushConstantModel.h" />

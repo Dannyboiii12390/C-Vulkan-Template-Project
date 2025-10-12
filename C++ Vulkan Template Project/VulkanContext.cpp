@@ -56,21 +56,17 @@ void VulkanContext::mainLoop() {
 void VulkanContext::cleanup() {
     cleanupSwapChain();
 
-    /*vkDestroyPipeline(device, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);*/
     pipeline.destroy(device);
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
     mesh.cleanup(*this);
-	//terrain.cleanup(*this);
 
-    for (size_t i = 0; i < swapChainImages.size(); i++) {
-        vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-        vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+    for (auto& buf : uniformBuffers) {
+        buf.destroy(device);
     }
+    uniformBuffers.clear();
 
-    vkDestroyBuffer(device, instanceBuffer, nullptr);
-    vkFreeMemory(device, instanceBufferMemory, nullptr);
+    instanceBuffer.destroy(device);
 
     // Descriptor pool
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -323,13 +319,12 @@ void VulkanContext::createCommandPool() {
 }
 void VulkanContext::createUniformBuffers() {
     VkDeviceSize bufferSize = sizeof(Engine::UniformBufferObject);
-    uniformBuffers.resize(swapChainImages.size());
-    uniformBuffersMemory.resize(swapChainImages.size());
-    uniformBuffersMapped.resize(swapChainImages.size());
+    uniformBuffers.clear();
+    uniformBuffers.reserve(swapChainImages.size());
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
-        createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
-        vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+        // Factory that creates a host-visible uniform buffer for frequent updates
+        uniformBuffers.emplace_back(Buffer::createUniformBuffer(*this, bufferSize));
     }
 }
 void VulkanContext::createDescriptorPool() {
@@ -362,7 +357,7 @@ void VulkanContext::createDescriptorSets() {
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffers[i];
+        bufferInfo.buffer = uniformBuffers[i].buffer;
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Engine::UniformBufferObject);
 
@@ -548,7 +543,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     scissor.extent = swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	mesh.bind(commandBuffer, instanceBuffer);
+	mesh.bind(commandBuffer, instanceBuffer.buffer);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
 
     Engine::PushConstantModel pushConstant{};
@@ -592,25 +587,18 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     }
 }
 void VulkanContext::updateUniformBuffer(uint32_t currentImage) {
-    /*static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float>(currentTime - startTime).count()*/;
-
     Engine::UniformBufferObject ubo{};
-    //ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    /*ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-    ubo.proj[1][1] *= -1;*/
     ubo.view = glm::lookAt(
-        glm::vec3(0.0f, 5.0f, 10.0f),  // eye position
-        glm::vec3(0.0f, 0.0f, 0.0f),  // looking at origin
-        glm::vec3(0.0f, 1.0f, 0.0f)   // up
+        glm::vec3(0.0f, 5.0f, 10.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
     );
 
     ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f);
     ubo.proj[1][1] *= -1;  // Flip Y for Vulkan
 
-    memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+    // Use Buffer::write to update the uniform buffer for this frame.
+    uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
 }
 
 // --- Helper Methods ---
@@ -752,65 +740,6 @@ bool VulkanContext::checkValidationLayerSupport() {
     return true;
 }
 
-
-// same method available in mesh class - consider making that methods static.
-void VulkanContext::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create buffer!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(device, buffer, bufferMemory, 0);
-}
-// same method available in mesh class - consider making that methods static.
-void VulkanContext::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = commandPool;
-    allocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-    VkBufferCopy copyRegion{};
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue);
-    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
-}
-
-
 uint32_t VulkanContext::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -841,20 +770,23 @@ void VulkanContext::loadInstanceData()
     instanceData.push_back({ glm::vec3(-1.0f, 0.0f, 0.0f) });
     instanceData.push_back({ glm::vec3(1.0f, 0.0f, 0.0f) });
 }
-void VulkanContext::createInstanceBuffer() {
-    VkDeviceSize bufferSize = sizeof(Engine::InstanceData) * instanceData.size();
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+void VulkanContext::createInstanceBuffer() 
+{
+    VkDeviceSize bufferSize = instanceData.size() * sizeof(Engine::InstanceData);
+    if (bufferSize == 0) return;
 
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, instanceData.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    // create host-visible staging buffer and upload data
+    Buffer stagingBuffer;
+    stagingBuffer.create(*this, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    stagingBuffer.write(device, instanceData.data(), bufferSize);
 
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, instanceBuffer, instanceBufferMemory);
-    copyBuffer(stagingBuffer, instanceBuffer, bufferSize);
+    // create device-local vertex buffer and copy from staging
+    instanceBuffer.create(*this, bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    Buffer::copy(*this, stagingBuffer, instanceBuffer, bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    // cleanup staging buffer
+    stagingBuffer.destroy(device);
 };
