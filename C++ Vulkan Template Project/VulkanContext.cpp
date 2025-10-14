@@ -28,11 +28,11 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application")
 
     createCommandPool();
 
-    //mesh = Engine::ModelLoader::loadCube(*this);
+    mesh = Engine::ModelLoader::loadCube(*this);
 	//mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
 	//mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
 	//mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
-	mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
+	//mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
 
 	// --- create uniform buffers ---
     uniformBuffers.clear();
@@ -405,7 +405,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     imageBarrierToAttachment.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     imageBarrierToAttachment.image = swapChain.images[imageIndex];
     imageBarrierToAttachment.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
+    
     VkDependencyInfo dependencyInfoToAttachment{};
     dependencyInfoToAttachment.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
     dependencyInfoToAttachment.imageMemoryBarrierCount = 1;
@@ -450,7 +450,10 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float>(currentTime - startTime).count();
 
-	pushConstant.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f, 0.5f, 0.5f));
+	pushConstant.model = rotMat * scaleMat;
     vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
 
 	mesh.draw(commandBuffer);
