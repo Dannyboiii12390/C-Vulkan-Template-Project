@@ -24,10 +24,7 @@
     <ClCompile Include="Core\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Vertex.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DebugUtils.cpp">
+    <ClCompile Include="Core\DebugUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Mesh.cpp">
@@ -45,6 +42,12 @@
     <ClCompile Include="Graphics\Swapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\VulkanTypes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanContext.h">
@@ -53,16 +56,7 @@
     <ClInclude Include="Core\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Debug Utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Vertex.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\InstanceData.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\PushConstantModel.h">
+    <ClInclude Include="Core\Debug Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Mesh.h">
@@ -78,6 +72,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Swapchain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\VulkanTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

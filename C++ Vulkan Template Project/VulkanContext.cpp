@@ -7,17 +7,18 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+constexpr int NUM_INSTANCES = 2;
+
 
 // --- Main Application Flow ---
-VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
+VulkanContext::VulkanContext() : window(1920, 1080, "Vulkan 3D Application")
 { 
     createInstance();
     setupDebugMessenger();
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
-    //createSwapChain();
-    //createImageViews();
+
 	swapChain.create(*this);
 
     createDescriptorSetLayout();
@@ -49,6 +50,12 @@ VulkanContext::VulkanContext() : window(800, 600, "Vulkan 3D Application")
     createDescriptorSets();
     createCommandBuffers();
     createSyncObjects();
+
+	// --- Initialize camera ---
+	camera.create(45.0f, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 100.0f);
+	camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
+	camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+
 }
 
 void VulkanContext::mainLoop() {
@@ -473,15 +480,13 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 	ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS);
 }
 void VulkanContext::updateUniformBuffer(uint32_t currentImage) {
-    Engine::UniformBufferObject ubo{};
-    ubo.view = glm::lookAt(
-        glm::vec3(0.0f, 5.0f, 10.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-
-    ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.extent.width / (float)swapChain.extent.height, 0.1f, 100.0f);
-    ubo.proj[1][1] *= -1;  // Flip Y for Vulkan
+	
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float>(currentTime - startTime).count();
+    
+    Engine::UniformBufferObject ubo = camera.getCameraUBO();
+   // camera.moveRight(-.0002f * time);
 
     // Use Buffer::write to update the uniform buffer for this frame.
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
@@ -634,8 +639,11 @@ void VulkanContext::loadInstanceData()
 {
     instanceData.clear();
     // Place cubes at x = -1.0 and x = +1.0
-    instanceData.push_back({ glm::vec3(-1.0f, 0.0f, 0.0f) });
-    instanceData.push_back({ glm::vec3(1.0f, 0.0f, 0.0f) });
+    for (int i = 0; i < NUM_INSTANCES; i++) {
+        instanceData.push_back({ glm::vec3((i*2)-1.0f, 0.0f, 0.0f) });
+    }
+    //instanceData.push_back({ glm::vec3(-1.0f, 0.0f, 0.0f) });
+    //instanceData.push_back({ glm::vec3(1.0f, 0.0f, 0.0f) });
 }
 void VulkanContext::createInstanceBuffer() 
 {

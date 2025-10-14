@@ -1,30 +1,25 @@
 #pragma once
 
 #define GLFW_INCLUDE_VULKAN
+#define GLM_FORCE_RADIANS
+
+#include <set>
+#include <chrono>
+
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "Core/Window.h"
+
 #include "Graphics/VulkanTypes.h"
 #include "Graphics/Mesh.h"
 #include "Graphics/Pipeline.h"
 #include "Graphics/Swapchain.h"
+#include "Core/Camera.h"
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-#include <algorithm>
-#include <chrono>
-#include <vector>
-#include <cstring>
-#include <cstdlib>
-#include <cstdint>
-#include <limits>
-#include <array>
-#include <optional>
-#include <set>
+
 
 // --- Configuration ---
 const uint32_t WIDTH = 800;
@@ -64,6 +59,9 @@ public:
     // --- Graphics Pipeline ---
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 	Engine::Pipeline pipeline;
+
+    // --- Camera ---
+	Engine::Camera camera;
 
 	// --- Buffers ---
     std::vector<Engine::Buffer> uniformBuffers;

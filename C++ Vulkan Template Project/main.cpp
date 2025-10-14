@@ -8,25 +8,15 @@ Device — Physical/logical device and queue setup
 
 RenderPass — Render pass setup
 
-Framebuffer — Framebuffers for each swapchain image
-
 CommandPool/CommandBuffer — Command buffer management
 
 ShaderModule — Shader loading and management
 
 Texture — Texture image and sampler
 
-DescriptorSet — Descriptor set layouts and updates
-
 Synchronization — Fences, semaphores for frame sync
 
-MemoryAllocator — Memory management abstraction
-
-Camera — Camera matrices and controls
-
 InputHandler — Input processing
-
-DebugUtils — Validation and profiling helpers
 */
 
 int main() {
@@ -38,8 +28,10 @@ int main() {
             glfwPollEvents();
             app.drawFrame();
         }
+
         vkDeviceWaitIdle(app.device);
         app.cleanup();
+
     }
     catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
@@ -47,3 +39,26 @@ int main() {
     }
     return EXIT_SUCCESS;
 }
+
+//class Shader { //shader should have own pipeline , layout, and descriptor sets
+//public:
+//    VkPipeline pipeline;
+//    VkPipelineLayout pipelineLayout;
+//
+//    VkDescriptorSetLayout descriptorSetLayout;
+//    VkDescriptorPool descriptorPool;
+//
+//    // Maybe store multiple sets for double/triple buffering
+//    std::vector<VkDescriptorSet> descriptorSets;
+//
+//    void createDescriptorSetLayout();
+//    void allocateDescriptorSets();
+//    void updateDescriptorSets(...); // pass buffers/images here
+//
+//    void bind(VkCommandBuffer cmdBuffer, VkPipelineBindPoint bindPoint);
+//};
+
+//Suggested Abstraction Layers
+//Shader class : Owns layout + pipeline + descriptor sets.
+//Material class (optional) : Owns per - instance resource data(e.g., per - object uniform buffer).
+//Renderer or RenderPass : Manages command buffers, submits shaders and binds resources.

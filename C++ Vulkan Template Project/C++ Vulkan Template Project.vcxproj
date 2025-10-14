@@ -148,8 +148,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Camera.cpp" />
     <ClCompile Include="Graphics\Buffer.cpp" />
-    <ClCompile Include="DebugUtils.cpp" />
+    <ClCompile Include="Core\DebugUtils.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphics\VulkanTypes.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
@@ -160,8 +161,9 @@
     <ClCompile Include="Core\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\Camera.h" />
     <ClInclude Include="Graphics\Buffer.h" />
-    <ClInclude Include="Debug Utils.h" />
+    <ClInclude Include="Core\Debug Utils.h" />
     <ClInclude Include="Graphics\VulkanTypes.h" />
     <ClInclude Include="Graphics\Mesh.h" />
     <ClInclude Include="Graphics\Pipeline.h" />
