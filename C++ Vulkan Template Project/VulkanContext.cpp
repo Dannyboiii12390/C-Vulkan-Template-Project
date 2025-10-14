@@ -28,15 +28,11 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application")
 
     createCommandPool();
 
-    mesh = Engine::ModelLoader::loadCube(*this);
+    //mesh = Engine::ModelLoader::loadCube(*this);
 	//mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
 	//mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
 	//mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
-	//mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
-
-    loadInstanceData();
-
-    createInstanceBuffer();
+	mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
 
 	// --- create uniform buffers ---
     uniformBuffers.clear();
@@ -446,7 +442,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     scissor.extent = swapChain.extent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	mesh.bind(commandBuffer, instanceBuffer.buffer);
+	mesh.bind(commandBuffer);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
 
     Engine::PushConstantModel pushConstant{};
@@ -457,7 +453,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 	pushConstant.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
 
-	mesh.draw(commandBuffer, static_cast<uint32_t>(instanceData.size()));
+	mesh.draw(commandBuffer);
 
     vkCmdEndRendering(commandBuffer);
 

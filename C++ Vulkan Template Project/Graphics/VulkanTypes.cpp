@@ -19,11 +19,6 @@ namespace Engine
     }
     std::vector<VkVertexInputAttributeDescription> Vertex::getAttributeDescriptions()
     {
-        //std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-        //attributeDescriptions[0] = { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) };
-        //attributeDescriptions[1] = { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color) };
-        //attributeDescriptions[2] = { 2, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, offset) };
-        //return attributeDescriptions;
         std::vector<VkVertexInputAttributeDescription> attributes{};
 
         VkVertexInputAttributeDescription posAttr{};
@@ -39,13 +34,6 @@ namespace Engine
         colorAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
         colorAttr.offset = static_cast<uint32_t>(offsetof(Vertex, color));
         attributes.push_back(colorAttr);
-
-        VkVertexInputAttributeDescription instOffsetAttr{};
-        instOffsetAttr.location = 2;
-        instOffsetAttr.binding = 1; // instance buffer binding
-        instOffsetAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
-        instOffsetAttr.offset = static_cast<uint32_t>(offsetof(InstanceData, offset));
-        attributes.push_back(instOffsetAttr);
 
         return attributes;
     }
