@@ -11,7 +11,7 @@ constexpr int NUM_INSTANCES = 2;
 
 
 // --- Main Application Flow ---
-VulkanContext::VulkanContext() : window(1920, 1080, "Vulkan 3D Application")
+VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application")
 { 
     createInstance();
     setupDebugMessenger();
