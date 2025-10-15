@@ -11,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Core/Window.h"
+#include "Core/InputHandler.h"
 
 #include "Graphics/VulkanTypes.h"
 #include "Graphics/Mesh.h"
@@ -48,6 +49,7 @@ public:
 
     // --- Core Application Members ---
     Engine::Window window;
+    Engine::InputHandler inputHandler;
 	Engine::Mesh mesh;
 
     // --- Swapchain ---
@@ -75,8 +77,8 @@ public:
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
     
-    void loadInstanceData();
-    void createInstanceBuffer();
+    //void loadInstanceData();
+    //void createInstanceBuffer();
 
     // --- Main Flow ---
     void mainLoop();
@@ -124,4 +126,5 @@ public:
         semaphores.clear();
     }
     void cleanFences(std::vector<VkFence>& fences);
+    void handleInput();
 };

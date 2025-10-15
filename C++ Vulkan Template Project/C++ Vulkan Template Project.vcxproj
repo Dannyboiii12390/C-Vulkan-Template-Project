@@ -151,6 +151,7 @@
     <ClCompile Include="Core\Camera.cpp" />
     <ClCompile Include="Graphics\Buffer.cpp" />
     <ClCompile Include="Core\DebugUtils.cpp" />
+    <ClCompile Include="Core\InputHandler.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphics\VulkanTypes.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
@@ -169,6 +170,7 @@
     <ClInclude Include="Graphics\Pipeline.h" />
     <ClInclude Include="Core\ModelLoader.h" />
     <ClInclude Include="Graphics\Swapchain.h" />
+    <ClInclude Include="Core\InputHandler.h" />
     <ClInclude Include="VulkanContext.h" />
     <ClInclude Include="Core\Window.h" />
   </ItemGroup>

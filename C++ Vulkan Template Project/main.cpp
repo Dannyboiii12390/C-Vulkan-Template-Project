@@ -25,6 +25,7 @@ int main() {
     {
         while (!app.window.shouldClose()) {
             glfwPollEvents();
+			app.inputHandler.update();
             app.drawFrame();
         }
 

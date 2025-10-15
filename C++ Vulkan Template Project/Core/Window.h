@@ -31,7 +31,7 @@ namespace Engine
 		bool wasFramebufferResized() const { return framebufferResized; }
 		void resetFramebufferResizedFlag() { framebufferResized = false; }
 		bool shouldClose() const { return glfwWindowShouldClose(window); }
-	
+		void setShouldClose(bool value);
 
 	};
 }

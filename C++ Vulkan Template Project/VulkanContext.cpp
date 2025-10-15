@@ -1,7 +1,8 @@
 #include "VulkanContext.h"
 #include "Graphics/VulkanTypes.h"
-#include "Core/ModelLoader.h"
 #include "Graphics/Swapchain.h"
+
+#include "Core/ModelLoader.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -12,30 +13,30 @@ constexpr int NUM_INSTANCES = 1;
 
 
 // --- Main Application Flow ---
-VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application")
-{ 
+VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inputHandler(window)
+{
     createInstance();
     setupDebugMessenger();
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
 
-	swapChain.create(*this);
+    swapChain.create(*this);
 
     createDescriptorSetLayout();
 
-	// --- create graphics pipeline ---
+    // --- create graphics pipeline ---
     pipeline.create(*this, "shaders/shader.vert.spv", "shaders/shader.frag.spv", swapChain.imageFormat, descriptorSetLayout);
 
     createCommandPool();
 
     mesh = Engine::ModelLoader::loadCube(*this);
-	//mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
-	//mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
-	//mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
-	//mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
+    //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
+    //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
+    //mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
+    //mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
 
-	// --- create uniform buffers ---
+    // --- create uniform buffers ---
     uniformBuffers.clear();
     uniformBuffers.reserve(swapChain.imageCount);
 
@@ -48,11 +49,10 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application")
     createCommandBuffers();
     createSyncObjects();
 
-	// --- Initialize camera ---
-	camera.create(45.0f, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 100.0f);
-	camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
-	camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
-
+    // --- Initialize camera ---
+    camera.create(45.0f, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 100.0f);
+    camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
+    camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
 }
 
 void VulkanContext::mainLoop() {
@@ -342,6 +342,7 @@ void VulkanContext::drawFrame() {
 		ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
     }
 
+    handleInput();
     updateUniformBuffer(currentFrame);
 
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
@@ -479,16 +480,10 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
 	ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS);
 }
-void VulkanContext::updateUniformBuffer(uint32_t currentImage) {
-	
-    static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float>(currentTime - startTime).count();
-    
+void VulkanContext::updateUniformBuffer(uint32_t currentImage) 
+{
     Engine::UniformBufferObject ubo = camera.getCameraUBO();
-   // camera.moveRight(-.0002f * time);
 
-    // Use Buffer::write to update the uniform buffer for this frame.
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
 }
 
@@ -623,6 +618,34 @@ bool VulkanContext::checkValidationLayerSupport() {
     }
     return true;
 }
+void VulkanContext::handleInput() 
+{
+    //calculate delta time
+    static auto lastFrameTime = std::chrono::high_resolution_clock::now();
+    auto currentFrameTime = std::chrono::high_resolution_clock::now();
+    float deltaTime = std::chrono::duration<float>(currentFrameTime - lastFrameTime).count();
+    lastFrameTime = currentFrameTime;
+
+    // keyboard input to move camera
+    if (inputHandler.isKeyPressed(GLFW_KEY_ESCAPE)) window.setShouldClose(true);
+    if (inputHandler.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) deltaTime *= 5.0f; // speed up when shift is held
+    float movespeed = 3.0f * deltaTime;
+    if (inputHandler.isKeyPressed(GLFW_KEY_W)) camera.moveForward(movespeed);
+    if (inputHandler.isKeyPressed(GLFW_KEY_S)) camera.moveForward(-movespeed);
+    if (inputHandler.isKeyPressed(GLFW_KEY_D)) camera.moveRight(movespeed);
+    if (inputHandler.isKeyPressed(GLFW_KEY_A)) camera.moveRight(-movespeed);
+    if (inputHandler.isKeyPressed(GLFW_KEY_SPACE)) camera.moveUp(movespeed);
+    if (inputHandler.isKeyPressed(GLFW_KEY_LEFT_CONTROL)) camera.moveUp(-movespeed);
+
+    // Camera rotation with mouse
+    double mouseX, mouseY;
+    inputHandler.getMouseDelta(mouseX, mouseY);
+    if (mouseX != 0.0 || mouseY != 0.0)
+    {
+        float sensitivity = 0.1f;
+        camera.rotate(static_cast<float>(mouseX * sensitivity), static_cast<float>(-mouseY * sensitivity));
+    }
+}
 void VulkanContext::cleanFences(std::vector<VkFence>& fences)
 {
     for (VkFence& fence : fences) {
@@ -633,35 +656,3 @@ void VulkanContext::cleanFences(std::vector<VkFence>& fences)
     }
     fences.clear();
 }
-
-// --- Custom Methods ---
-void VulkanContext::loadInstanceData()
-{
-    instanceData.clear();
-    // Place cubes at x = -1.0 and x = +1.0
-    for (int i = 0; i < NUM_INSTANCES; i++) {
-        instanceData.push_back({ glm::vec3((i*2)-1.0f, 0.0f, 0.0f) });
-    }
-    //instanceData.push_back({ glm::vec3(-1.0f, 0.0f, 0.0f) });
-    //instanceData.push_back({ glm::vec3(1.0f, 0.0f, 0.0f) });
-}
-void VulkanContext::createInstanceBuffer() 
-{
-    VkDeviceSize bufferSize = instanceData.size() * sizeof(Engine::InstanceData);
-    if (bufferSize == 0) return;
-
-    // create host-visible staging buffer and upload data
-    Engine::Buffer stagingBuffer;
-    stagingBuffer.create(*this, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    stagingBuffer.write(device, instanceData.data(), bufferSize);
-
-    // create device-local vertex buffer and copy from staging
-    instanceBuffer.create(*this, bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    Engine::Buffer::copy(*this, stagingBuffer, instanceBuffer, bufferSize);
-
-    // cleanup staging buffer
-    stagingBuffer.destroy(device);
-};

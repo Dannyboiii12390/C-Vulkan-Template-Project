@@ -18,6 +18,9 @@ namespace Engine {
 		glfwDestroyWindow(window);
 		glfwTerminate();
 	}
+	void Window::setShouldClose(bool value) {
+		glfwSetWindowShouldClose(window, value);
+	}
 
 	void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 	{
