@@ -14,8 +14,6 @@ ShaderModule — Shader loading and management
 Texture — Texture image and sampler
 
 Synchronization — Fences, semaphores for frame sync
-
-InputHandler — Input processing
 */
 
 int main() {
