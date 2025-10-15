@@ -2,7 +2,6 @@
 #include "VulkanContext.h"
 #include <iostream>
 
-
 /* todo: break into components
 Device — Physical/logical device and queue setup
 
