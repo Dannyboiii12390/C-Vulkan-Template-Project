@@ -14,7 +14,7 @@ namespace Engine
         VkFormat colorFormat,
         VkDescriptorSetLayout descriptorSetLayout) {
 
-        VkDevice device = context.device;
+        VkDevice device = context.getDevice();
 
         // Load shaders
         auto vertShaderCode = readFile(vertShaderPath);

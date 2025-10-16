@@ -21,13 +21,13 @@ int main() {
     VulkanContext app;
     try 
     {
-        while (!app.window.shouldClose()) {
+        while (!app.getWindow().shouldClose()) {
             glfwPollEvents();
-			app.inputHandler.update();
+			app.getInputHandler().update();
             app.drawFrame();
         }
 
-        vkDeviceWaitIdle(app.device);
+        vkDeviceWaitIdle(app.getDevice());
         app.cleanup();
 
     }

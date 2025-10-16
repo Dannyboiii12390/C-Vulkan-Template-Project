@@ -26,8 +26,8 @@ namespace Engine
     }
     void Mesh::cleanup(VulkanContext& context)
     {
-        indexBuffer.destroy(context.device);
-        vertexBuffer.destroy(context.device);
+        indexBuffer.destroy(context.getDevice());
+        vertexBuffer.destroy(context.getDevice());
     }
     void Mesh::bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer)
     {

@@ -37,52 +37,33 @@ class VulkanContext {
 public:
     VulkanContext();
 
-    // --- Vulkan Core Components ---
-    VkInstance instance = VK_NULL_HANDLE;
-    VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkDevice device = VK_NULL_HANDLE;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkQueue graphicsQueue = VK_NULL_HANDLE;
-    VkQueue presentQueue = VK_NULL_HANDLE;
-    VkCommandPool commandPool = VK_NULL_HANDLE;
-
-    // --- Core Application Members ---
-    Engine::Window window;
-    Engine::InputHandler inputHandler;
-	Engine::Mesh mesh;
-
-    // --- Swapchain ---
-	Engine::Swapchain swapChain;
-
-    // --- Graphics Pipeline ---
-    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-	Engine::Pipeline pipeline;
-
-    // --- Camera ---
-	Engine::Camera camera;
-
-	// --- Buffers ---
-    std::vector<Engine::Buffer> uniformBuffers;
-    Engine::Buffer instanceBuffer;
-    std::vector<Engine::InstanceData> instanceData;
-
-    // --- Descriptors ---
-    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> descriptorSets;
-
-    // --- Synchronization ---
-    std::vector<VkCommandBuffer> commandBuffers;
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
-    
-    //void loadInstanceData();
-    //void createInstanceBuffer();
-
-    // --- Main Flow ---
-    void mainLoop();
+    void drawFrame();
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    void updateUniformBuffer(uint32_t currentImage);
     void cleanup();
+
+    // --- Getters ---
+	VkDevice getDevice() const { return device; }
+	VkPhysicalDevice getPhysicalDevice() const { return physicalDevice; }
+	VkCommandPool getCommandPool() const { return commandPool; }
+	VkQueue getGraphicsQueue() const { return graphicsQueue; }
+	VkSurfaceKHR getSurface() const { return surface; }
+	Engine::Window& getWindow() { return window; }
+	Engine::InputHandler& getInputHandler() { return inputHandler; }
+
+    // --- Helper Functions ---
+    bool isDeviceSuitable(VkPhysicalDevice device);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    Engine::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    Engine::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    std::vector<const char*> getRequiredExtensions();
+    bool checkValidationLayerSupport();
+
+
+private:
 
     // --- Vulkan Initialization Steps ---
     void createInstance();
@@ -96,22 +77,6 @@ public:
     void createDescriptorSets();
     void createCommandBuffers();
     void createSyncObjects();
-
-    // --- Drawing and Swapchain Handling ---
-    void drawFrame();
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-    void updateUniformBuffer(uint32_t currentImage);
-
-    // --- Helper Functions ---
-    bool isDeviceSuitable(VkPhysicalDevice device);
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    Engine::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-    Engine::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-    std::vector<const char*> getRequiredExtensions();
-    bool checkValidationLayerSupport();
 
 	// --- Cleanup Helpers ---
 	template<typename T>
@@ -127,4 +92,46 @@ public:
     }
     void cleanFences(std::vector<VkFence>& fences);
     void handleInput();
+
+    // --- Vulkan Core Components ---
+    VkInstance instance = VK_NULL_HANDLE;
+    VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    VkDevice device = VK_NULL_HANDLE;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkQueue graphicsQueue = VK_NULL_HANDLE;
+    VkQueue presentQueue = VK_NULL_HANDLE;
+    VkCommandPool commandPool = VK_NULL_HANDLE;
+
+    // --- Core Application Members ---
+    Engine::Window window;
+    Engine::InputHandler inputHandler;
+    Engine::Mesh mesh;
+
+    // --- Swapchain ---
+    Engine::Swapchain swapChain;
+
+    // --- Graphics Pipeline ---
+    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+    Engine::Pipeline pipeline;
+
+    // --- Camera ---
+    Engine::Camera camera;
+
+    // --- Buffers ---
+    std::vector<Engine::Buffer> uniformBuffers;
+    Engine::Buffer instanceBuffer;
+    std::vector<Engine::InstanceData> instanceData;
+
+    // --- Descriptors ---
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+    std::vector<VkDescriptorSet> descriptorSets;
+
+    // --- Synchronization ---
+    std::vector<VkCommandBuffer> commandBuffers;
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
+
+
 };

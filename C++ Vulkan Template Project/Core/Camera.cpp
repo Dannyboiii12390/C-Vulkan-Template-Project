@@ -37,19 +37,19 @@ namespace Engine {
         return ubo;
 	}
 
-    void Camera::moveForward(float distance) {
+    void Camera::moveForward(const float distance) {
         position += front * distance;
     }
 
-    void Camera::moveRight(float distance) {
+    void Camera::moveRight(const float distance) {
         position += right * distance;
     }
 
-    void Camera::moveUp(float distance) {
+    void Camera::moveUp(const float distance) {
         position += up * distance;
     }
 
-    void Camera::rotate(float yawOffset, float pitchOffset) {
+    void Camera::rotate(const float yawOffset, const float pitchOffset) {
         yaw += yawOffset;
         pitch += pitchOffset;
 
@@ -69,7 +69,7 @@ namespace Engine {
         updateVectors();
     }
 
-    void Camera::setAspectRatio(float ratio) {
+    void Camera::setAspectRatio(const float ratio) {
         aspectRatio = ratio;
     }
 
@@ -93,7 +93,7 @@ namespace Engine {
         return up;
     }
 
-    void Camera::setPerspective(float fov, float ratio, float nearPlane, float farPlane) {
+    void Camera::setPerspective(const float fov, const float ratio, const float nearPlane, const float farPlane) {
         fieldOfView = fov;
         aspectRatio = ratio;
         near = nearPlane;
@@ -101,7 +101,7 @@ namespace Engine {
         isPerspective = true;
     }
 
-    void Camera::setOrthographic(float left, float right, float bottom, float top, float nearPlane, float farPlane) {
+    void Camera::setOrthographic(const float left, const float right, const float bottom, const float top, const float nearPlane, const float farPlane) {
         orthoLeft = left;
         orthoRight = right;
         orthoBottom = bottom;

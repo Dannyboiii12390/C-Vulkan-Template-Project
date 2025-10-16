@@ -22,12 +22,12 @@ namespace Engine {
 		Engine::UniformBufferObject getCameraUBO() const;
 
         // Camera movement controls
-        void moveForward(float distance);
-        void moveRight(float distance);
-        void moveUp(float distance);
+        void moveForward(const float distance);
+        void moveRight(const float distance);
+        void moveUp(const float distance);
 
         // Camera rotation controls
-        void rotate(float yaw, float pitch);
+        void rotate(const float yaw, const float pitch);
         void lookAt(const glm::vec3& target);
 
         // Window resize handler
@@ -41,8 +41,8 @@ namespace Engine {
         glm::vec3 getUp() const;
 
         // Projection settings
-        void setPerspective(float fov, float aspectRatio, float nearPlane, float farPlane);
-        void setOrthographic(float left, float right, float bottom, float top, float nearPlane, float farPlane);
+        void setPerspective(const float fov, const float aspectRatio, const float nearPlane, const float farPlane);
+        void setOrthographic(const float left, const float right, const float bottom, const float top, const float nearPlane, const float farPlane);
 
     private:
         void updateVectors();

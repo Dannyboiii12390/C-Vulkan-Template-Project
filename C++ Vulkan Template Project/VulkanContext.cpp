@@ -54,14 +54,6 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
     camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
 }
-
-void VulkanContext::mainLoop() {
-    while (!window.shouldClose()) {
-        glfwPollEvents();
-        drawFrame();
-    }
-    vkDeviceWaitIdle(device);
-}
 void VulkanContext::cleanup() {
 
     ASSERT(device != VK_NULL_HANDLE); 

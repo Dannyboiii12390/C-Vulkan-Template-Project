@@ -9,7 +9,7 @@ namespace Engine
         usage = bufferUsage;
         properties = memProperties;
 
-        VkDevice device = ctx.device;
+        VkDevice device = ctx.getDevice();
 
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -100,11 +100,11 @@ namespace Engine
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = context.commandPool;
+        allocInfo.commandPool = context.getCommandPool();
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(context.device, &allocInfo, &commandBuffer);
+        vkAllocateCommandBuffers(context.getDevice(), &allocInfo, &commandBuffer);
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -121,9 +121,9 @@ namespace Engine
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        vkQueueSubmit(context.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(context.graphicsQueue);
-        vkFreeCommandBuffers(context.device, context.commandPool, 1, &commandBuffer);
+        vkQueueSubmit(context.getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(context.getGraphicsQueue());
+        vkFreeCommandBuffers(context.getDevice(), context.getCommandPool(), 1, &commandBuffer);
     }
 
     Buffer Buffer::createVertexBuffer(VulkanContext& ctx, const void* data, VkDeviceSize dataSize) {
@@ -132,7 +132,7 @@ namespace Engine
         staging.create(ctx, dataSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        staging.write(ctx.device, data, dataSize);
+        staging.write(ctx.getDevice(), data, dataSize);
 
         // Create device local vertex buffer
         Buffer vertex{};
@@ -144,7 +144,7 @@ namespace Engine
         copy(ctx, staging, vertex, dataSize);
 
         // Cleanup staging
-        staging.destroy(ctx.device);
+        staging.destroy(ctx.getDevice());
 
         return vertex;
     }
@@ -154,7 +154,7 @@ namespace Engine
         staging.create(ctx, dataSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        staging.write(ctx.device, data, dataSize);
+        staging.write(ctx.getDevice(), data, dataSize);
 
         Buffer index{};
         index.create(ctx, dataSize,
@@ -162,7 +162,7 @@ namespace Engine
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         copy(ctx, staging, index, dataSize);
-        staging.destroy(ctx.device);
+        staging.destroy(ctx.getDevice());
 
         return index;
     }
@@ -176,7 +176,7 @@ namespace Engine
 
     uint32_t Buffer::findMemoryType(VulkanContext& context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(context.physicalDevice, &memProperties);
+        vkGetPhysicalDeviceMemoryProperties(context.getPhysicalDevice(), &memProperties);
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
             if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
                 return i;

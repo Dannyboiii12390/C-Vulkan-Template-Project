@@ -6,7 +6,7 @@
 #include <limits>
 namespace Engine {
     void Swapchain::create(VulkanContext& ctx) {
-        auto swapChainSupport = querySwapchainSupport(ctx.physicalDevice, ctx.surface);
+        auto swapChainSupport = querySwapchainSupport(ctx.getPhysicalDevice(), ctx.getSurface());
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -20,7 +20,7 @@ namespace Engine {
 
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = ctx.surface;
+        createInfo.surface = ctx.getSurface();
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -29,7 +29,7 @@ namespace Engine {
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
         // Get queue family indices (numeric indices) from the context helper
-        auto indices = ctx.findQueueFamilies(ctx.physicalDevice);
+        auto indices = ctx.findQueueFamilies(ctx.getPhysicalDevice());
 
         // Validate indices presence (assumes QueueFamilyIndices uses std::optional<uint32_t>)
         if (!indices.graphicsFamily.has_value() || !indices.presentFamily.has_value()) {
@@ -58,14 +58,14 @@ namespace Engine {
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(ctx.device, &createInfo, nullptr, &swapchain) != VK_SUCCESS) {
+        if (vkCreateSwapchainKHR(ctx.getDevice(), &createInfo, nullptr, &swapchain) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create swap chain");
         }
 
         // Get the swapchain images
-        vkGetSwapchainImagesKHR(ctx.device, swapchain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(ctx.getDevice(), swapchain, &imageCount, nullptr);
         images.resize(imageCount);
-        vkGetSwapchainImagesKHR(ctx.device, swapchain, &imageCount, images.data());
+        vkGetSwapchainImagesKHR(ctx.getDevice(), swapchain, &imageCount, images.data());
 
         // Save the format and extent for later use
         imageFormat = surfaceFormat.format;
@@ -89,7 +89,7 @@ namespace Engine {
             viewInfo.subresourceRange.baseArrayLayer = 0;
             viewInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(ctx.device, &viewInfo, nullptr, &imageViews[i]) != VK_SUCCESS) {
+            if (vkCreateImageView(ctx.getDevice(), &viewInfo, nullptr, &imageViews[i]) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create image view");
             }
         }
@@ -97,7 +97,7 @@ namespace Engine {
 
     void Swapchain::recreate(VulkanContext& ctx) {
         // Make sure we don't leave resources dangling
-        destroy(ctx.device);
+        destroy(ctx.getDevice());
 
         // Create the swapchain again
         create(ctx);
