@@ -28,12 +28,12 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
     createCommandPool();
 
-    //mesh = Engine::ModelLoader::createCube(*this);
+    mesh = Engine::ModelLoader::createCube(*this);
     //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
     //mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
     //mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
-	mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
+	//mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
 
     // --- create uniform buffers ---
     uniformBuffers.clear();
@@ -447,8 +447,8 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
 
     glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    //glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f, 0.5f, 0.5f));
-    pushConstant.model = rotMat;// * scaleMat;
+    glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f, 0.5f, 0.5f));
+    pushConstant.model = rotMat * scaleMat;
     vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
 
 	mesh.draw(commandBuffer);
