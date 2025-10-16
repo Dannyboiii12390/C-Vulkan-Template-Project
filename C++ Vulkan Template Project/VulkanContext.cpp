@@ -10,7 +10,6 @@
 
 constexpr int NUM_INSTANCES = 1;
 
-
 // --- Main Application Flow ---
 VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inputHandler(window)
 {

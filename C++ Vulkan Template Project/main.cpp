@@ -40,6 +40,9 @@ int main() {
     return EXIT_SUCCESS;
 }
 
+
+// Mesh -> Shader -> Pipeline -> Command Buffer -> Frame
+
 //class Shader { //shader should have own pipeline , layout, and descriptor sets
 //public:
 //    VkPipeline pipeline;
