@@ -62,6 +62,8 @@ public:
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
 
+    static glm::mat4 rotateAboutPoint(const glm::vec3& pivot, const float angle, const glm::vec3& axis);
+
 
 private:
 

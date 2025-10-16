@@ -177,7 +177,7 @@ namespace Engine
         rasterizer.lineWidth = 1.0f;
         rasterizer.cullMode = VK_CULL_MODE_NONE;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        rasterizer.depthBiasEnable = VK_FALSE;
+        rasterizer.depthBiasEnable = VK_TRUE;
         return rasterizer;
     }
     VkPipelineMultisampleStateCreateInfo Pipeline::createMultisampleState() {

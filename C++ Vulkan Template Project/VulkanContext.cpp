@@ -445,8 +445,10 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float>(currentTime - startTime).count();
 
+	// how to rotate around a point that is not the origin?
 
-    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 rotMat = rotateAboutPoint(glm::vec3(0.0f, 0.0f, 5.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f, 0.5f, 0.5f));
     pushConstant.model = rotMat * scaleMat;
     vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
@@ -611,6 +613,23 @@ bool VulkanContext::checkValidationLayerSupport() {
     }
     return true;
 }
+glm::mat4 VulkanContext::rotateAboutPoint(const glm::vec3& pivot, const float angle, const glm::vec3& axis)
+{
+    // Translate to origin
+    glm::mat4 translateToOrigin = glm::translate(glm::mat4(1.0f), -pivot);
+
+    // Rotate around the provided axis
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), angle, axis);
+
+    // Translate back to original position
+    glm::mat4 translateBack = glm::translate(glm::mat4(1.0f), pivot);
+
+    // Combine the transformations
+    glm::mat4 modelMatrix = translateBack * rotation * translateToOrigin;
+
+    return modelMatrix;
+}
+
 void VulkanContext::handleInput() 
 {
     //calculate delta time
