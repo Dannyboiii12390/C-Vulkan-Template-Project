@@ -8,7 +8,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-
 constexpr int NUM_INSTANCES = 1;
 
 
@@ -44,8 +43,10 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
         uniformBuffers.emplace_back(Engine::Buffer::createUniformBuffer(*this, sizeof(Engine::UniformBufferObject)));
     }
 
+    //should be in shader class
     createDescriptorPool();
     createDescriptorSets();
+
     createCommandBuffers();
     createSyncObjects();
 
