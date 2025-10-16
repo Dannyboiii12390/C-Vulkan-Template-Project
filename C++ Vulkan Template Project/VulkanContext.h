@@ -109,6 +109,7 @@ private:
     Engine::Window window;
     Engine::InputHandler inputHandler;
     Engine::Mesh mesh;
+    Engine::Mesh terrain;
 
     // --- Swapchain ---
     Engine::Swapchain swapChain;

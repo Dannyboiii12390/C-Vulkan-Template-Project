@@ -28,6 +28,8 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
     createCommandPool();
 
+	//terrain = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
+	terrain = Engine::ModelLoader::createCube(*this);
     mesh = Engine::ModelLoader::createCube(*this);
     //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
@@ -70,6 +72,7 @@ void VulkanContext::cleanup() {
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
     mesh.cleanup(*this);
+	terrain.cleanup(*this);
 
     for (auto& buf : uniformBuffers) buf.destroy(device);
     uniformBuffers.clear();
@@ -365,7 +368,10 @@ void VulkanContext::drawFrame() {
     submitInfo.signalSemaphoreInfoCount = 1;
     submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
 
-    ASSERT(vkQueueSubmit2(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) == VK_SUCCESS);
+
+	VkResult res = vkQueueSubmit2(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
+
+    ASSERT(res == VK_SUCCESS);
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -437,23 +443,37 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     scissor.extent = swapChain.extent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	mesh.bind(commandBuffer);
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
-
     Engine::PushConstantModel pushConstant{};
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float>(currentTime - startTime).count();
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
+    glm::vec3 terrainPos = glm::vec3(0.0f, 0.0f, 0.0f);
 
-	// how to rotate around a point that is not the origin?
+    // Orbit parameters
+    float orbitSpeedDegPerSec = 90.0f;   // degrees per second
+    float orbitRadius = 3.0f;            // distance from terrain center
+    glm::vec3 orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    //glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 rotMat = rotateAboutPoint(glm::vec3(0.0f, 0.0f, 5.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f, 0.5f, 0.5f));
-    pushConstant.model = rotMat * scaleMat;
+    //Build transform: rotate around terrainPos, then apply an offset (radius) and scale
+    glm::mat4 orbitRotation = rotateAboutPoint(terrainPos, time * glm::radians(orbitSpeedDegPerSec), orbitAxis);
+    glm::mat4 offset = glm::translate(glm::mat4(1.0f), glm::vec3(orbitRadius, 0.0f, 0.0f));
+    glm::mat4 meshScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f)); // adjust mesh scale as desired
+
+    // Final model matrix: rotation around terrain * offset from pivot * local scale
+	mesh.bind(commandBuffer);
+    pushConstant.model = orbitRotation * offset * meshScale;
     vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+    mesh.draw(commandBuffer);
 
-	mesh.draw(commandBuffer);
+    // --- Terrain: draw at its own transform (kept at origin here) ---
+    terrain.bind(commandBuffer);
+    glm::mat4 terrainRot = rotateAboutPoint(terrainPos, time * -glm::radians(orbitSpeedDegPerSec), orbitAxis);
+    glm::mat4 terrainScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 2.5f, 0.5f));
+    pushConstant.model = terrainRot * terrainScale;
+    vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+    terrain.draw(commandBuffer);
+
 
     vkCmdEndRendering(commandBuffer);
 
