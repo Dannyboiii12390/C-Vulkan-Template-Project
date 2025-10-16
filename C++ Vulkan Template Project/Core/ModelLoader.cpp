@@ -9,7 +9,7 @@
 
 namespace Engine 
 {
-    Mesh ModelLoader::loadCube(VulkanContext& context) {
+    Mesh ModelLoader::createCube(VulkanContext& context) {
         std::vector<Vertex> vertices{
             // Front face
             {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
@@ -248,6 +248,63 @@ namespace Engine
             }
         }
 
+        Mesh mesh;
+        mesh.create(context, std::move(vertices), std::move(indices));
+        return mesh;
+
+    }
+    Mesh ModelLoader::createSphere(VulkanContext& context, float radius, int sectorCount, int stackCount)
+    {
+
+
+        std::vector<Vertex> vertices;
+        std::vector<uint16_t> indices;
+
+        const float PI = 3.14159265359f;
+
+        for (int i = 0; i <= stackCount; ++i)
+        {
+            float stackAngle = PI / 2 - i * (PI / stackCount);  // from pi/2 to -pi/2
+            float xy = radius * cosf(stackAngle);               // r * cos(u)
+            float z = radius * sinf(stackAngle);                // r * sin(u)
+
+            for (int j = 0; j <= sectorCount; ++j)
+            {
+                float sectorAngle = j * (2 * PI / sectorCount); // from 0 to 2pi
+
+                float x = xy * cosf(sectorAngle);               // r * cos(u) * cos(v)
+                float y = xy * sinf(sectorAngle);               // r * cos(u) * sin(v)
+
+                glm::vec3 position(x, y, z);
+                glm::vec3 normal = glm::vec3(0.5f) - glm::normalize(position);
+                //glm::vec2 texCoord((float)j / sectorCount, (float)i / stackCount);
+
+                vertices.emplace_back(position, normal);
+            }
+        }
+
+        for (int i = 0; i < stackCount; ++i)
+        {
+            int k1 = i * (sectorCount + 1);     // beginning of current stack
+            int k2 = k1 + sectorCount + 1;      // beginning of next stack
+
+            for (int j = 0; j < sectorCount; ++j, ++k1, ++k2)
+            {
+                if (i != 0)
+                {
+                    indices.push_back(k1);
+                    indices.push_back(k2);
+                    indices.push_back(k1 + 1);
+                }
+
+                if (i != (stackCount - 1))
+                {
+                    indices.push_back(k1 + 1);
+                    indices.push_back(k2);
+                    indices.push_back(k2 + 1);
+                }
+            }
+        }
         Mesh mesh;
         mesh.create(context, std::move(vertices), std::move(indices));
         return mesh;
