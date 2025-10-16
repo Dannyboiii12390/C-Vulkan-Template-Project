@@ -625,17 +625,31 @@ void VulkanContext::handleInput()
     auto currentFrameTime = std::chrono::high_resolution_clock::now();
     float deltaTime = std::chrono::duration<float>(currentFrameTime - lastFrameTime).count();
     lastFrameTime = currentFrameTime;
+    float sprintSpeed = 5.0f;
 
     // keyboard input to move camera
-    if (inputHandler.isKeyPressed(GLFW_KEY_ESCAPE)) window.setShouldClose(true);
-    if (inputHandler.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) deltaTime *= 5.0f; // speed up when shift is held
+    //branchless
+    window.setShouldClose(inputHandler.isKeyPressed(GLFW_KEY_ESCAPE));
+	deltaTime = deltaTime + deltaTime * (sprintSpeed - 1.0f) * inputHandler.isKeyPressed(GLFW_KEY_LEFT_SHIFT);  // speed up when shift is held
     float movespeed = 3.0f * deltaTime;
-    if (inputHandler.isKeyPressed(GLFW_KEY_W)) camera.moveForward(movespeed);
-    if (inputHandler.isKeyPressed(GLFW_KEY_S)) camera.moveForward(-movespeed);
-    if (inputHandler.isKeyPressed(GLFW_KEY_D)) camera.moveRight(movespeed);
-    if (inputHandler.isKeyPressed(GLFW_KEY_A)) camera.moveRight(-movespeed);
-    if (inputHandler.isKeyPressed(GLFW_KEY_SPACE)) camera.moveUp(movespeed);
-    if (inputHandler.isKeyPressed(GLFW_KEY_LEFT_CONTROL)) camera.moveUp(-movespeed);
+
+    camera.moveForward(movespeed * inputHandler.isKeyPressed(GLFW_KEY_W));
+    camera.moveForward(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_S));
+    camera.moveRight(movespeed * inputHandler.isKeyPressed(GLFW_KEY_D));
+    camera.moveRight(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_A));
+    camera.moveUp(movespeed * inputHandler.isKeyPressed(GLFW_KEY_SPACE));
+    camera.moveUp(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_LEFT_CONTROL));
+
+    // branching
+    //if (inputHandler.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) deltaTime *= sprintSpeed; // speed up when shift is held
+    //float movespeed = 3.0f * deltaTime;
+    //if (inputHandler.isKeyPressed(GLFW_KEY_W)) camera.moveForward(movespeed);
+    //if (inputHandler.isKeyPressed(GLFW_KEY_S)) camera.moveForward(-movespeed);
+    //if (inputHandler.isKeyPressed(GLFW_KEY_D)) camera.moveRight(movespeed);
+    //if (inputHandler.isKeyPressed(GLFW_KEY_A)) camera.moveRight(-movespeed);
+    //if (inputHandler.isKeyPressed(GLFW_KEY_SPACE)) camera.moveUp(movespeed);
+    //if (inputHandler.isKeyPressed(GLFW_KEY_LEFT_CONTROL)) camera.moveUp(-movespeed);
+
 
     // Camera rotation with mouse
     double mouseX, mouseY;
