@@ -40,6 +40,13 @@ namespace Engine {
         glm::vec3 getRight() const;
         glm::vec3 getUp() const;
 
+        glm::vec3 getLookAtPoint() const { return position + front; }
+		float getFOV() const { return fieldOfView; }
+		float getAspect() const { return aspectRatio; }
+		float getNear() const { return near; }
+		float getFar() const { return far; }
+		
+
         // Projection settings
         void setPerspective(const float fov, const float aspectRatio, const float nearPlane, const float farPlane);
         void setOrthographic(const float left, const float right, const float bottom, const float top, const float nearPlane, const float farPlane);

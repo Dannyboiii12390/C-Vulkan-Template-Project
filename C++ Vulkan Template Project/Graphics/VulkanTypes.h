@@ -49,9 +49,13 @@ namespace Engine
     };
 
     struct UniformBufferObject {
-        //alignas(16) glm::mat4 model;
-        alignas(16) glm::mat4 view;
-        alignas(16) glm::mat4 proj;
+        alignas(16) glm::vec3 cameraPosition;
+        alignas(16) glm::vec3 cameraLookAt;
+        alignas(16) glm::vec3 cameraUp;
+        alignas(4) float fov;
+        alignas(4) float aspect;
+        alignas(4) float zNear;
+        alignas(4) float zFar;
     };
 
     

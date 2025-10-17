@@ -553,7 +553,19 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 }
 void VulkanContext::updateUniformBuffer(uint32_t currentImage) 
 {
-    Engine::UniformBufferObject ubo = camera.getCameraUBO();
+    //Engine::UniformBufferObject ubo = camera.getCameraUBO();
+	Engine::UniformBufferObject ubo{};
+    ubo.cameraPosition = camera.getPosition();
+    ubo.cameraLookAt = camera.getLookAtPoint();
+    ubo.cameraUp = camera.getUp();
+
+    // Pass perspective parameters
+    ubo.fov = camera.getFOV();
+    ubo.aspect = camera.getAspect();
+    ubo.zNear = camera.getNear();
+    ubo.zFar = camera.getFar();
+
+
 
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
 }

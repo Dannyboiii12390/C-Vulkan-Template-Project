@@ -29,13 +29,13 @@ namespace Engine {
             return glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, near, far);
         }
     }
-    Engine::UniformBufferObject Camera::getCameraUBO() const {
-        Engine::UniformBufferObject ubo{};
-        ubo.view = getViewMatrix();
-        ubo.proj = getProjectionMatrix();
-        ubo.proj[1][1] *= -1;  // Flip Y for Vulkan
-        return ubo;
-	}
+ //   Engine::UniformBufferObject Camera::getCameraUBO() const {
+ //       Engine::UniformBufferObject ubo{};
+ //       ubo.view = getViewMatrix();
+ //       ubo.proj = getProjectionMatrix();
+ //       ubo.proj[1][1] *= -1;  // Flip Y for Vulkan
+ //       return ubo;
+	//}
 
     void Camera::moveForward(const float distance) {
         position += front * distance;
