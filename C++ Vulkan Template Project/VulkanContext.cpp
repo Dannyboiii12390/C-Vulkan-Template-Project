@@ -10,6 +10,43 @@
 
 constexpr int NUM_INSTANCES = 1;
 
+void Object::draw(Engine::Pipeline& pipeline, VkCommandBuffer commandBuffer, float time, int positive)
+{
+    //positive = positive % 1;
+	// Drawing logic for the object
+        // Orbit parameters
+    float orbitSpeedDegPerSec = 45.0f;   // degrees per second
+    float orbitRadius = 3.0f;            // distance from terrain center
+    glm::vec3 orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    Engine::PushConstantModel pushConstant{};
+    mesh.bind(commandBuffer);
+    //glm::mat4 meshScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 2.5f)); // adjust mesh scale as desired
+
+    if (orbitingAround)
+    {
+        glm::mat4 offset = glm::translate(glm::mat4(1.0f), glm::vec3(orbitRadius, 0.0f, 0.0f));
+        glm::mat4 orbitRotation = VulkanContext::rotateAboutPoint(orbitingAround->position, time * glm::radians(orbitSpeedDegPerSec)*positive, orbitAxis);
+
+        Engine::PushConstantModel pushConstant{};
+        mesh.bind(commandBuffer);
+        pushConstant.model = orbitRotation * offset;
+        vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+        glm::vec4 worldPos = pushConstant.model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        position = glm::vec3(worldPos);
+    }
+    else
+    {
+        glm::mat4 orbitRotation = VulkanContext::rotateAboutPoint(position, time * glm::radians(orbitSpeedDegPerSec), orbitAxis);
+        pushConstant.model = orbitRotation;
+        vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+        mesh.draw(commandBuffer);
+    }
+
+    mesh.draw(commandBuffer);
+
+}
+
 // --- Main Application Flow ---
 VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inputHandler(window)
 {
@@ -29,13 +66,26 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     createCommandPool();
 
 	//terrain = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
-	terrain = Engine::ModelLoader::createCube(*this);
-    mesh = Engine::ModelLoader::createCube(*this);
+    //terrain = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
+    //mesh = Engine::ModelLoader::createCube(*this);
     //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
     //mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
     //mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
 	//mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
+    obj1.name = "obj1";
+	obj1.mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
+	obj1.position = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    obj2.name = "obj2";
+	obj2.mesh = Engine::ModelLoader::createSphere(*this, 0.5f, 36, 18);
+	obj2.position = glm::vec3(3.0f, 0.0f, 0.0f);
+	obj2.orbitingAround = &obj1;
+
+    obj3.name = "obj3";
+	obj3.mesh = Engine::ModelLoader::createSphere(*this, 0.25f, 36, 18);
+	obj3.position = glm::vec3(6.0f, 0.0f, 0.0f);
+	obj3.orbitingAround = &obj2;
 
     // --- create uniform buffers ---
     uniformBuffers.clear();
@@ -71,8 +121,11 @@ void VulkanContext::cleanup() {
     pipeline.destroy(device);
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-    mesh.cleanup(*this);
-	terrain.cleanup(*this);
+    //mesh.cleanup(*this);
+	//terrain.cleanup(*this);
+	obj1.mesh.cleanup(*this);
+	obj2.mesh.cleanup(*this);
+	obj3.mesh.cleanup(*this);
 
     for (auto& buf : uniformBuffers) buf.destroy(device);
     uniformBuffers.clear();
@@ -450,29 +503,32 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
     glm::vec3 terrainPos = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    // Orbit parameters
-    float orbitSpeedDegPerSec = 90.0f;   // degrees per second
-    float orbitRadius = 3.0f;            // distance from terrain center
-    glm::vec3 orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+ //   // Orbit parameters
+ //   float orbitSpeedDegPerSec = 90.0f;   // degrees per second
+ //   float orbitRadius = 3.0f;            // distance from terrain center
+ //   glm::vec3 orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    //Build transform: rotate around terrainPos, then apply an offset (radius) and scale
-    glm::mat4 orbitRotation = rotateAboutPoint(terrainPos, time * glm::radians(orbitSpeedDegPerSec), orbitAxis);
-    glm::mat4 offset = glm::translate(glm::mat4(1.0f), glm::vec3(orbitRadius, 0.0f, 0.0f));
-    glm::mat4 meshScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f)); // adjust mesh scale as desired
+ //   //Build transform: rotate around terrainPos, then apply an offset (radius) and scale
+ //   glm::mat4 orbitRotation = rotateAboutPoint(terrainPos, time * glm::radians(orbitSpeedDegPerSec), orbitAxis);
+ //   glm::mat4 offset = glm::translate(glm::mat4(1.0f), glm::vec3(orbitRadius, 0.0f, 0.0f));
+ //   glm::mat4 meshScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 2.5f)); // adjust mesh scale as desired
 
-    // Final model matrix: rotation around terrain * offset from pivot * local scale
-	mesh.bind(commandBuffer);
-    pushConstant.model = orbitRotation * offset * meshScale;
-    vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
-    mesh.draw(commandBuffer);
+ //   // Final model matrix: rotation around terrain * offset from pivot * local scale
+	//mesh.bind(commandBuffer);
+ //   pushConstant.model = orbitRotation * offset * meshScale;
+ //   vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+ //   mesh.draw(commandBuffer);
 
-    // --- Terrain: draw at its own transform (kept at origin here) ---
-    terrain.bind(commandBuffer);
-    glm::mat4 terrainRot = rotateAboutPoint(terrainPos, time * -glm::radians(orbitSpeedDegPerSec), orbitAxis);
-    glm::mat4 terrainScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 2.5f, 0.5f));
-    pushConstant.model = terrainRot * terrainScale;
-    vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
-    terrain.draw(commandBuffer);
+ //   // --- Terrain: draw at its own transform (kept at origin here) ---
+ //   terrain.bind(commandBuffer);
+ //   glm::mat4 terrainRot = rotateAboutPoint(terrainPos, time * -glm::radians(orbitSpeedDegPerSec), orbitAxis);
+ //   glm::mat4 terrainScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 2.5f, 0.5f));
+ //   pushConstant.model = glm::mat4(1.0f);
+ //   vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+ //   terrain.draw(commandBuffer);
+	obj1.draw(pipeline, commandBuffer, time, -1);
+	obj2.draw(pipeline, commandBuffer, time, 1);
+	obj3.draw(pipeline, commandBuffer, time, -1);
 
 
     vkCmdEndRendering(commandBuffer);

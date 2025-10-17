@@ -19,6 +19,17 @@
 #include "Graphics/Swapchain.h"
 #include "Core/Camera.h"
 
+struct Object
+{
+    std::string name;
+	Engine::Mesh mesh;
+    float orbitRadius = 3.0f;
+	glm::vec3 position;
+	Object* orbitingAround = nullptr;
+    void draw(Engine::Pipeline& pipeline, VkCommandBuffer commandBuffer, float time, int positive);
+};
+
+
 // --- Configuration ---
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -108,8 +119,11 @@ private:
     // --- Core Application Members ---
     Engine::Window window;
     Engine::InputHandler inputHandler;
-    Engine::Mesh mesh;
-    Engine::Mesh terrain;
+    //Engine::Mesh mesh;
+    //Engine::Mesh terrain;
+    Object obj1;
+    Object obj2;
+    Object obj3;
 
     // --- Swapchain ---
     Engine::Swapchain swapChain;
