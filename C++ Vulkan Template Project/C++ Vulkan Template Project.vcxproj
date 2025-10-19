@@ -111,15 +111,19 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLM\include;C:\VulkanSDK\1.4.313.2\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLM\include;C:\VulkanSDK\1.4.313.2\Include;$(SolutionDir)packages\Assimp.3.0.0\build\native\include;$(SolutionDir)Dependencies\ImGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)packages\Assimp.3.0.0\build\native\lib\x64;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalDependencies)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -129,36 +133,63 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLM\include;C:\VulkanSDK\1.4.313.2\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLM\include;C:\VulkanSDK\1.4.313.2\Include;$(SolutionDir)packages\Assimp.3.0.0\build\native\include;$(SolutionDir)Dependencies\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)packages\Assimp.3.0.0\build\native\lib\x64;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalDependencies)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Core\Window.cpp" />
-    <ClCompile Include="Graphics\Mesh.cpp" />
+    <ClCompile Include="Core\Camera.cpp" />
+    <ClCompile Include="Graphics\Buffer.cpp" />
+    <ClCompile Include="Core\DebugUtils.cpp" />
+    <ClCompile Include="Core\InputHandler.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Core\Vertex.cpp" />
-    <ClCompile Include="VulkanApplication.cpp" />
-    <ClCompile Include="Graphics\VulkanContext.cpp" />
+    <ClCompile Include="Graphics\VulkanTypes.cpp" />
+    <ClCompile Include="Graphics\Mesh.cpp" />
+    <ClCompile Include="Graphics\Pipeline.cpp" />
+    <ClCompile Include="Core\ModelLoader.cpp" />
+    <ClCompile Include="Graphics\Swapchain.cpp" />
+    <ClCompile Include="VulkanContext.cpp" />
+    <ClCompile Include="Core\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\SwapChainSupportDetails.h" />
-    <ClInclude Include="Core\Vertex.h" />
-    <ClInclude Include="Core\UBO.h" />
-    <ClInclude Include="Core\QueueFamilyIndices.h" />
-    <ClInclude Include="Core\Window.h" />
-    <ClInclude Include="Debug Utils.h" />
+    <ClInclude Include="Core\Camera.h" />
+    <ClInclude Include="Graphics\Buffer.h" />
+    <ClInclude Include="Core\Debug Utils.h" />
+    <ClInclude Include="Graphics\VulkanTypes.h" />
     <ClInclude Include="Graphics\Mesh.h" />
-    <ClInclude Include="VulkanApplication.h" />
-    <ClInclude Include="Graphics\VulkanContext.h" />
+    <ClInclude Include="Graphics\Pipeline.h" />
+    <ClInclude Include="Core\ModelLoader.h" />
+    <ClInclude Include="Graphics\Swapchain.h" />
+    <ClInclude Include="Core\InputHandler.h" />
+    <ClInclude Include="VulkanContext.h" />
+    <ClInclude Include="Core\Window.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="shaders\compile.bat" />
+    <None Include="shaders\shader.frag" />
+    <None Include="shaders\shader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\Assimp.redist.3.0.0\build\native\Assimp.redist.targets" Condition="Exists('..\packages\Assimp.redist.3.0.0\build\native\Assimp.redist.targets')" />
+    <Import Project="..\packages\Assimp.3.0.0\build\native\Assimp.targets" Condition="Exists('..\packages\Assimp.3.0.0\build\native\Assimp.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Assimp.redist.3.0.0\build\native\Assimp.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Assimp.redist.3.0.0\build\native\Assimp.redist.targets'))" />
+    <Error Condition="!Exists('..\packages\Assimp.3.0.0\build\native\Assimp.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Assimp.3.0.0\build\native\Assimp.targets'))" />
+  </Target>
 </Project>

@@ -1,22 +1,38 @@
 
-#include "VulkanApplication.h"
+#include "VulkanContext.h"
 #include <iostream>
 
+//C:\VulkanSDK\1.4.313.2\Include
+
+/* todo: break into components
+Device — Physical/logical device and queue setup
+
+RenderPass — Render pass setup
+
+CommandPool/CommandBuffer — Command buffer management
+
+ShaderModule — Shader loading and management
+
+Texture — Texture image and sampler
+
+Synchronization — Fences, semaphores for frame sync
+
+*/
+
 int main() {
-    // Cube vertices
-    std::vector<Vertex> cube1 = {
-        {{-0.5f,-0.5f,-0.5f},{1,0,0}}, {{0.5f,-0.5f,-0.5f},{0,1,0}},
-        {{0.5f,0.5f,-0.5f},{0,0,1}}, {{-0.5f,0.5f,-0.5f},{1,1,0}},
-        {{-0.5f,-0.5f,0.5f},{1,0,1}}, {{0.5f,-0.5f,0.5f},{0,1,1}},
-        {{0.5f,0.5f,0.5f},{1,1,1}}, {{-0.5f,0.5f,0.5f},{0,0,0}}
-    };
 
-    std::vector<Vertex> cube2 = cube1;
-    for (auto& v : cube2) v.pos.x += 1.0f; // offset second cube
+    VulkanContext app;
+    try 
+    {
+        while (!app.getWindow().shouldClose()) {
+            glfwPollEvents();
+			app.getInputHandler().update();
+            app.drawFrame();
+        }
 
-    VulkanApplication app;
-    try {
-        app.run();
+        vkDeviceWaitIdle(app.getDevice());
+        app.cleanup();
+
     }
     catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
@@ -24,3 +40,29 @@ int main() {
     }
     return EXIT_SUCCESS;
 }
+
+
+// Mesh -> Shader -> Pipeline -> Command Buffer -> Frame
+
+//class Shader { //shader should have own pipeline , layout, and descriptor sets
+//public:
+//    VkPipeline pipeline;
+//    VkPipelineLayout pipelineLayout;
+//
+//    VkDescriptorSetLayout descriptorSetLayout;
+//    VkDescriptorPool descriptorPool;
+//
+//    // Maybe store multiple sets for double/triple buffering
+//    std::vector<VkDescriptorSet> descriptorSets;
+//
+//    void createDescriptorSetLayout();
+//    void allocateDescriptorSets();
+//    void updateDescriptorSets(...); // pass buffers/images here
+//
+//    void bind(VkCommandBuffer cmdBuffer, VkPipelineBindPoint bindPoint);
+//};
+
+//Suggested Abstraction Layers
+//Shader class : Owns layout + pipeline + descriptor sets.
+//Material class (optional) : Owns per - instance resource data(e.g., per - object uniform buffer).
+//Renderer or RenderPass : Manages command buffers, submits shaders and binds resources.

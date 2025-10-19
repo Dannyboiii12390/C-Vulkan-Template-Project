@@ -1,43 +1,39 @@
 #pragma once
-
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
 #include <vector>
-#include "../Core/Vertex.h"
+#include "VulkanTypes.h"
+#include <vulkan/vulkan.h>
+#include "Buffer.h"
 
-class VulkanContext; // forward declaration
+//struct Vertex;
+class VulkanContext;
 
+namespace Engine 
+{
+	class Mesh
+	{
+		//VulkanContext& context;
 
-class Mesh {
-public:
-    Mesh(VulkanContext& context,
-        const std::vector<Vertex>& vertices,
-        const std::vector<uint32_t>& indices);
-    ~Mesh();
+		// CPU-side data
+		std::vector<Vertex> vertices;
+		std::vector<uint16_t> indices;
+		
 
-    void cleanup();
+		// GPU-side resources
+		Buffer vertexBuffer;
+		Buffer indexBuffer;
 
-    VkBuffer getVertexBuffer() const { return vertexBuffer; }
-    VkBuffer getIndexBuffer() const { return indexBuffer; }
-    uint32_t getIndexCount() const { return static_cast<uint32_t>(indices.size()); }
+		uint32_t indexCount = 0;
 
-private:
-    VulkanContext& context;
+	public:
 
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
+		Mesh() = default;
+		void create(VulkanContext& context, std::vector<Vertex>&& pVertices, std::vector<uint16_t>&& pIndices);
+		void create(VulkanContext& context, const std::vector<Vertex>& pVertices, const std::vector<uint16_t>& pIndices);
+		void cleanup(VulkanContext& context);
+		void bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer = VK_NULL_HANDLE);
+		void draw(VkCommandBuffer commandBuffer, uint32_t instanceCount = 1);
 
-    VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
-    VkBuffer indexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
-
-    void createVertexBuffer();
-    void createIndexBuffer();
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
-        VkMemoryPropertyFlags properties,
-        VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-};
+	};
+}
 
 

@@ -1,48 +1,32 @@
 #include "Window.h"
-#include <stdexcept>
-#include <iostream>
 
-Window::Window(int width, int height, const std::string& title)
-    : width(width), height(height), title(title) {
-    initWindow();
-}
+namespace Engine {
+	Window::Window(int w, int h, const char* t) : width(w), height(h), title(t)
+	{
+		ASSERT(glfwInit()); // create glfw instance
 
-Window::~Window() {
-    glfwDestroyWindow(window);
-    glfwTerminate();
-}
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+		ASSERT(window); // create window
 
-void Window::initWindow() {
-    if (!glfwInit()) {
-        throw std::runtime_error("Failed to initialize GLFW!");
-    }
+		glfwSetWindowUserPointer(window, this);
+		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don’t create OpenGL context
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+	}
+	Window::~Window()
+	{
+		glfwDestroyWindow(window);
+		glfwTerminate();
+	}
+	void Window::setShouldClose(bool value) {
+		glfwSetWindowShouldClose(window, value);
+	}
 
-    window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
-    if (!window) {
-        glfwTerminate();
-        throw std::runtime_error("Failed to create GLFW window!");
-    }
-
-    glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-
-    std::cout << "Created window: " << title << " (" << width << "x" << height << ")\n";
-}
-
-bool Window::shouldClose() const {
-    return glfwWindowShouldClose(window);
-}
-
-void Window::pollEvents() const {
-    glfwPollEvents();
-}
-
-void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-    auto app = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
-    app->framebufferResized = true;
-    app->width = width;
-    app->height = height;
+	void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+	{
+		auto app = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+		app->framebufferResized = true;
+		app->width = width;
+		app->height = height;
+	}
 }

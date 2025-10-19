@@ -1,35 +1,37 @@
 #pragma once
-
-#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <string>
+#include "Debug Utils.h"
+#include <vector>
 
-class Window {
-public:
-    Window(int width, int height, const std::string& title);
-    ~Window();
+namespace Engine 
+{
+	class Window 
+	{
+	private:
+		int width;
+		int height;
+		const char* title;
+		bool framebufferResized = false;
+		GLFWwindow* window;
+		uint32_t currentFrame = 0;
 
-    // Core window functions
-    bool shouldClose() const;
-    void pollEvents() const;
 
-    // Accessors
-    GLFWwindow* getGLFWwindow() const { return window; }
-    VkExtent2D getExtent() const { return { static_cast<uint32_t>(width), static_cast<uint32_t>(height) }; }
+		static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
-    // Resize handling
-    bool wasResized() const { return framebufferResized; }
-    void resetResizeFlag() { framebufferResized = false; }
+	public:
 
-private:
-    void initWindow();
+		Window(int w = 800, int h = 600, const char* t = "Default Title");
+		~Window();
 
-    int width;
-    int height;
-    std::string title;
-    GLFWwindow* window = nullptr;
-    bool framebufferResized = false;
+		const uint32_t getCurrentFrame() const { return currentFrame; }
+		void resetCurrentFrame(size_t size) { currentFrame = (currentFrame + 1) % size; }
+		GLFWwindow* getGLFWwindow() const { return window; }
+		int getWidth() const { return width; }
+		int getHeight() const { return height; }
+		bool wasFramebufferResized() const { return framebufferResized; }
+		void resetFramebufferResizedFlag() { framebufferResized = false; }
+		bool shouldClose() const { return glfwWindowShouldClose(window); }
+		void setShouldClose(bool value);
 
-    // Static callback for GLFW
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-};
+	};
+}
