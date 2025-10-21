@@ -35,6 +35,13 @@ namespace Engine
         colorAttr.offset = static_cast<uint32_t>(offsetof(Vertex, color));
         attributes.push_back(colorAttr);
 
+        VkVertexInputAttributeDescription normalAttr{};
+        colorAttr.location = 2;
+        colorAttr.binding = 0; // same vertex buffer
+        colorAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
+        colorAttr.offset = static_cast<uint32_t>(offsetof(Vertex, normal));
+        attributes.push_back(colorAttr);
+
         return attributes;
     }
 
@@ -49,5 +56,4 @@ namespace Engine
 
 	// --- QueueFamilyIndices Implementation ---
     bool QueueFamilyIndices::isComplete() const { return graphicsFamily.has_value() && presentFamily.has_value(); }
-
 }

@@ -10,32 +10,99 @@
 namespace Engine 
 {
     Mesh ModelLoader::createCube(VulkanContext& context) {
+        const float s = 0.5f;
+        const glm::vec3 nx = glm::vec3(-1.0f, 0.0f, 0.0f);
+        const glm::vec3 px = glm::vec3(1.0f, 0.0f, 0.0f);
+        const glm::vec3 ny = glm::vec3(0.0f, -1.0f, 0.0f);
+        const glm::vec3 py = glm::vec3(0.0f, 1.0f, 0.0f);
+        const glm::vec3 nz = glm::vec3(0.0f, 0.0f, -1.0f);
+        const glm::vec3 pz = glm::vec3(0.0f, 0.0f, 1.0f);
+        
+        
         std::vector<Vertex> vertices{
-            // Front face
-            {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
-            {{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-            {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-            {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+            //// Front face
+            //{{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+            //{{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+            //{{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+            //{{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
 
-            // Back face
-            {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-            {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-            {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
-            {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}}
+            //// Back face
+            //{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+            //{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+            //{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+            //{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+
+            // Front face (+Z)
+            {{ -s, s,  s}, {1.0f, 1.0f, 1.0f}, pz},
+            {{-s, -s,  s}, {1.0f, 1.0f, 1.0f}, pz},
+            {{ s, -s,  s}, {1.0f, 1.0f, 1.0f}, pz},
+
+            {{-s,  s,  s}, {1.0f, 1.0f, 1.0f}, pz},
+            {{ s, -s,  s}, {1.0f, 1.0f, 1.0f}, pz},
+            {{ s,  s,  s}, {1.0f, 1.0f, 1.0f}, pz},
+
+            // Back face (-Z)
+            {{ s,  s, -s}, {1.0f, 1.0f, 1.0f}, nz},
+            {{ s, -s, -s}, {1.0f, 1.0f, 1.0f}, nz},
+            {{-s, -s, -s}, {1.0f, 1.0f, 1.0f}, nz},
+
+            {{ s,  s, -s}, {1.0f, 1.0f, 1.0f}, nz},
+            {{-s, -s, -s}, {1.0f, 1.0f, 1.0f}, nz},
+            {{-s,  s, -s}, {1.0f, 1.0f, 1.0f}, nz},
+
+            // Left face (-X)
+            {{-s,  s, -s}, {1.0f, 1.0f, 1.0f}, nx},
+            {{-s, -s, -s}, {1.0f, 1.0f, 1.0f}, nx},
+            {{-s, -s,  s}, {1.0f, 1.0f, 1.0f}, nx},
+
+            {{-s,  s, -s}, {1.0f, 1.0f, 1.0f}, nx},
+            {{-s, -s,  s}, {1.0f, 1.0f, 1.0f}, nx},
+            {{-s,  s,  s}, {1.0f, 1.0f, 1.0f}, nx},
+
+            // Right face (+X)
+            {{ s,  s,  s}, {1.0f, 1.0f, 1.0f}, px},
+            {{ s, -s,  s}, {1.0f, 1.0f, 1.0f}, px},
+            {{ s, -s, -s}, {1.0f, 1.0f, 1.0f}, px},
+
+            {{ s,  s,  s}, {1.0f, 1.0f, 1.0f}, px},
+            {{ s, -s, -s}, {1.0f, 1.0f, 1.0f}, px},
+            {{ s,  s, -s}, {1.0f, 1.0f, 1.0f}, px},
+
+            // Top face (+Y)
+            {{-s,  s, -s}, {1.0f, 1.0f, 1.0f}, py},
+            {{-s,  s,  s}, {1.0f, 1.0f, 1.0f}, py},
+            {{ s,  s,  s}, {1.0f, 1.0f, 1.0f}, py},
+
+            {{-s,  s, -s}, {1.0f, 1.0f, 1.0f}, py},
+            {{ s,  s,  s}, {1.0f, 1.0f, 1.0f}, py},
+            {{ s,  s, -s}, {1.0f, 1.0f, 1.0f}, py},
+
+            // Bottom face (-Y)
+            {{-s, -s,  s}, {1.0f, 1.0f, 1.0f}, ny},
+            {{-s, -s, -s}, {1.0f, 1.0f, 1.0f}, ny},
+            {{ s, -s, -s}, {1.0f, 1.0f, 1.0f}, ny},
+
+            {{-s, -s,  s}, {1.0f, 1.0f, 1.0f}, ny},
+            {{ s, -s, -s}, {1.0f, 1.0f, 1.0f}, ny},
+            {{ s, -s,  s}, {1.0f, 1.0f, 1.0f}, ny},
+
+
+
+
         };
         std::vector<uint16_t> indices = {
-            // Front face
-            0, 1, 2, 2, 3, 0,
-            // Back face
-            4, 5, 6, 6, 7, 4,
-            // Top face
-            3, 2, 6, 6, 7, 3,
-            // Bottom face
-            0, 1, 5, 5, 4, 0,
-            // Right face
-            1, 2, 6, 6, 5, 1,
-            // Left face
-            0, 3, 7, 7, 4, 0
+            //// Front face
+            //0, 1, 2, 2, 3, 0,
+            //// Back face
+            //4, 5, 6, 6, 7, 4,
+            //// Top face
+            //3, 2, 6, 6, 7, 3,
+            //// Bottom face
+            //0, 1, 5, 5, 4, 0,
+            //// Right face
+            //1, 2, 6, 6, 5, 1,
+            //// Left face
+            //0, 3, 7, 7, 4, 0
         };
         //moving values into the mesh
         Mesh mesh;

@@ -11,7 +11,7 @@ namespace Engine
         //createVertexBuffer(context);
         //createIndexBuffer(context);
         vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
-        indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
+        //indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
     }
     void Mesh::create(VulkanContext& context, const std::vector<Vertex>& pVertices, const std::vector<uint16_t>& pIndices)
     {
@@ -42,9 +42,11 @@ namespace Engine
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         }
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+        //vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
     }
     void Mesh::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount) {
-        vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
+        //vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
+		//draw without index buffer
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), instanceCount, 0, 0);
     }
 }

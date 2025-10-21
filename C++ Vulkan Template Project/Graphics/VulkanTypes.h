@@ -11,13 +11,13 @@ namespace Engine
     // Attribute descriptions must use distinct locations and valid formats.
     // location 0 -> position (vec3)
     // location 1 -> color    (vec3)
-    // location 2 -> instance offset (vec3) bound to binding 1
 
 
     struct Vertex 
     {
         glm::vec3 pos;
         glm::vec3 color;
+        glm::vec3 normal;
 
         static VkVertexInputBindingDescription getBindingDescription();
         static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();
@@ -28,11 +28,6 @@ namespace Engine
         glm::vec3 offset;
 
         static VkVertexInputBindingDescription getBindingDescription();
-    };
-
-    struct PushConstantModel
-    {
-        glm::mat4 model;
     };
 
     struct QueueFamilyIndices {
@@ -48,11 +43,34 @@ namespace Engine
         std::vector<VkPresentModeKHR> presentModes;
     };
 
+    struct Light {
+        glm::vec3 position;
+        glm::vec3 color;
+        float padding;
+    };
     struct UniformBufferObject {
         //alignas(16) glm::mat4 model;
-        alignas(16) glm::mat4 view;
-        alignas(16) glm::mat4 proj;
+        glm::mat4 view;
+        glm::mat4 proj;
+        glm::vec3 eyePos;
+        float padding1;
+        Light lights[2];
+        float time;
+        float padding2[3];
+
     };
+    struct Material {
+        glm::vec3 ambient;
+        glm::vec3 diffuse;
+        glm::vec3 specular;
+        float shininess;
+    };
+    struct PushConstantModel
+    {
+        glm::mat4 model;
+        Material material;
+    };
+
 
     
 }
