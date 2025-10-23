@@ -35,6 +35,13 @@ namespace Engine
         colorAttr.offset = static_cast<uint32_t>(offsetof(Vertex, color));
         attributes.push_back(colorAttr);
 
+		VkVertexInputAttributeDescription normalAttr{};
+		normalAttr.location = 2;
+		normalAttr.binding = 0; // same vertex buffer
+		normalAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
+		normalAttr.offset = static_cast<uint32_t>(offsetof(Vertex, normal));
+		attributes.push_back(normalAttr);
+
         return attributes;
     }
 

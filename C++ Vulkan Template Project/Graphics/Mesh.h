@@ -32,6 +32,7 @@ namespace Engine
 		void cleanup(VulkanContext& context);
 		void bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer = VK_NULL_HANDLE);
 		void draw(VkCommandBuffer commandBuffer, uint32_t instanceCount = 1);
+		bool isIndexed() { return indices.size() != 0; }
 
 	};
 }

@@ -22,11 +22,11 @@ namespace Engine
         //createVertexBuffer(context);
         //createIndexBuffer(context);
         vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
-        indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
+        if(isIndexed()) indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
     }
     void Mesh::cleanup(VulkanContext& context)
     {
-        indexBuffer.destroy(context.getDevice());
+        if(isIndexed()) indexBuffer.destroy(context.getDevice());
         vertexBuffer.destroy(context.getDevice());
     }
     void Mesh::bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer)
@@ -42,9 +42,12 @@ namespace Engine
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         }
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+        if (isIndexed()) vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
     }
     void Mesh::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount) {
-        vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
+        if(isIndexed()) vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
+        else vkCmdDraw(commandBuffer, vertices.size(), 1, 0, 0);
+
+
     }
 }

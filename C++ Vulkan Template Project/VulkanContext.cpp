@@ -67,7 +67,9 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
 	//terrain = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //terrain = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
-    mesh = Engine::ModelLoader::createCube(*this);
+    //mesh = Engine::ModelLoader::createCube(*this);
+    mesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
+    
     //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
     //mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
