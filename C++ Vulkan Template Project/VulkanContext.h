@@ -28,17 +28,7 @@ struct Object
 	Object* orbitingAround = nullptr;
     void draw(Engine::Pipeline& pipeline, VkCommandBuffer commandBuffer, float time, int positive);
 };
-struct Light {
-    glm::vec3 position;
-    glm::vec3 color;
-    float padding;
-};
-struct Material {
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    float shininess;
-};
+
 
 // --- Configuration ---
 const uint32_t WIDTH = 800;
@@ -85,6 +75,7 @@ public:
 
     static glm::mat4 rotateAboutPoint(const glm::vec3& pivot, const float angle, const glm::vec3& axis);
 
+
 private:
 
     // --- Vulkan Initialization Steps ---
@@ -128,11 +119,11 @@ private:
     // --- Core Application Members ---
     Engine::Window window;
     Engine::InputHandler inputHandler;
-    Engine::Mesh mesh;
+    //Engine::Mesh mesh;
     //Engine::Mesh terrain;
-    /*Object obj1;
+    Object obj1;
     Object obj2;
-    Object obj3;*/
+    Object obj3;
 
     // --- Swapchain ---
     Engine::Swapchain swapChain;

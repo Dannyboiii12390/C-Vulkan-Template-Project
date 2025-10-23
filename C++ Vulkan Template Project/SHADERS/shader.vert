@@ -7,34 +7,15 @@ layout(push_constant) uniform PushConstants {
 layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
-    vec3 lightPos;
-    vec3 eyePos;
 } ubo;
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormal;
+layout(location = 1) in vec3 inColor;
+//layout(location = 2) in vec3 inOffset;
 
 layout(location = 0) out vec3 fragColor;
 
 void main() {
-    // Transform position to clip space
     gl_Position = ubo.proj * ubo.view * pushConstants.model * vec4(inPosition, 1.0);
-
-    // Transform position and normal to world space
-    vec3 worldPos = (pushConstants.model * vec4(inPosition, 1.0)).xyz;
-    vec3 worldNormal = mat3(transpose(inverse(pushConstants.model))) * inNormal;
-
-    // Light and material properties
-    vec3 lightColor = vec3(1.0, 1.0, 1.0);
-    vec3 ambientMaterial = vec3(0.2, 0.1, 0.2);
-    vec3 diffMaterial = vec3(1.0);
-
-    // Diffuse calculation
-    vec3 norm = normalize(worldNormal);
-    vec3 lightDir = normalize(ubo.lightPos - worldPos);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
-
-    // Combine ambient + diffuse
-    fragColor = ambientMaterial * lightColor + diffMaterial * diffuse;
+    fragColor = inColor;
 }

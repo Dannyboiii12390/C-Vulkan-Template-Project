@@ -65,7 +65,27 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
     createCommandPool();
 
-    mesh = Engine::ModelLoader::createCube(*this);
+	//terrain = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
+    //terrain = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
+    //mesh = Engine::ModelLoader::createCube(*this);
+    //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
+    //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
+    //mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
+    //mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
+	//mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
+    obj1.name = "obj1";
+	obj1.mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
+	obj1.position = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    obj2.name = "obj2";
+	obj2.mesh = Engine::ModelLoader::createSphere(*this, 0.5f, 36, 18);
+	obj2.position = glm::vec3(3.0f, 0.0f, 0.0f);
+	obj2.orbitingAround = &obj1;
+
+    obj3.name = "obj3";
+	obj3.mesh = Engine::ModelLoader::createSphere(*this, 0.25f, 36, 18);
+	obj3.position = glm::vec3(6.0f, 0.0f, 0.0f);
+	obj3.orbitingAround = &obj2;
 
     // --- create uniform buffers ---
     uniformBuffers.clear();
@@ -101,7 +121,11 @@ void VulkanContext::cleanup() {
     pipeline.destroy(device);
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-    mesh.cleanup(*this);
+    //mesh.cleanup(*this);
+	//terrain.cleanup(*this);
+	obj1.mesh.cleanup(*this);
+	obj2.mesh.cleanup(*this);
+	obj3.mesh.cleanup(*this);
 
     for (auto& buf : uniformBuffers) buf.destroy(device);
     uniformBuffers.clear();
@@ -262,8 +286,7 @@ void VulkanContext::createDescriptorSetLayout() {
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    // Make UBO available to both vertex and fragment stages
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -473,91 +496,39 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     scissor.extent = swapChain.extent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+    Engine::PushConstantModel pushConstant{};
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float>(currentTime - startTime).count();
-
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
+    glm::vec3 terrainPos = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    // Materials for each cube
-    Engine::Material metallic = {
-        glm::vec3(0.1f, 0.1f, 0.3f),  // ambient
-        glm::vec3(0.5f, 0.5f, 1.0f),  // diffuse
-        glm::vec3(1.0f, 1.0f, 1.0f),  // specular
-        64.0f                          // shininess
-    };
-
-    Engine::Material matte = {
-        glm::vec3(0.2f, 0.1f, 0.1f),  // ambient
-        glm::vec3(0.8f, 0.4f, 0.4f),  // diffuse
-        glm::vec3(0.1f, 0.1f, 0.1f),  // specular
-        8.0f                           // shininess
-    };
-
-    Engine::Material glossy = {
-        glm::vec3(0.1f, 0.2f, 0.1f),  // ambient
-        glm::vec3(0.4f, 0.8f, 0.4f),  // diffuse
-        glm::vec3(0.6f, 0.6f, 0.6f),  // specular
-        32.0f                          // shininess
-    };
-
-    // Draw cube 1 - metallic (enhanced to better show red reflections)
-    mesh.bind(commandBuffer);
-    Engine::PushConstantModel pushConstant{};
-    pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 0.0f, 0.0f));
-    pushConstant.material = {
-        glm::vec3(0.1f, 0.1f, 0.3f),   // ambient
-        glm::vec3(0.5f, 0.5f, 1.0f),   // diffuse (more blue-shifted)
-        glm::vec3(1.0f, 0.9f, 0.9f),   // specular (slight reddish tint on highlights)
-        64.0f                          // shininess
-    };
-    vkCmdPushConstants(commandBuffer, pipeline.getLayout(),
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        0, sizeof(Engine::PushConstantModel), &pushConstant);
-    mesh.draw(commandBuffer);
-
-    // Draw cube 2 - matte (enhanced to better show red diffuse lighting)
-    pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    pushConstant.material = {
-        glm::vec3(0.2f, 0.2f, 0.2f),   // ambient (more neutral)
-        glm::vec3(0.9f, 0.5f, 0.5f),   // diffuse (more responsive to red light)
-        glm::vec3(0.2f, 0.1f, 0.1f),   // specular (slight red tint)
-        8.0f                           // shininess
-    };
-    vkCmdPushConstants(commandBuffer, pipeline.getLayout(),
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        0, sizeof(Engine::PushConstantModel), &pushConstant);
-    mesh.draw(commandBuffer);
-
-    // Draw cube 3 - glossy (enhanced to create dramatic contrast)
-    pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(2.5f, 0.0f, 0.0f));
-    pushConstant.material = {
-        glm::vec3(0.1f, 0.15f, 0.1f),  // ambient
-        glm::vec3(0.3f, 0.8f, 0.3f),   // diffuse (green to contrast with red)
-        glm::vec3(0.9f, 0.9f, 0.9f),   // specular (bright to show highlight color)
-        32.0f                          // shininess
-    };
-    vkCmdPushConstants(commandBuffer, pipeline.getLayout(),
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        0, sizeof(Engine::PushConstantModel), &pushConstant);
-    mesh.draw(commandBuffer);
-
-
+ //   // Orbit parameters
+ //   float orbitSpeedDegPerSec = 90.0f;   // degrees per second
+ //   float orbitRadius = 3.0f;            // distance from terrain center
+ //   glm::vec3 orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
 
  //   //Build transform: rotate around terrainPos, then apply an offset (radius) and scale
- //   glm::mat4 rotation = rotateAboutPoint(glm::vec3(0.0f), time * glm::radians<float>(90), glm::vec3(0.0f, 1.0f, 0.0f));
+ //   glm::mat4 orbitRotation = rotateAboutPoint(terrainPos, time * glm::radians(orbitSpeedDegPerSec), orbitAxis);
+ //   glm::mat4 offset = glm::translate(glm::mat4(1.0f), glm::vec3(orbitRadius, 0.0f, 0.0f));
  //   glm::mat4 meshScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 2.5f)); // adjust mesh scale as desired
 
  //   // Final model matrix: rotation around terrain * offset from pivot * local scale
 	//mesh.bind(commandBuffer);
- //   pushConstant.model = rotation * meshScale;
+ //   pushConstant.model = orbitRotation * offset * meshScale;
  //   vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
  //   mesh.draw(commandBuffer);
 
-
-	//obj1.draw(pipeline, commandBuffer, time, -1);
-	//obj2.draw(pipeline, commandBuffer, time, 1);
-	//obj3.draw(pipeline, commandBuffer, time, -1);
+ //   // --- Terrain: draw at its own transform (kept at origin here) ---
+ //   terrain.bind(commandBuffer);
+ //   glm::mat4 terrainRot = rotateAboutPoint(terrainPos, time * -glm::radians(orbitSpeedDegPerSec), orbitAxis);
+ //   glm::mat4 terrainScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 2.5f, 0.5f));
+ //   pushConstant.model = glm::mat4(1.0f);
+ //   vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+ //   terrain.draw(commandBuffer);
+	obj1.draw(pipeline, commandBuffer, time, -1);
+	obj2.draw(pipeline, commandBuffer, time, 1);
+	obj3.draw(pipeline, commandBuffer, time, -1);
 
 
     vkCmdEndRendering(commandBuffer);
@@ -580,24 +551,9 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
 	ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS);
 }
-void VulkanContext::updateUniformBuffer(uint32_t currentImage)
+void VulkanContext::updateUniformBuffer(uint32_t currentImage) 
 {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float>(currentTime - startTime).count();
-
     Engine::UniformBufferObject ubo = camera.getCameraUBO();
-
-    // Static white light - position further to create more contrast
-    ubo.lights[0].position = glm::vec3(8.0f, 6.0f, 8.0f);
-    ubo.lights[0].color = glm::vec3(1.0f, 1.0f, 1.0f);
-
-    // Rotating red light - more intense and saturated
-    float radius = 5.0f;  // Increased radius for more dramatic shadows
-    float height = 2.0f + sin(time) * 1.0f;  // Add some vertical movement
-    ubo.lights[1].position = glm::vec3(radius * cos(time * 0.7f), height, radius * sin(time * 0.7f));
-    ubo.lights[1].color = glm::vec3(2.0f, 0.2f, 0.2f);  // More intense and saturated red
-    ubo.time = time;
 
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
 }
