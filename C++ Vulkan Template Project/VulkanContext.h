@@ -119,11 +119,12 @@ private:
     // --- Core Application Members ---
     Engine::Window window;
     Engine::InputHandler inputHandler;
-    //Engine::Mesh mesh;
+    Engine::Mesh mesh;
     //Engine::Mesh terrain;
-    Object obj1;
+    
+    /*Object obj1;
     Object obj2;
-    Object obj3;
+    Object obj3;*/
 
     // --- Swapchain ---
     Engine::Swapchain swapChain;
