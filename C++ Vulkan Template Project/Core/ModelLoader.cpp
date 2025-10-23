@@ -104,10 +104,9 @@ namespace Engine
             {{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
             {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
         };
-        std::vector<uint16_t> indices;
 
         Mesh mesh;
-        mesh.create(context, vertices, indices);
+        mesh.create(context, std::move(vertices));
         return mesh;
 
 	};

@@ -13,16 +13,12 @@ namespace Engine
         vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
         indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
     }
-    void Mesh::create(VulkanContext& context, const std::vector<Vertex>& pVertices, const std::vector<uint16_t>& pIndices)
+    void Mesh::create(VulkanContext& context, std::vector<Vertex>&& pVertices)
     {
-        //move later on
-        vertices = pVertices;
-        indices = pIndices;
-        indexCount = static_cast<uint32_t>(indices.size());
-        //createVertexBuffer(context);
-        //createIndexBuffer(context);
+        //LOG("Creating Mesh with move semantics - non indexed");
+        vertices = std::move(pVertices);
+        indexCount = 0;
         vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
-        if(isIndexed()) indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
     }
     void Mesh::cleanup(VulkanContext& context)
     {

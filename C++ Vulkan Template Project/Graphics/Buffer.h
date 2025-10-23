@@ -24,7 +24,7 @@ namespace Engine
 		Buffer& operator=(Buffer&&) noexcept = default;
 		~Buffer() = default;
 
-		void create(class VulkanContext& ctx, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+		void create(const VulkanContext& ctx, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 
 		void destroy(VkDevice device);
 		void bind(VkDevice device, VkDeviceSize offset = 0);
@@ -42,6 +42,6 @@ namespace Engine
 		static Buffer createIndexBuffer(class VulkanContext& ctx, const void* data, VkDeviceSize size);
 		static Buffer createUniformBuffer(class VulkanContext& ctx, VkDeviceSize size);
 
-		uint32_t findMemoryType(VulkanContext& context, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+		uint32_t findMemoryType(const VulkanContext& context, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	};
 }

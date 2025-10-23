@@ -4,7 +4,7 @@
 #include <cstring>
 namespace Engine
 {
-    void Buffer::create(VulkanContext& ctx, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memProperties) {
+    void Buffer::create(const VulkanContext& ctx, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memProperties) {
         size = bufferSize;
         usage = bufferUsage;
         properties = memProperties;
@@ -174,7 +174,7 @@ namespace Engine
         return ub;
     }
 
-    uint32_t Buffer::findMemoryType(VulkanContext& context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    uint32_t Buffer::findMemoryType(const VulkanContext& context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(context.getPhysicalDevice(), &memProperties);
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
