@@ -7,6 +7,8 @@ layout(push_constant) uniform PushConstants {
 layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
+    vec3 lightPos;
+    vec3 eyePos;
 } ubo;
 
 layout(location = 0) in vec3 inPosition;

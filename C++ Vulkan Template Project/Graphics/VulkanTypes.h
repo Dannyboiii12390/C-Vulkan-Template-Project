@@ -9,9 +9,6 @@ namespace Engine
 {
 	// binding locations must be distinct for each binding description
     // Attribute descriptions must use distinct locations and valid formats.
-    // location 0 -> position (vec3)
-    // location 1 -> color    (vec3)
-    // location 2 -> instance offset (vec3) bound to binding 1
 
 
     struct Vertex 
@@ -50,9 +47,10 @@ namespace Engine
     };
 
     struct UniformBufferObject {
-        //alignas(16) glm::mat4 model;
         alignas(16) glm::mat4 view;
         alignas(16) glm::mat4 proj;
+        alignas(16) glm::vec3 lightPos;
+		alignas(16) glm::vec3 eyePos;
     };
 
     

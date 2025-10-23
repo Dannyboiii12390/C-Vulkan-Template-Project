@@ -530,6 +530,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 void VulkanContext::updateUniformBuffer(uint32_t currentImage) 
 {
     Engine::UniformBufferObject ubo = camera.getCameraUBO();
+	ubo.lightPos = glm::vec3(5.0f, 0.0f, 0.0f);
 
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
 }

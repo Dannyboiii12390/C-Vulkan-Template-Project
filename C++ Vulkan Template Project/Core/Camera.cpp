@@ -33,6 +33,7 @@ namespace Engine {
         Engine::UniformBufferObject ubo{};
         ubo.view = getViewMatrix();
         ubo.proj = getProjectionMatrix();
+        ubo.eyePos = getPosition();
         ubo.proj[1][1] *= -1;  // Flip Y for Vulkan
         return ubo;
 	}
