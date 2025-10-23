@@ -176,9 +176,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="shaders\compile.bat" />
-    <None Include="shaders\shader.frag" />
-    <None Include="shaders\shader.vert" />
+    <CustomBuild Include="shaders\shader.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\shader.frag -o .\shaders\shader.frag.spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\shader.frag -o .\shaders\shader.frag.spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\shaders\shader.frag.spv;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\shaders\shader.frag.spv;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="shaders\shader.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\shader.vert -o .\shaders\shader.vert.spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\shader.vert -o .\shaders\shader.vert.spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\shaders\shader.vert.spv;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\shaders\shader.vert.spv;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
