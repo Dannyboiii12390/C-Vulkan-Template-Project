@@ -120,6 +120,8 @@ private:
     Engine::Window window;
     Engine::InputHandler inputHandler;
     Engine::Mesh mesh;
+    Engine::Mesh leftMesh;
+	Engine::Mesh rightMesh;
     //Engine::Mesh terrain;
     
     /*Object obj1;

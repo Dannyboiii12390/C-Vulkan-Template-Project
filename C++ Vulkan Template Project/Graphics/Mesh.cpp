@@ -42,7 +42,7 @@ namespace Engine
     }
     void Mesh::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount) {
         if(isIndexed()) vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
-        else vkCmdDraw(commandBuffer, vertices.size(), 1, 0, 0);
+        else vkCmdDraw(commandBuffer, vertices.size(), instanceCount, 0, 0);
 
 
     }

@@ -69,6 +69,8 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     //terrain = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
     //mesh = Engine::ModelLoader::createCube(*this);
     mesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
+	leftMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
+	rightMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
     
     //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
@@ -111,6 +113,8 @@ void VulkanContext::cleanup() {
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
     mesh.cleanup(*this);
+	leftMesh.cleanup(*this);
+	rightMesh.cleanup(*this);
 	//terrain.cleanup(*this);
 	//obj1.mesh.cleanup(*this);
 	//obj2.mesh.cleanup(*this);
@@ -497,14 +501,23 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
  //   glm::vec3 orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
 
     //Build transform: rotate around terrainPos, then apply an offset (radius) and scale
-	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 Cube_scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 4.0f));
 
     // Final model matrix: rotation around terrain * offset from pivot * local scale
 	mesh.bind(commandBuffer);
-    pushConstant.model = rotation * Cube_scale;
-    vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+	pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
     mesh.draw(commandBuffer);
+
+	leftMesh.bind(commandBuffer);
+	pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 0.0f, 0.0f));
+	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+	leftMesh.draw(commandBuffer);
+
+	rightMesh.bind(commandBuffer);
+	pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f));
+	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
+	rightMesh.draw(commandBuffer);
+
 
 
     vkCmdEndRendering(commandBuffer);
@@ -529,8 +542,19 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 }
 void VulkanContext::updateUniformBuffer(uint32_t currentImage) 
 {
+	static auto startTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float>(currentTime - startTime).count();
+
     Engine::UniformBufferObject ubo = camera.getCameraUBO();
 	ubo.lightPos = glm::vec3(5.0f, 0.0f, 0.0f);
+	//red light moving in circle around origin
+    ubo.redLightPos = glm::vec3(
+        3.0f * cos(time), // X position (radius = 3)
+        1.0f,             // Y height = 1
+        3.0f * sin(time)  // Z position (radius = 3)
+    );
+
 
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
 }
