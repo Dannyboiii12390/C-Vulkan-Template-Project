@@ -5,6 +5,57 @@
 #include <array>
 #include <limits>
 namespace Engine {
+
+    // --- Helpers (local to this translation unit) ---
+    static VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+    {
+        for (VkFormat format : candidates)
+        {
+            VkFormatProperties props;
+            vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+
+            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+            {
+                return format;
+            }
+            if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+            {
+                return format;
+            }
+        }
+        throw std::runtime_error("Failed to find supported format");
+    }
+
+    static VkFormat findDepthFormat(VkPhysicalDevice physicalDevice)
+    {
+        std::vector<VkFormat> candidates = {
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D24_UNORM_S8_UINT
+        };
+        return findSupportedFormat(physicalDevice, candidates, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    }
+
+    static bool hasStencilComponent(VkFormat format)
+    {
+        return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+    }
+
+    static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+    {
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+        {
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+            {
+                return i;
+            }
+        }
+        throw std::runtime_error("Failed to find suitable memory type");
+    }
+
     void Swapchain::create(VulkanContext& ctx) {
         auto swapChainSupport = querySwapchainSupport(ctx.getPhysicalDevice(), ctx.getSurface());
 
@@ -93,6 +144,64 @@ namespace Engine {
                 throw std::runtime_error("Failed to create image view");
             }
         }
+        // --- Create depth resources ---
+        depthFormat = findDepthFormat(ctx.getPhysicalDevice());
+
+        VkImageCreateInfo depthImageInfo{};
+        depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
+        depthImageInfo.extent.width = extent.width;
+        depthImageInfo.extent.height = extent.height;
+        depthImageInfo.extent.depth = 1;
+        depthImageInfo.mipLevels = 1;
+        depthImageInfo.arrayLayers = 1;
+        depthImageInfo.format = depthFormat;
+        depthImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        depthImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthImageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        depthImageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        depthImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateImage(ctx.getDevice(), &depthImageInfo, nullptr, &depthImage) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create depth image");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(ctx.getDevice(), depthImage, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(ctx.getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        if (vkAllocateMemory(ctx.getDevice(), &allocInfo, nullptr, &depthImageMemory) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to allocate depth image memory");
+        }
+
+        vkBindImageMemory(ctx.getDevice(), depthImage, depthImageMemory, 0);
+
+        // Depth image view
+        VkImageViewCreateInfo depthViewInfo{};
+        depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        depthViewInfo.image = depthImage;
+        depthViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        depthViewInfo.format = depthFormat;
+        depthViewInfo.subresourceRange.baseMipLevel = 0;
+        depthViewInfo.subresourceRange.levelCount = 1;
+        depthViewInfo.subresourceRange.baseArrayLayer = 0;
+        depthViewInfo.subresourceRange.layerCount = 1;
+        depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        if (hasStencilComponent(depthFormat))
+        {
+            depthViewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+
+        if (vkCreateImageView(ctx.getDevice(), &depthViewInfo, nullptr, &depthImageView) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create depth image view");
+        }
     }
 
     void Swapchain::recreate(VulkanContext& ctx) {
@@ -104,9 +213,26 @@ namespace Engine {
     }
 
     void Swapchain::destroy(VkDevice device) {
+        if (depthImageView != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(device, depthImageView, nullptr);
+            depthImageView = VK_NULL_HANDLE;
+        }
+        if (depthImage != VK_NULL_HANDLE)
+        {
+            vkDestroyImage(device, depthImage, nullptr);
+            depthImage = VK_NULL_HANDLE;
+        }
+        if (depthImageMemory != VK_NULL_HANDLE)
+        {
+            vkFreeMemory(device, depthImageMemory, nullptr);
+            depthImageMemory = VK_NULL_HANDLE;
+        }
+
         destroyImageViews(device);
 
-        if (swapchain != VK_NULL_HANDLE) {
+        if (swapchain != VK_NULL_HANDLE)
+        {
             vkDestroySwapchainKHR(device, swapchain, nullptr);
             swapchain = VK_NULL_HANDLE;
         }

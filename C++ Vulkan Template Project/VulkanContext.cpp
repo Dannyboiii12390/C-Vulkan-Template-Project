@@ -61,7 +61,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     createDescriptorSetLayout();
 
     // --- create graphics pipeline ---
-    pipeline.create(*this, "shaders/shader.vert.spv", "shaders/shader.frag.spv", swapChain.imageFormat, descriptorSetLayout);
+    pipeline.create(*this, "shaders/shader.vert.spv", "shaders/shader.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 
     createCommandPool();
 
@@ -459,6 +459,31 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     dependencyInfoToAttachment.pImageMemoryBarriers = &imageBarrierToAttachment;
     vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoToAttachment);
 
+    // Transition depth image to depth attachment optimal
+    if (swapChain.depthImage != VK_NULL_HANDLE)
+    {
+        VkImageMemoryBarrier2 depthBarrier{};
+        depthBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        depthBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+        depthBarrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
+        depthBarrier.srcAccessMask = 0;
+        depthBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthBarrier.image = swapChain.depthImage;
+        depthBarrier.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 };
+        if (swapChain.depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || swapChain.depthFormat == VK_FORMAT_D24_UNORM_S8_UINT)
+        {
+            depthBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            
+        }
+        VkDependencyInfo depthDep{};
+        depthDep.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        depthDep.imageMemoryBarrierCount = 1;
+        depthDep.pImageMemoryBarriers = &depthBarrier;
+        vkCmdPipelineBarrier2(commandBuffer, &depthDep);
+    }
+
     VkRenderingAttachmentInfo colorAttachment{};
     colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     colorAttachment.imageView = swapChain.imageViews[imageIndex];
@@ -467,12 +492,21 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 
+    VkRenderingAttachmentInfo depthAttachment{};
+    depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    depthAttachment.imageView = swapChain.depthImageView;
+    depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
+
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
     renderingInfo.renderArea = { {0, 0}, swapChain.extent };
     renderingInfo.layerCount = 1;
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachments = &colorAttachment;
+    renderingInfo.pDepthAttachment = &depthAttachment;
 
     vkCmdBeginRendering(commandBuffer, &renderingInfo);
 
@@ -539,6 +573,11 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoToPresent);
 
 	ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS);
+
+    ASSERT(swapChain.depthImage != VK_NULL_HANDLE);
+	ASSERT(swapChain.depthImageView != VK_NULL_HANDLE);
+    ASSERT(swapChain.depthFormat != VK_FORMAT_UNDEFINED);
+
 }
 void VulkanContext::updateUniformBuffer(uint32_t currentImage) 
 {
@@ -549,10 +588,11 @@ void VulkanContext::updateUniformBuffer(uint32_t currentImage)
     Engine::UniformBufferObject ubo = camera.getCameraUBO();
 	ubo.lightPos = glm::vec3(5.0f, 0.0f, 0.0f);
 	//red light moving in circle around origin
+	float radius = 3.0f;
     ubo.redLightPos = glm::vec3(
-        3.0f * cos(time), // X position (radius = 3)
+        radius * cos(time), // X position (radius = 3)
         1.0f,             // Y height = 1
-        3.0f * sin(time)  // Z position (radius = 3)
+        radius * sin(time)  // Z position (radius = 3)
     );
 
 
@@ -728,17 +768,6 @@ void VulkanContext::handleInput()
     camera.moveRight(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_A));
     camera.moveUp(movespeed * inputHandler.isKeyPressed(GLFW_KEY_SPACE));
     camera.moveUp(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_LEFT_CONTROL));
-
-    // branching
-    //if (inputHandler.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) deltaTime *= sprintSpeed; // speed up when shift is held
-    //float movespeed = 3.0f * deltaTime;
-    //if (inputHandler.isKeyPressed(GLFW_KEY_W)) camera.moveForward(movespeed);
-    //if (inputHandler.isKeyPressed(GLFW_KEY_S)) camera.moveForward(-movespeed);
-    //if (inputHandler.isKeyPressed(GLFW_KEY_D)) camera.moveRight(movespeed);
-    //if (inputHandler.isKeyPressed(GLFW_KEY_A)) camera.moveRight(-movespeed);
-    //if (inputHandler.isKeyPressed(GLFW_KEY_SPACE)) camera.moveUp(movespeed);
-    //if (inputHandler.isKeyPressed(GLFW_KEY_LEFT_CONTROL)) camera.moveUp(-movespeed);
-
 
     // Camera rotation with mouse
     double mouseX, mouseY;

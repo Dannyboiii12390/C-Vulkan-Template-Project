@@ -26,6 +26,7 @@ namespace Engine {
             const std::string& vertShaderPath,
             const std::string& fragShaderPath,
             VkFormat colorFormat,
+			VkFormat depthFormat,
             VkDescriptorSetLayout descriptorSetLayout
         );
 

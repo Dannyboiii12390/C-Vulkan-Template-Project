@@ -18,6 +18,12 @@ namespace Engine
         VkExtent2D extent = { 0, 0 };
         uint32_t imageCount = 0;
 
+        // Depth resources
+        VkImage depthImage = VK_NULL_HANDLE;
+        VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+        VkImageView depthImageView = VK_NULL_HANDLE;
+        VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+
         // Details needed for swapchain creation/recreation
         struct SwapchainSupportDetails {
             VkSurfaceCapabilitiesKHR capabilities;
