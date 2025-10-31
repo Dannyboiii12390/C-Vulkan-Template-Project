@@ -16,6 +16,7 @@ namespace Engine
         glm::vec3 pos;
         glm::vec3 color;
         glm::vec3 normal;
+		glm::vec2 texCoord;
 
         static VkVertexInputBindingDescription getBindingDescription();
         static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();
@@ -32,6 +33,27 @@ namespace Engine
     {
         glm::mat4 model;
     };
+    enum class TextureFilterMode
+    {
+        Nearest,
+        Bilinear,
+        Trilinear,
+        Anisotropic
+    };
+    struct Texture
+    {
+        VkImage image;
+        VkDeviceMemory imageMemory;
+        VkImageView imageView;
+        VkSampler sampler;
+
+        // Multiple samplers for filtering comparison
+        VkSampler nearestSampler;
+        VkSampler bilinearSampler;
+        VkSampler trilinearSampler;
+        VkSampler anisotropicSampler;
+    };
+
 
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;

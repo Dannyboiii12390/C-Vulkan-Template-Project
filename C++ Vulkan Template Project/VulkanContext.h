@@ -5,6 +5,8 @@
 
 #include <set>
 #include <chrono>
+#include <string>
+#include <vector>
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -18,6 +20,7 @@
 #include "Graphics/Pipeline.h"
 #include "Graphics/Swapchain.h"
 #include "Core/Camera.h"
+#include "Core/ModelLoader.h"
 
 struct Object
 {
@@ -75,6 +78,13 @@ public:
 
     static glm::mat4 rotateAboutPoint(const glm::vec3& pivot, const float angle, const glm::vec3& axis);
 
+    void switchTexture(int textureIndex);
+    void switchFilterMode(Engine::TextureFilterMode mode);
+	void cycleFilterMode();
+    VkSampler getCurrentSampler(const Engine::Texture& texture);
+    void updateDescriptorSetsForTexture(int textureIndex);
+    void createDescriptorSetsForTexture(const Engine::Texture& tex, std::vector<VkDescriptorSet>& descSets);
+    void updateAllDescriptorSets();
 
 private:
 
@@ -127,6 +137,14 @@ private:
     /*Object obj1;
     Object obj2;
     Object obj3;*/
+	std::vector<VkDescriptorSet> coinDescriptorSets;
+	std::vector<VkDescriptorSet> tileDescriptorSets;
+
+    Engine::Texture texture;
+    Engine::Texture tileTexture;
+
+	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
+	int currentTextureIndex = 0;
 
     // --- Swapchain ---
     Engine::Swapchain swapChain;

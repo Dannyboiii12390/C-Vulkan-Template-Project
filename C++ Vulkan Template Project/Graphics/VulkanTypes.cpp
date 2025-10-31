@@ -23,24 +23,31 @@ namespace Engine
 
         VkVertexInputAttributeDescription posAttr{};
         posAttr.location = 0;
-        posAttr.binding = 0; // vertex buffer binding
+        posAttr.binding = 0;
         posAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
         posAttr.offset = static_cast<uint32_t>(offsetof(Vertex, pos));
         attributes.push_back(posAttr);
 
         VkVertexInputAttributeDescription colorAttr{};
         colorAttr.location = 1;
-        colorAttr.binding = 0; // same vertex buffer
+        colorAttr.binding = 0;
         colorAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
         colorAttr.offset = static_cast<uint32_t>(offsetof(Vertex, color));
         attributes.push_back(colorAttr);
 
 		VkVertexInputAttributeDescription normalAttr{};
 		normalAttr.location = 2;
-		normalAttr.binding = 0; // same vertex buffer
+		normalAttr.binding = 0;
 		normalAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
 		normalAttr.offset = static_cast<uint32_t>(offsetof(Vertex, normal));
 		attributes.push_back(normalAttr);
+
+        VkVertexInputAttributeDescription texAttr{};
+        texAttr.location = 3;
+        texAttr.binding = 0;
+        texAttr.format = VK_FORMAT_R32G32_SFLOAT;
+        texAttr.offset = static_cast<uint32_t>(offsetof(Vertex, texCoord));
+        attributes.push_back(texAttr);
 
         return attributes;
     }

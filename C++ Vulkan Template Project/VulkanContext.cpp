@@ -2,16 +2,13 @@
 #include "Graphics/VulkanTypes.h"
 #include "Graphics/Swapchain.h"
 
-#include "Core/ModelLoader.h"
-
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <array>
 
-constexpr int NUM_INSTANCES = 1;
+
 
 void Object::draw(Engine::Pipeline& pipeline, VkCommandBuffer commandBuffer, float time, int positive)
 {
@@ -81,6 +78,12 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     //mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
 	//mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
 
+	texture = Engine::ModelLoader::createTextureImage(*this, "Objects/WoodTex.png");
+	tileTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/rocks.png");
+    currentTextureIndex = 0;
+	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
+
+
     // --- create uniform buffers ---
     uniformBuffers.clear();
     uniformBuffers.reserve(swapChain.imageCount);
@@ -136,6 +139,25 @@ void VulkanContext::cleanup() {
 	ASSERT(commandPool != VK_NULL_HANDLE);
 	vkDestroyCommandPool(device, commandPool, nullptr);
 	commandPool = VK_NULL_HANDLE;
+
+    // Cleanup coin texture
+    if (texture.nearestSampler != VK_NULL_HANDLE) vkDestroySampler(device, texture.nearestSampler, nullptr);
+    if (texture.bilinearSampler != VK_NULL_HANDLE) vkDestroySampler(device, texture.bilinearSampler, nullptr);
+    if (texture.trilinearSampler != VK_NULL_HANDLE) vkDestroySampler(device, texture.trilinearSampler, nullptr);
+    if (texture.anisotropicSampler != VK_NULL_HANDLE) vkDestroySampler(device, texture.anisotropicSampler, nullptr);
+    if (texture.imageView != VK_NULL_HANDLE) vkDestroyImageView(device, texture.imageView, nullptr);
+    if (texture.image != VK_NULL_HANDLE) vkDestroyImage(device, texture.image, nullptr);
+    if (texture.imageMemory != VK_NULL_HANDLE) vkFreeMemory(device, texture.imageMemory, nullptr);
+
+    // Cleanup tile texture
+    if (tileTexture.nearestSampler != VK_NULL_HANDLE) vkDestroySampler(device, tileTexture.nearestSampler, nullptr);
+    if (tileTexture.bilinearSampler != VK_NULL_HANDLE) vkDestroySampler(device, tileTexture.bilinearSampler, nullptr);
+    if (tileTexture.trilinearSampler != VK_NULL_HANDLE) vkDestroySampler(device, tileTexture.trilinearSampler, nullptr);
+    if (tileTexture.anisotropicSampler != VK_NULL_HANDLE) vkDestroySampler(device, tileTexture.anisotropicSampler, nullptr);
+    if (tileTexture.imageView != VK_NULL_HANDLE) vkDestroyImageView(device, tileTexture.imageView, nullptr);
+    if (tileTexture.image != VK_NULL_HANDLE) vkDestroyImage(device, tileTexture.image, nullptr);
+    if (tileTexture.imageMemory != VK_NULL_HANDLE) vkFreeMemory(device, tileTexture.imageMemory, nullptr);
+
 
     // Device
 	ASSERT(device != VK_NULL_HANDLE);
@@ -241,6 +263,7 @@ void VulkanContext::createLogicalDevice() {
     VkPhysicalDeviceFeatures2 deviceFeatures2{};
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     deviceFeatures2.features.fillModeNonSolid = VK_TRUE; // For wireframe
+    deviceFeatures2.features.samplerAnisotropy = VK_TRUE;
 
     VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{};
     dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
@@ -278,16 +301,28 @@ void VulkanContext::createLogicalDevice() {
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 void VulkanContext::createDescriptorSetLayout() {
+    // UBO binding (binding = 0)
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    uboLayoutBinding.pImmutableSamplers = nullptr;
+
+    // Sampler binding (binding = 1)
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding = 1; // 0 is already used by the UBO
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.descriptorCount = 2;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
 
     ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) == VK_SUCCESS);
 }
@@ -301,19 +336,24 @@ void VulkanContext::createCommandPool() {
     ASSERT(vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) == VK_SUCCESS);
 }
 void VulkanContext::createDescriptorPool() {
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(swapChain.imageCount);
+    // Pool sizes for UBO and combined image sampler
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChain.imageCount * 1); // 1 UBO per set
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChain.imageCount * 2); // 2 textures
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(swapChain.imageCount);
-
     ASSERT(vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) == VK_SUCCESS);
 }
 void VulkanContext::createDescriptorSets() {
+
+	descriptorSets.resize(swapChain.imageCount);
+
     std::vector<VkDescriptorSetLayout> layouts(swapChain.imageCount, descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -321,25 +361,47 @@ void VulkanContext::createDescriptorSets() {
     allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChain.imageCount);
     allocInfo.pSetLayouts = layouts.data();
 
-    descriptorSets.resize(swapChain.imageCount);
-
     ASSERT(vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) == VK_SUCCESS);
 
-    for (size_t i = 0; i < swapChain.imageCount; i++) {
+    for (size_t i = 0; i < swapChain.imageCount; i++)
+    {
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = uniformBuffers[i].buffer;
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Engine::UniformBufferObject);
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = descriptorSets[i];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
+        // Two image infos in a single binding (coin, tile)
+        std::array<VkDescriptorImageInfo, 2> imageInfos{};
+        imageInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfos[0].imageView = texture.imageView;
+        imageInfos[0].sampler = getCurrentSampler(texture);
 
-        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+        imageInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfos[1].imageView = tileTexture.imageView;
+        imageInfos[1].sampler = getCurrentSampler(tileTexture);
+
+        VkWriteDescriptorSet uboWrite{};
+        uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        uboWrite.dstSet = descriptorSets[i];
+        uboWrite.dstBinding = 0;
+        uboWrite.dstArrayElement = 0;
+        uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboWrite.descriptorCount = 1;
+        uboWrite.pBufferInfo = &bufferInfo;
+
+        VkWriteDescriptorSet samplerWrite{};
+        samplerWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        samplerWrite.dstSet = descriptorSets[i];
+        samplerWrite.dstBinding = 1;
+        samplerWrite.dstArrayElement = 0;
+        samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size()); // 2
+        samplerWrite.pImageInfo = imageInfos.data();
+
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites = { uboWrite, samplerWrite };
+
+        vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        //vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 void VulkanContext::createCommandBuffers() {
@@ -438,12 +500,11 @@ void VulkanContext::drawFrame() {
 
     window.resetCurrentFrame(swapChain.imageCount);
 }
-// called every frame - only these 2
+
 void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
     ASSERT(vkBeginCommandBuffer(commandBuffer, &beginInfo) == VK_SUCCESS);
 
     VkImageMemoryBarrier2 imageBarrierToAttachment{};
@@ -455,14 +516,13 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     imageBarrierToAttachment.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     imageBarrierToAttachment.image = swapChain.images[imageIndex];
     imageBarrierToAttachment.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-    
+
     VkDependencyInfo dependencyInfoToAttachment{};
     dependencyInfoToAttachment.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
     dependencyInfoToAttachment.imageMemoryBarrierCount = 1;
     dependencyInfoToAttachment.pImageMemoryBarriers = &imageBarrierToAttachment;
     vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoToAttachment);
 
-    // Transition depth image to depth attachment optimal
     if (swapChain.depthImage != VK_NULL_HANDLE)
     {
         VkImageMemoryBarrier2 depthBarrier{};
@@ -476,10 +536,8 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
         depthBarrier.image = swapChain.depthImage;
         depthBarrier.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 };
         if (swapChain.depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || swapChain.depthFormat == VK_FORMAT_D24_UNORM_S8_UINT)
-        {
             depthBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-            
-        }
+
         VkDependencyInfo depthDep{};
         depthDep.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
         depthDep.imageMemoryBarrierCount = 1;
@@ -512,7 +570,6 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     renderingInfo.pDepthAttachment = &depthAttachment;
 
     vkCmdBeginRendering(commandBuffer, &renderingInfo);
-
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getPipeline());
 
     VkViewport viewport{};
@@ -521,41 +578,33 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-
     VkRect2D scissor{};
     scissor.extent = swapChain.extent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    Engine::PushConstantModel pushConstant{};
-    static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float>(currentTime - startTime).count();
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[window.getCurrentFrame()], 0, nullptr);
+    auto currentFrame = window.getCurrentFrame();
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
- //   // Orbit parameters
- //   float orbitSpeedDegPerSec = 90.0f;   // degrees per second
- //   float orbitRadius = 3.0f;            // distance from terrain center
- //   glm::vec3 orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+    // Draw single mesh with blended textures (texIndex = 0)
+    {
+        Engine::PushConstantModel pushConstant{};
+        pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f));
+        int texIdx = 0; // 0 = blend both textures
 
-    //Build transform: rotate around terrainPos, then apply an offset (radius) and scale
+        struct {
+            Engine::PushConstantModel pc;
+            int texIndex;
+        } pushData;
+        pushData.pc = pushConstant;
+        pushData.texIndex = texIdx;
 
-    // Final model matrix: rotation around terrain * offset from pivot * local scale
-	mesh.bind(commandBuffer);
-	pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
-    mesh.draw(commandBuffer);
+        vkCmdPushConstants(commandBuffer, pipeline.getLayout(),
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            0, sizeof(pushData), &pushData);
 
-	leftMesh.bind(commandBuffer);
-	pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 0.0f, 0.0f));
-	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
-	leftMesh.draw(commandBuffer);
-
-	rightMesh.bind(commandBuffer);
-	pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f));
-	vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
-	rightMesh.draw(commandBuffer);
-
-
+        mesh.bind(commandBuffer);
+        mesh.draw(commandBuffer);
+    }
 
     vkCmdEndRendering(commandBuffer);
 
@@ -575,12 +624,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     dependencyInfoToPresent.pImageMemoryBarriers = &imageBarrierToPresent;
     vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoToPresent);
 
-	ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS);
-
-    ASSERT(swapChain.depthImage != VK_NULL_HANDLE);
-	ASSERT(swapChain.depthImageView != VK_NULL_HANDLE);
-    ASSERT(swapChain.depthFormat != VK_FORMAT_UNDEFINED);
-
+    ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS);
 }
 void VulkanContext::updateUniformBuffer(uint32_t currentImage) 
 {
@@ -780,6 +824,50 @@ void VulkanContext::handleInput()
         float sensitivity = 0.1f;
         camera.rotate(static_cast<float>(mouseX * sensitivity), static_cast<float>(-mouseY * sensitivity));
     }
+
+    // Filter mode switching with F key
+    static bool keyFPressed = false;
+    if (inputHandler.isKeyPressed(GLFW_KEY_F) && !keyFPressed)
+    {
+        cycleFilterMode();
+        keyFPressed = true;
+    }
+    else if (!inputHandler.isKeyPressed(GLFW_KEY_F))
+    {
+        keyFPressed = false;
+    }
+
+    // Individual filter mode keys
+    static bool keyNPressed = false, keyBPressed = false, keyTPressed = false, keyAPressed = false;
+
+    if (inputHandler.isKeyPressed(GLFW_KEY_N) && !keyNPressed)
+    {
+        switchFilterMode(Engine::TextureFilterMode::Nearest);
+        keyNPressed = true;
+    }
+    else if (!inputHandler.isKeyPressed(GLFW_KEY_N)) keyNPressed = false;
+
+    if (inputHandler.isKeyPressed(GLFW_KEY_B) && !keyBPressed)
+    {
+        switchFilterMode(Engine::TextureFilterMode::Bilinear);
+        keyBPressed = true;
+    }
+    else if (!inputHandler.isKeyPressed(GLFW_KEY_B)) keyBPressed = false;
+
+    if (inputHandler.isKeyPressed(GLFW_KEY_T) && !keyTPressed)
+    {
+        switchFilterMode(Engine::TextureFilterMode::Trilinear);
+        keyTPressed = true;
+    }
+    else if (!inputHandler.isKeyPressed(GLFW_KEY_T)) keyTPressed = false;
+
+    if (inputHandler.isKeyPressed(GLFW_KEY_M) && !keyAPressed)
+    {
+        switchFilterMode(Engine::TextureFilterMode::Anisotropic);
+        keyAPressed = true;
+    }
+    else if (!inputHandler.isKeyPressed(GLFW_KEY_M)) keyAPressed = false;
+
 }
 void VulkanContext::cleanFences(std::vector<VkFence>& fences)
 {
@@ -790,4 +878,209 @@ void VulkanContext::cleanFences(std::vector<VkFence>& fences)
         }
     }
     fences.clear();
+}
+
+void VulkanContext::switchTexture(int textureIndex)
+{
+    if (textureIndex < 0 || textureIndex > 1) return;
+
+    if (currentTextureIndex != textureIndex)
+    {
+        currentTextureIndex = textureIndex;
+        updateDescriptorSetsForTexture(textureIndex);
+        std::cout << "Switched to " << (textureIndex == 0 ? "Coin" : "Tile") << " texture" << std::endl;
+    }
+}
+
+void VulkanContext::switchFilterMode(Engine::TextureFilterMode mode)
+{
+    if (currentFilterMode != mode)
+    {
+        currentFilterMode = mode;
+        updateAllDescriptorSets();
+
+        const char* modeNames[] = { "Nearest", "Bilinear", "Trilinear", "Anisotropic" };
+        std::cout << "Switched to " << modeNames[static_cast<int>(mode)] << " filtering" << std::endl;
+    }
+}
+void VulkanContext::updateAllDescriptorSets()
+{
+    vkDeviceWaitIdle(device);
+
+    // Update coin texture descriptor sets
+    for (size_t i = 0; i < swapChain.imageCount; i++)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = uniformBuffers[i].buffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(Engine::UniformBufferObject);
+
+        VkDescriptorImageInfo coinImageInfo{};
+        coinImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        coinImageInfo.imageView = texture.imageView;
+        coinImageInfo.sampler = getCurrentSampler(texture);
+
+        std::array<VkWriteDescriptorSet, 2> coinWrites{};
+        coinWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        coinWrites[0].dstSet = coinDescriptorSets[i];
+        coinWrites[0].dstBinding = 0;
+        coinWrites[0].dstArrayElement = 0;
+        coinWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        coinWrites[0].descriptorCount = 1;
+        coinWrites[0].pBufferInfo = &bufferInfo;
+
+        coinWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        coinWrites[1].dstSet = coinDescriptorSets[i];
+        coinWrites[1].dstBinding = 1;
+        coinWrites[1].dstArrayElement = 0;
+        coinWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        coinWrites[1].descriptorCount = 1;
+        coinWrites[1].pImageInfo = &coinImageInfo;
+
+        vkUpdateDescriptorSets(device, 2, coinWrites.data(), 0, nullptr);
+    }
+
+    // Update tile texture descriptor sets
+    for (size_t i = 0; i < swapChain.imageCount; i++)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = uniformBuffers[i].buffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(Engine::UniformBufferObject);
+
+        VkDescriptorImageInfo tileImageInfo{};
+        tileImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        tileImageInfo.imageView = tileTexture.imageView;
+        tileImageInfo.sampler = getCurrentSampler(tileTexture);
+
+        std::array<VkWriteDescriptorSet, 2> tileWrites{};
+        tileWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        tileWrites[0].dstSet = tileDescriptorSets[i];
+        tileWrites[0].dstBinding = 0;
+        tileWrites[0].dstArrayElement = 0;
+        tileWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        tileWrites[0].descriptorCount = 1;
+        tileWrites[0].pBufferInfo = &bufferInfo;
+
+        tileWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        tileWrites[1].dstSet = tileDescriptorSets[i];
+        tileWrites[1].dstBinding = 1;
+        tileWrites[1].dstArrayElement = 0;
+        tileWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        tileWrites[1].descriptorCount = 1;
+        tileWrites[1].pImageInfo = &tileImageInfo;
+
+        vkUpdateDescriptorSets(device, 2, tileWrites.data(), 0, nullptr);
+    }
+}
+
+void VulkanContext::cycleFilterMode()
+{
+    int nextMode = (static_cast<int>(currentFilterMode) + 1) % 4;
+    switchFilterMode(static_cast<Engine::TextureFilterMode>(nextMode));
+}
+
+VkSampler VulkanContext::getCurrentSampler(const Engine::Texture& texture)
+{
+    switch (currentFilterMode)
+    {
+    case Engine::TextureFilterMode::Nearest:
+        return texture.nearestSampler;
+    case Engine::TextureFilterMode::Bilinear:
+        return texture.bilinearSampler;
+    case Engine::TextureFilterMode::Trilinear:
+        return texture.trilinearSampler;
+    case Engine::TextureFilterMode::Anisotropic:
+    default:
+        return texture.anisotropicSampler;
+    }
+}
+void VulkanContext::updateDescriptorSetsForTexture(int textureIndex)
+{
+    // Wait for device to be idle before updating descriptors
+    vkDeviceWaitIdle(device);
+
+    const Engine::Texture& currentTexture = (textureIndex == 0) ? texture : tileTexture;
+    VkSampler activeSampler = getCurrentSampler(currentTexture);
+
+    for (size_t i = 0; i < swapChain.imageCount; i++)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = uniformBuffers[i].buffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(Engine::UniformBufferObject);
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = currentTexture.imageView;
+        imageInfo.sampler = activeSampler;
+
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = descriptorSets[i];
+        descriptorWrites[0].dstBinding = 0;
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = descriptorSets[i];
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()),
+            descriptorWrites.data(), 0, nullptr);
+    }
+}
+void VulkanContext::createDescriptorSetsForTexture(const Engine::Texture& tex, std::vector<VkDescriptorSet>& descSets)
+{
+    std::vector<VkDescriptorSetLayout> layouts(swapChain.imageCount, descriptorSetLayout);
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChain.imageCount);
+    allocInfo.pSetLayouts = layouts.data();
+
+    descSets.resize(swapChain.imageCount);
+    ASSERT(vkAllocateDescriptorSets(device, &allocInfo, descSets.data()) == VK_SUCCESS);
+
+    // Update descriptor sets with texture
+    for (size_t i = 0; i < swapChain.imageCount; i++)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = uniformBuffers[i].buffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(Engine::UniformBufferObject);
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = tex.imageView;
+        imageInfo.sampler = getCurrentSampler(tex);
+
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = descSets[i];
+        descriptorWrites[0].dstBinding = 0;
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = descSets[i];
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()),
+            descriptorWrites.data(), 0, nullptr);
+    }
 }

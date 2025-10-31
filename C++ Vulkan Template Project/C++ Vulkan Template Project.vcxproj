@@ -196,7 +196,10 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Objects\WoodTex.dds" />
+    <Image Include="Objects\Coin.png" />
+    <Image Include="Objects\rocks.png" />
+    <Image Include="Objects\Tiles.png" />
+    <Image Include="Objects\WoodTex.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

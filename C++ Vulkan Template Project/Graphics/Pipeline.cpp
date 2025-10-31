@@ -65,7 +65,7 @@ namespace Engine
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(Engine::PushConstantModel);
+        pushConstantRange.size = sizeof(Engine::PushConstantModel) + sizeof(int);
 
         // Create pipeline layout
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

@@ -1,8 +1,13 @@
 #pragma once
 #include <string>
 #include "../Graphics/Mesh.h"
+#include "../Graphics/VulkanTypes.h"
+#include "../VulkanContext.h"
+
+
 
 namespace Engine {
+
 	class ModelLoader
 	{
 	public:
@@ -13,6 +18,19 @@ namespace Engine {
 		static Engine::Mesh createCylinder(VulkanContext& context, float radius, float height, int segmentCount);
 		static Engine::Mesh loadObj(VulkanContext& context, const char* filepath);
 		static Engine::Mesh createSphere(VulkanContext& context, float radius, int sectorCount, int stackCount);
+        
+		static Texture createTextureImage(VulkanContext& context, const char* filepath);
+        static void transitionImageLayout(VulkanContext& context, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+        static void copyBufferToImage(VulkanContext& context, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+        static VkCommandBuffer beginSingleTimeCommands(VulkanContext& context);
+        static void endSingleTimeCommands(VulkanContext& context, VkCommandBuffer commandBuffer);
+        static VkImageView createImageView(VulkanContext& context, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+		
+		static VkSampler createTextureSampler(VulkanContext& context);
+		static VkSampler createNearestSampler(VulkanContext& context);
+		static VkSampler createBilinearSampler(VulkanContext& context);
+		static VkSampler createTrilinearSampler(VulkanContext& context);
+		static VkSampler createAnisotropicSampler(VulkanContext& context, float maxAnisotropy = 16.0f);
 	};
 }
 
