@@ -1,9 +1,8 @@
-
 #version 450
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    int texIndex;  // 0 = blend mode, 1 = coin only, 2 = tile only
+    int texIndex;  // 0 = open box mode, 1 = wood only, 2 = rock only
 } pushConstants;
 
 layout(std140, binding = 0) uniform UniformBufferObject {
@@ -45,23 +44,34 @@ void main() {
     float whiteIntensity = 1.0;
     float redIntensity   = 1.0;
 
-    float modelX = pushConstants.model[3].x;
-
     // Sample both textures
-    vec4 coinColor = texture(textures[0], fragTexCoord);
-    vec4 tileColor = texture(textures[1], fragTexCoord);
+    vec4 woodColor = texture(textures[0], fragTexCoord);
+    vec4 rockColor = texture(textures[1], fragTexCoord);
     
-    // Blend textures based on mode
+    // Determine texture based on face normal (open box effect)
     vec4 texColor;
+    
     if (pushConstants.texIndex == 0) {
-        // Blend mode: multiply coin and tile textures
-        texColor = coinColor * tileColor;
+        // Open box mode: use normal to select texture
+        // Inside faces (facing inward) = wood
+        // Outside faces (facing outward) = rock
+        
+        // Check if normal is pointing toward or away from camera
+        float facing = dot(N, V);
+        
+        if (facing > 0.0) {
+            // Face is pointing toward camera (outside face)
+            texColor = rockColor; // Outside = rock
+        } else {
+            // Face is pointing away from camera (inside face)
+            texColor = woodColor; // Inside = wood
+        }
     } else if (pushConstants.texIndex == 1) {
-        // Coin only
-        texColor = coinColor;
+        // Wood only
+        texColor = woodColor;
     } else {
-        // Tile only
-        texColor = tileColor;
+        // Rock only
+        texColor = rockColor;
     }
     
     vec3 albedo = texColor.rgb;
@@ -70,22 +80,19 @@ void main() {
     float metalness = 0.0;
     vec3 ambientColor = vec3(0.03);
 
-    // Material properties based on position
-    if (modelX < -0.5) {
-        albedo = texColor.rgb * vec3(0.9, 0.6, 0.6);
-        shininess = 8.0;
-        specularStrength = 0.15;
-        metalness = 0.0;
-    } else if (modelX < 0.5) {
-        albedo = texColor.rgb * vec3(0.4, 0.7, 0.4);
+    // Adjust material based on texture
+    float facing = dot(N, V);
+    if (facing > 0.0) {
+        // Rock (outside faces)
         shininess = 64.0;
-        specularStrength = 1.0;
-        metalness = 0.0;
+        specularStrength = 0.6;
+        metalness = 0.1;
     } else {
-        albedo = texColor.rgb * vec3(0.9, 0.9, 0.95);
-        shininess = 128.0;
-        specularStrength = 0.9;
-        metalness = 1.0;
+        // Wood (inside faces)
+        albedo *= vec3(1.0, 0.95, 0.85); // Warm wood tint
+        shininess = 16.0;
+        specularStrength = 0.2;
+        metalness = 0.0;
     }
 
     // White light contributions
