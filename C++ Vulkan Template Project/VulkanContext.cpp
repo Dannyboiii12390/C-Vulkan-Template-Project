@@ -8,6 +8,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 constexpr int NUM_INSTANCES = 1;
 
 void Object::draw(Engine::Pipeline& pipeline, VkCommandBuffer commandBuffer, float time, int positive)
@@ -57,7 +60,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     createLogicalDevice();
 
     swapChain.create(*this);
-
+    
     createDescriptorSetLayout();
 
     // --- create graphics pipeline ---

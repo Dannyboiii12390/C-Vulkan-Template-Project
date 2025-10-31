@@ -106,4 +106,7 @@
     <CustomBuild Include="shaders\shader.frag" />
     <CustomBuild Include="shaders\shader.vert" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Objects\WoodTex.dds" />
+  </ItemGroup>
 </Project>
