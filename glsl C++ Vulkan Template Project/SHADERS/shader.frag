@@ -2,7 +2,7 @@
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    int texIndex;  // 0 = blend mode, 1 = wood only, 2 = rock only
+    int texIndex;
 } pushConstants;
 
 layout(std140, binding = 0) uniform UniformBufferObject {
@@ -13,17 +13,22 @@ layout(std140, binding = 0) uniform UniformBufferObject {
     vec4 eyePos;
 } ubo;
 
+// Varyings from vertex shader
 layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec3 fragWorldNormal;
+layout(location = 1) in vec3 fragWorldNormal; // unused for tangent-space bumping but kept for compatibility
 layout(location = 2) in vec3 fragWorldPos;
 layout(location = 3) in vec2 fragTexCoord;
+layout(location = 4) in vec3 fragLightPos_tangent;
+layout(location = 5) in vec3 fragViewPos_tangent;
 
-layout(set = 0, binding = 1) uniform sampler2D textures[2];
+layout(set = 0, binding = 1) uniform sampler2D albedoTextures[2];
+layout(set = 0, binding = 2) uniform sampler2D heightTextures[2];
 
 layout(location = 0) out vec4 outColor;
 
 const float GAMMA = 2.2;
 
+// simple quadratic attenuation
 float attenuation(float dist) {
     float constant = 1.0;
     float linear = 0.09;
@@ -32,87 +37,55 @@ float attenuation(float dist) {
 }
 
 void main() {
-    vec3 N = normalize(fragWorldNormal);
-    vec3 V = normalize(ubo.eyePos.xyz - fragWorldPos);
+    // Select the correct albedo and height map using push constant index
+    int idx = clamp(pushConstants.texIndex, 0, 1);
+    vec3 albedo = texture(albedoTextures[idx], fragTexCoord).rgb;
 
-    vec3 whitePos = ubo.lightPos.xyz;
-    vec3 redPos = ubo.redLightPos.xyz;
+    // Sample height map (grayscale stored in .r)
+    float h = texture(heightTextures[idx], fragTexCoord).r;
 
-    vec3 whiteColor = vec3(1.0);
-    vec3 redColor   = vec3(1.0, 0.0, 0.0);
+    // Compute derivatives of the sampled height across the screen
+    float dFx = dFdx(h);
+    float dFy = dFdy(h);
 
-    float whiteIntensity = 1.0;
-    float redIntensity   = 1.0;
+    // Bump parameter (tweak between ~0.1 and 1.0 for stronger/weaker bumps)
+    const float bumpHeight = 0.5;
 
-    // Sample both textures
-    vec4 woodColor = texture(textures[0], fragTexCoord);
-    vec4 rockColor = texture(textures[1], fragTexCoord);
-    
-    // Determine which texture to use based on normal direction (for open box effect)
-    vec3 absNormal = abs(N);
-    vec4 texColor;
-    
-    if (pushConstants.texIndex == 0) {
-        // Blend mode: Use wood for outside (based on normal), rock for inside
-        // Outside faces (positive normals) = wood, Inside = rock
-        float woodFactor = step(0.0, dot(N, V)); // 1 if facing viewer (outside), 0 if facing away (inside)
-        texColor = mix(rockColor, woodColor, woodFactor);
-    } else if (pushConstants.texIndex == 1) {
-        // Wood only
-        texColor = woodColor;
-    } else {
-        // Rock only
-        texColor = rockColor;
-    }
-    
-    vec3 albedo = texColor.rgb;
+    // Reconstruct normal in TANGENT space from height derivatives
+    // Note: the sign convention (-dFx, -dFy, bumpHeight) follows the standard bump/height -> normal trick
+    vec3 N_tangent = normalize(vec3(-dFx, -dFy, bumpHeight));
+
+    // Tangent-space light & view vectors are provided by the vertex shader
+    vec3 L = normalize(fragLightPos_tangent);     // tangent-space light vector (may encode distance)
+    vec3 V = normalize(fragViewPos_tangent);      // tangent-space view vector
+    vec3 H = normalize(L + V);
+
+    // Material properties
     float shininess = 32.0;
     float specularStrength = 0.5;
     float metalness = 0.0;
     vec3 ambientColor = vec3(0.03);
 
-    // Adjust material properties for wood/rock
-    if (pushConstants.texIndex == 1 || dot(N, V) > 0.0) {
-        // Wood properties (outside)
-        albedo = texColor.rgb * vec3(1.0, 0.95, 0.85);
-        shininess = 16.0;
-        specularStrength = 0.2;
-        metalness = 0.0;
-    } else {
-        // Rock properties (inside)
-        albedo = texColor.rgb * vec3(0.9, 0.9, 0.95);
-        shininess = 64.0;
-        specularStrength = 0.6;
-        metalness = 0.1;
-    }
+    // Diffuse (Blinn-Phong)
+    float NdotL = max(dot(N_tangent, L), 0.0);
+    vec3 diffuse = albedo * NdotL;
 
-    // White light contributions
-    vec3 Lw = normalize(whitePos - fragWorldPos);
-    float distW = length(whitePos - fragWorldPos);
-    float attW = attenuation(distW);
-    float NdotLw = max(dot(N, Lw), 0.0);
-    vec3 whiteDiffuse = albedo * NdotLw * whiteColor * (whiteIntensity * attW);
-    vec3 Hw = normalize(Lw + V);
-    float NdotHw = max(dot(N, Hw), 0.0);
-    float specFactorW = pow(NdotHw, shininess);
-    vec3 whiteSpecular = specularStrength * specFactorW * mix(vec3(0.04), albedo, metalness) * whiteColor * (whiteIntensity * attW);
+    // Specular
+    float NdotH = max(dot(N_tangent, H), 0.0);
+    float specFactor = pow(NdotH, shininess);
+    vec3 specularBase = mix(vec3(0.04), albedo, metalness);
+    vec3 specular = specularStrength * specFactor * specularBase;
 
-    // Red light contributions
-    vec3 Lr = normalize(redPos - fragWorldPos);
-    float distR = length(redPos - fragWorldPos);
-    float attR = attenuation(distR);
-    float NdotLr = max(dot(N, Lr), 0.0);
-    vec3 redDiffuse = albedo * NdotLr * redColor * (redIntensity * attR);
-    vec3 Hr = normalize(Lr + V);
-    float NdotHr = max(dot(N, Hr), 0.0);
-    float specFactorR = pow(NdotHr, shininess);
-    vec3 redSpecular = specularStrength * specFactorR * mix(vec3(0.04), albedo, metalness) * redColor * (redIntensity * attR);
+    // Distance-based attenuation (fragLightPos_tangent length used as approximate distance)
+    float dist = length(fragLightPos_tangent);
+    float att = attenuation(dist);
+    diffuse *= att;
+    specular *= att;
 
     vec3 ambient = ambientColor * albedo;
-    vec3 diffuseSum = whiteDiffuse + redDiffuse;
-    vec3 specularSum = whiteSpecular + redSpecular;
+    vec3 resultLinear = ambient + diffuse + specular;
 
-    vec3 resultLinear = ambient + diffuseSum + specularSum;
+    // Gamma correction
     vec3 resultGamma = pow(resultLinear, vec3(1.0 / GAMMA));
-    outColor = vec4(resultGamma, 1.0);
+    //outColor = vec4(resultGamma, 1.0);
 }

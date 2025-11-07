@@ -80,9 +80,9 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
 	// Load albedo (sRGB) and normal (UNORM) maps for both materials
 	texture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
-	textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockNormal.bmp", false);
+	textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockheight.tga", false);
 	tileTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
-    tileTextureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockNormal.bmp", false);
+    tileTextureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockheight.tga", false);
 
     currentTextureIndex = 0;
 	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
