@@ -17,6 +17,8 @@ namespace Engine
         glm::vec3 color;
         glm::vec3 normal;
 		glm::vec2 texCoord;
+        glm::vec3 tangent;
+        glm::vec3 binormal;
 
         static VkVertexInputBindingDescription getBindingDescription();
         static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();
@@ -42,16 +44,16 @@ namespace Engine
     };
     struct Texture
     {
-        VkImage image;
-        VkDeviceMemory imageMemory;
-        VkImageView imageView;
-        VkSampler sampler;
+        VkImage image = VK_NULL_HANDLE;
+        VkDeviceMemory imageMemory = VK_NULL_HANDLE;
+        VkImageView imageView = VK_NULL_HANDLE;
+        VkSampler sampler = VK_NULL_HANDLE;
 
         // Multiple samplers for filtering comparison
-        VkSampler nearestSampler;
-        VkSampler bilinearSampler;
-        VkSampler trilinearSampler;
-        VkSampler anisotropicSampler;
+        VkSampler nearestSampler = VK_NULL_HANDLE;
+        VkSampler bilinearSampler = VK_NULL_HANDLE;
+        VkSampler trilinearSampler = VK_NULL_HANDLE;
+        VkSampler anisotropicSampler = VK_NULL_HANDLE;
     };
 
 

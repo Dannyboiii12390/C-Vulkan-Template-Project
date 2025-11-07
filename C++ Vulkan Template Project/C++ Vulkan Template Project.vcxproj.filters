@@ -105,6 +105,8 @@
   <ItemGroup>
     <CustomBuild Include="shaders\shader.frag" />
     <CustomBuild Include="shaders\shader.vert" />
+    <CustomBuild Include="SHADERS\shaderBMP.frag" />
+    <CustomBuild Include="SHADERS\shaderBMP.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Objects\WoodTex.png">
@@ -114,9 +116,6 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="Objects\Coin.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="Objects\rocks.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

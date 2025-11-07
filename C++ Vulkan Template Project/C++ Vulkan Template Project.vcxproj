@@ -175,6 +175,24 @@
     <ClInclude Include="Core\Window.h" />
   </ItemGroup>
   <ItemGroup>
+    <CustomBuild Include="SHADERS\shaderBMP.frag">
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\shaderBMP.frag -o .\shaders\shaderBMP.frag.spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\shaderBMP.frag -o .\shaders\shaderBMP.frag.spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\shaders\shaderBMP.frag.spv;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\shaders\shaderBMP.frag.spv;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="SHADERS\shaderBMP.vert">
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\shaderBMP.frag -o .\shaders\shaderBMP.vert.spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\shaderBMP.frag -o .\shaders\shaderBMP.vert.spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\shaders\shaderBMP.vert.spv;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\shaders\shaderBMP.vert.spv;%(Outputs)</Outputs>
+    </CustomBuild>
     <None Include="packages.config" />
     <CustomBuild Include="shaders\shader.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -197,7 +215,6 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Objects\Coin.png" />
-    <Image Include="Objects\rocks.png" />
     <Image Include="Objects\Tiles.png" />
     <Image Include="Objects\WoodTex.png" />
   </ItemGroup>

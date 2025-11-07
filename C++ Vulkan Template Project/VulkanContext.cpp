@@ -78,8 +78,12 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     //mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
 	//mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
 
-	texture = Engine::ModelLoader::createTextureImage(*this, "Objects/WoodTex.png");
-	tileTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/rocks.png");
+	// Load albedo (sRGB) and normal (UNORM) maps for both materials
+	texture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
+	textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockNormal.bmp", false);
+	tileTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
+    tileTextureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockNormal.bmp", false);
+
     currentTextureIndex = 0;
 	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
 
@@ -105,10 +109,9 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
 }
 void VulkanContext::cleanup() {
+    vkDeviceWaitIdle(device);
 
-    ASSERT(device != VK_NULL_HANDLE); 
-	vkDeviceWaitIdle(device);
-
+    // --- Cleanup code ---
 	cleanSemaphores(renderFinishedSemaphores);
 	cleanSemaphores(imageAvailableSemaphores);
 	cleanFences(inFlightFences);
@@ -140,23 +143,46 @@ void VulkanContext::cleanup() {
 	vkDestroyCommandPool(device, commandPool, nullptr);
 	commandPool = VK_NULL_HANDLE;
 
-    // Cleanup coin texture
-    if (texture.nearestSampler != VK_NULL_HANDLE) vkDestroySampler(device, texture.nearestSampler, nullptr);
-    if (texture.bilinearSampler != VK_NULL_HANDLE) vkDestroySampler(device, texture.bilinearSampler, nullptr);
-    if (texture.trilinearSampler != VK_NULL_HANDLE) vkDestroySampler(device, texture.trilinearSampler, nullptr);
-    if (texture.anisotropicSampler != VK_NULL_HANDLE) vkDestroySampler(device, texture.anisotropicSampler, nullptr);
-    if (texture.imageView != VK_NULL_HANDLE) vkDestroyImageView(device, texture.imageView, nullptr);
-    if (texture.image != VK_NULL_HANDLE) vkDestroyImage(device, texture.image, nullptr);
-    if (texture.imageMemory != VK_NULL_HANDLE) vkFreeMemory(device, texture.imageMemory, nullptr);
+    // Cleanup textures - only destroy if valid
+    auto cleanupTexture = [this](Engine::Texture& tex) {
+        if (tex.nearestSampler != VK_NULL_HANDLE) {
+            vkDestroySampler(device, tex.nearestSampler, nullptr);
+            tex.nearestSampler = VK_NULL_HANDLE;
+        }
+        if (tex.bilinearSampler != VK_NULL_HANDLE) {
+            vkDestroySampler(device, tex.bilinearSampler, nullptr);
+            tex.bilinearSampler = VK_NULL_HANDLE;
+        }
+        if (tex.trilinearSampler != VK_NULL_HANDLE) {
+            vkDestroySampler(device, tex.trilinearSampler, nullptr);
+            tex.trilinearSampler = VK_NULL_HANDLE;
+        }
+        if (tex.anisotropicSampler != VK_NULL_HANDLE) {
+            vkDestroySampler(device, tex.anisotropicSampler, nullptr);
+            tex.anisotropicSampler = VK_NULL_HANDLE;
+        }
+        if (tex.sampler != VK_NULL_HANDLE) {
+            vkDestroySampler(device, tex.sampler, nullptr);
+            tex.sampler = VK_NULL_HANDLE;
+        }
+        if (tex.imageView != VK_NULL_HANDLE) {
+            vkDestroyImageView(device, tex.imageView, nullptr);
+            tex.imageView = VK_NULL_HANDLE;
+        }
+        if (tex.image != VK_NULL_HANDLE) {
+            vkDestroyImage(device, tex.image, nullptr);
+            tex.image = VK_NULL_HANDLE;
+        }
+        if (tex.imageMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(device, tex.imageMemory, nullptr);
+            tex.imageMemory = VK_NULL_HANDLE;
+        }
+    };
 
-    // Cleanup tile texture
-    if (tileTexture.nearestSampler != VK_NULL_HANDLE) vkDestroySampler(device, tileTexture.nearestSampler, nullptr);
-    if (tileTexture.bilinearSampler != VK_NULL_HANDLE) vkDestroySampler(device, tileTexture.bilinearSampler, nullptr);
-    if (tileTexture.trilinearSampler != VK_NULL_HANDLE) vkDestroySampler(device, tileTexture.trilinearSampler, nullptr);
-    if (tileTexture.anisotropicSampler != VK_NULL_HANDLE) vkDestroySampler(device, tileTexture.anisotropicSampler, nullptr);
-    if (tileTexture.imageView != VK_NULL_HANDLE) vkDestroyImageView(device, tileTexture.imageView, nullptr);
-    if (tileTexture.image != VK_NULL_HANDLE) vkDestroyImage(device, tileTexture.image, nullptr);
-    if (tileTexture.imageMemory != VK_NULL_HANDLE) vkFreeMemory(device, tileTexture.imageMemory, nullptr);
+    cleanupTexture(texture);
+    cleanupTexture(tileTexture);
+    cleanupTexture(textureNormal);
+    cleanupTexture(tileTextureNormal);
 
 
     // Device
@@ -309,15 +335,23 @@ void VulkanContext::createDescriptorSetLayout() {
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
-    // Sampler binding (binding = 1)
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 1; // 0 is already used by the UBO
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.descriptorCount = 2;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    // Albedo samplers binding (binding = 1) - array of 2 (coin, tile)
+    VkDescriptorSetLayoutBinding albedoBinding{};
+    albedoBinding.binding = 1; // 0 is already used by the UBO
+    albedoBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    albedoBinding.descriptorCount = 2; // two albedo textures in the array (coin, tile)
+    albedoBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    albedoBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+    // Normal samplers binding (binding = 2) - array of 2 (coin normal, tile normal)
+    VkDescriptorSetLayoutBinding normalBinding{};
+    normalBinding.binding = 2;
+    normalBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    normalBinding.descriptorCount = 2;
+    normalBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    normalBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, albedoBinding, normalBinding };
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -341,7 +375,7 @@ void VulkanContext::createDescriptorPool() {
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChain.imageCount * 1); // 1 UBO per set
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChain.imageCount * 2); // 2 textures
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChain.imageCount * 4); // 2 textures
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -370,15 +404,25 @@ void VulkanContext::createDescriptorSets() {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Engine::UniformBufferObject);
 
-        // Two image infos in a single binding (coin, tile)
-        std::array<VkDescriptorImageInfo, 2> imageInfos{};
-        imageInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfos[0].imageView = texture.imageView;
-        imageInfos[0].sampler = getCurrentSampler(texture);
+        // Albedo images (binding = 1): coin, tile
+        std::array<VkDescriptorImageInfo, 2> albedoInfos{};
+        albedoInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        albedoInfos[0].imageView = texture.imageView;
+        albedoInfos[0].sampler = getCurrentSampler(texture);
 
-        imageInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfos[1].imageView = tileTexture.imageView;
-        imageInfos[1].sampler = getCurrentSampler(tileTexture);
+        albedoInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        albedoInfos[1].imageView = tileTexture.imageView;
+        albedoInfos[1].sampler = getCurrentSampler(tileTexture);
+
+        // Normal images (binding = 2): coin normal, tile normal
+        std::array<VkDescriptorImageInfo, 2> normalInfos{};
+        normalInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        normalInfos[0].imageView = textureNormal.imageView;
+        normalInfos[0].sampler = getCurrentSampler(textureNormal);
+
+        normalInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        normalInfos[1].imageView = tileTextureNormal.imageView;
+        normalInfos[1].sampler = getCurrentSampler(tileTextureNormal);
 
         VkWriteDescriptorSet uboWrite{};
         uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -389,16 +433,25 @@ void VulkanContext::createDescriptorSets() {
         uboWrite.descriptorCount = 1;
         uboWrite.pBufferInfo = &bufferInfo;
 
-        VkWriteDescriptorSet samplerWrite{};
-        samplerWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        samplerWrite.dstSet = descriptorSets[i];
-        samplerWrite.dstBinding = 1;
-        samplerWrite.dstArrayElement = 0;
-        samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size()); // 2
-        samplerWrite.pImageInfo = imageInfos.data();
+        VkWriteDescriptorSet albedoWrite{};
+        albedoWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        albedoWrite.dstSet = descriptorSets[i];
+        albedoWrite.dstBinding = 1;
+        albedoWrite.dstArrayElement = 0;
+        albedoWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        albedoWrite.descriptorCount = static_cast<uint32_t>(albedoInfos.size()); // 2
+        albedoWrite.pImageInfo = albedoInfos.data();
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites = { uboWrite, samplerWrite };
+        VkWriteDescriptorSet normalWrite{};
+        normalWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        normalWrite.dstSet = descriptorSets[i];
+        normalWrite.dstBinding = 2;
+        normalWrite.dstArrayElement = 0;
+        normalWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        normalWrite.descriptorCount = static_cast<uint32_t>(normalInfos.size()); // 2
+        normalWrite.pImageInfo = normalInfos.data();
+
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites = { uboWrite, albedoWrite, normalWrite };
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         //vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
@@ -915,29 +968,34 @@ void VulkanContext::updateAllDescriptorSets()
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Engine::UniformBufferObject);
 
-        VkDescriptorImageInfo coinImageInfo{};
-        coinImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        coinImageInfo.imageView = texture.imageView;
-        coinImageInfo.sampler = getCurrentSampler(texture);
+        VkDescriptorImageInfo coinAlbedoInfo{};
+        coinAlbedoInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        coinAlbedoInfo.imageView = texture.imageView;
+        coinAlbedoInfo.sampler = getCurrentSampler(texture);
+
+        VkDescriptorImageInfo coinNormalInfo{};
+        coinNormalInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        coinNormalInfo.imageView = textureNormal.imageView;
+        coinNormalInfo.sampler = getCurrentSampler(textureNormal);
 
         std::array<VkWriteDescriptorSet, 2> coinWrites{};
         coinWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         coinWrites[0].dstSet = coinDescriptorSets[i];
-        coinWrites[0].dstBinding = 0;
+        coinWrites[0].dstBinding = 1;
         coinWrites[0].dstArrayElement = 0;
-        coinWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        coinWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         coinWrites[0].descriptorCount = 1;
-        coinWrites[0].pBufferInfo = &bufferInfo;
+        coinWrites[0].pImageInfo = &coinAlbedoInfo;
 
         coinWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         coinWrites[1].dstSet = coinDescriptorSets[i];
-        coinWrites[1].dstBinding = 1;
+        coinWrites[1].dstBinding = 2;
         coinWrites[1].dstArrayElement = 0;
         coinWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         coinWrites[1].descriptorCount = 1;
-        coinWrites[1].pImageInfo = &coinImageInfo;
+        coinWrites[1].pImageInfo = &coinNormalInfo;
 
-        vkUpdateDescriptorSets(device, 2, coinWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(device, static_cast<uint32_t>(coinWrites.size()), coinWrites.data(), 0, nullptr);
     }
 
     // Update tile texture descriptor sets
@@ -948,29 +1006,34 @@ void VulkanContext::updateAllDescriptorSets()
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Engine::UniformBufferObject);
 
-        VkDescriptorImageInfo tileImageInfo{};
-        tileImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        tileImageInfo.imageView = tileTexture.imageView;
-        tileImageInfo.sampler = getCurrentSampler(tileTexture);
+        VkDescriptorImageInfo tileAlbedoInfo{};
+        tileAlbedoInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        tileAlbedoInfo.imageView = tileTexture.imageView;
+        tileAlbedoInfo.sampler = getCurrentSampler(tileTexture);
+
+        VkDescriptorImageInfo tileNormalInfo{};
+        tileNormalInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        tileNormalInfo.imageView = tileTextureNormal.imageView;
+        tileNormalInfo.sampler = getCurrentSampler(tileTextureNormal);
 
         std::array<VkWriteDescriptorSet, 2> tileWrites{};
         tileWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         tileWrites[0].dstSet = tileDescriptorSets[i];
-        tileWrites[0].dstBinding = 0;
+        tileWrites[0].dstBinding = 1;
         tileWrites[0].dstArrayElement = 0;
-        tileWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        tileWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         tileWrites[0].descriptorCount = 1;
-        tileWrites[0].pBufferInfo = &bufferInfo;
+        tileWrites[0].pImageInfo = &tileAlbedoInfo;
 
         tileWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         tileWrites[1].dstSet = tileDescriptorSets[i];
-        tileWrites[1].dstBinding = 1;
+        tileWrites[1].dstBinding = 2;
         tileWrites[1].dstArrayElement = 0;
         tileWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         tileWrites[1].descriptorCount = 1;
-        tileWrites[1].pImageInfo = &tileImageInfo;
+        tileWrites[1].pImageInfo = &tileNormalInfo;
 
-        vkUpdateDescriptorSets(device, 2, tileWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(device, static_cast<uint32_t>(tileWrites.size()), tileWrites.data(), 0, nullptr);
     }
 }
 
@@ -1000,8 +1063,10 @@ void VulkanContext::updateDescriptorSetsForTexture(int textureIndex)
     // Wait for device to be idle before updating descriptors
     vkDeviceWaitIdle(device);
 
-    const Engine::Texture& currentTexture = (textureIndex == 0) ? texture : tileTexture;
-    VkSampler activeSampler = getCurrentSampler(currentTexture);
+    const Engine::Texture& currentAlbedo = (textureIndex == 0) ? texture : tileTexture;
+    const Engine::Texture& currentNormal = (textureIndex == 0) ? textureNormal : tileTextureNormal;
+    VkSampler activeAlbedoSampler = getCurrentSampler(currentAlbedo);
+    VkSampler activeNormalSampler = getCurrentSampler(currentNormal);
 
     for (size_t i = 0; i < swapChain.imageCount; i++)
     {
@@ -1010,12 +1075,17 @@ void VulkanContext::updateDescriptorSetsForTexture(int textureIndex)
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Engine::UniformBufferObject);
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = currentTexture.imageView;
-        imageInfo.sampler = activeSampler;
+        VkDescriptorImageInfo albedoInfo{};
+        albedoInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        albedoInfo.imageView = currentAlbedo.imageView;
+        albedoInfo.sampler = activeAlbedoSampler;
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        VkDescriptorImageInfo normalInfo{};
+        normalInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        normalInfo.imageView = currentNormal.imageView;
+        normalInfo.sampler = activeNormalSampler;
+
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = descriptorSets[i];
@@ -1031,7 +1101,15 @@ void VulkanContext::updateDescriptorSetsForTexture(int textureIndex)
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
+        descriptorWrites[1].pImageInfo = &albedoInfo;
+
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = descriptorSets[i];
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pImageInfo = &normalInfo;
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()),
             descriptorWrites.data(), 0, nullptr);
@@ -1049,7 +1127,7 @@ void VulkanContext::createDescriptorSetsForTexture(const Engine::Texture& tex, s
     descSets.resize(swapChain.imageCount);
     ASSERT(vkAllocateDescriptorSets(device, &allocInfo, descSets.data()) == VK_SUCCESS);
 
-    // Update descriptor sets with texture
+    // Update descriptor sets with texture (albedo only) - keep for compatibility
     for (size_t i = 0; i < swapChain.imageCount; i++)
     {
         VkDescriptorBufferInfo bufferInfo{};

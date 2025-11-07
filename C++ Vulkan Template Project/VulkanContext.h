@@ -142,6 +142,8 @@ private:
 
     Engine::Texture texture;
     Engine::Texture tileTexture;
+    Engine::Texture textureNormal;
+	Engine::Texture tileTextureNormal;
 
 	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
 	int currentTextureIndex = 0;

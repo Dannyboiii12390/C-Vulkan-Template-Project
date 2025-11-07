@@ -2,15 +2,14 @@
 
 layout(push_constant) uniform PushConstantModel {
     mat4 model;
-    int texIndex;
 } pushConstants;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
-    vec3 lightPos;
-    vec3 redLightPos;
-    vec3 eyePos;
+    vec4 lightPos;
+    vec4 redLightPos;
+    vec4 eyePos;
 } ubo;
 
 layout(location = 0) in vec3 inPos;
@@ -30,31 +29,29 @@ layout(location = 6) out vec3 fragPos_tangent;
 
 void main() {
     mat4 model = pushConstants.model;
-    vec4 worldPos4 = model * vec4(inPos, 1.0);
-    fragWorldPos = worldPos4.xyz;
+    vec4 worldPos = model * vec4(inPos, 1.0);
+    fragWorldPos = worldPos.xyz;
 
-    // Normal matrix (inverse-transpose of model's 3x3)
     mat3 normalMatrix = transpose(inverse(mat3(model)));
     fragWorldNormal = normalize(normalMatrix * inNormal);
 
-    fragColor = inColor;
+    fragColor = vec3(0.0,1.0,0.0);
     fragTexCoord = inTexCoord;
-    gl_Position = ubo.proj * ubo.view * worldPos4;
+    gl_Position = ubo.proj * ubo.view * worldPos;
 
-    // Transform tangents/normals to world space
-    vec3 T = normalize(normalMatrix * inTangent);
-    vec3 B = normalize(normalMatrix * inBinormal);
-    vec3 N = normalize(normalMatrix * inNormal);
+    Mat4 ModelMatrix_TInv= transpose(inverse(pushConstants.model);
+    vec3 T = normalize(mat3(ModelMatrix_TInv) * inTangent);
+    vec3 B = normalize(mat3(ModelMatrix_TInv) * inBinormal);
+    vec3 N = normalize(mat3(ModelMatrix_TInv) * inNormal);
+    mat3 TBN = transpose(mat3(T, B, N)); // Use transpose to invert
 
-    // TBN matrix: columns are tangent, bitangent, normal (world-space basis)
-    mat3 TBN = mat3(T, B, N);
-
+    // Get world-space light and view positions
     vec3 lightPos_world = ubo.lightPos;
-    vec3 viewPos_world  = ubo.eyePos;
-    vec3 fragPos_world  = fragWorldPos;
+    vec3 viewPos_world = ubo.viewPos;
+    vec3 fragPos_world = (pushConstants.model * vec4(inPosition, 1.0)).xyz;
 
-    // Convert world-space light/view vectors to tangent space
-    fragLightPos_tangent = TBN * (lightPos_world - fragPos_world);
-    fragViewPos_tangent  = TBN * (viewPos_world  - fragPos_world);
-    fragPos_tangent      = TBN * fragPos_world;
+    // Transform light and view POSITIONS to tangent space
+    fragLightPos_tangent = TBN * lightPos_world;
+    fragViewPos_tangent = TBN * viewPos_world;
+    fragPos_tangent = TBN * fragPos_world;
 }

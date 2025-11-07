@@ -19,7 +19,7 @@ namespace Engine {
 		static Engine::Mesh loadObj(VulkanContext& context, const char* filepath);
 		static Engine::Mesh createSphere(VulkanContext& context, float radius, int sectorCount, int stackCount);
         
-		static Texture createTextureImage(VulkanContext& context, const char* filepath);
+		static Texture createTextureImage(VulkanContext& context, const char* filepath, bool srgb = true);
         static void transitionImageLayout(VulkanContext& context, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
         static void copyBufferToImage(VulkanContext& context, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
         static VkCommandBuffer beginSingleTimeCommands(VulkanContext& context);

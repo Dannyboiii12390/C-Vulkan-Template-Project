@@ -49,6 +49,20 @@ namespace Engine
         texAttr.offset = static_cast<uint32_t>(offsetof(Vertex, texCoord));
         attributes.push_back(texAttr);
 
+        VkVertexInputAttributeDescription tangentAttr{};
+        tangentAttr.location = 4;
+        tangentAttr.binding = 0;
+        tangentAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
+        tangentAttr.offset = static_cast<uint32_t>(offsetof(Vertex, tangent));
+        attributes.push_back(tangentAttr);
+
+        VkVertexInputAttributeDescription binormalAttr{};
+        binormalAttr.location = 5;
+        binormalAttr.binding = 0;
+        binormalAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
+        binormalAttr.offset = static_cast<uint32_t>(offsetof(Vertex, binormal));
+        attributes.push_back(binormalAttr);
+
         return attributes;
     }
 
