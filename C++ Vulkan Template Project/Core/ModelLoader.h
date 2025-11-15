@@ -3,6 +3,8 @@
 #include "../Graphics/Mesh.h"
 #include "../Graphics/VulkanTypes.h"
 #include "../VulkanContext.h"
+#include <array>
+#include <tuple>	
 
 
 
@@ -31,6 +33,8 @@ namespace Engine {
 		static VkSampler createBilinearSampler(VulkanContext& context);
 		static VkSampler createTrilinearSampler(VulkanContext& context);
 		static VkSampler createAnisotropicSampler(VulkanContext& context, float maxAnisotropy = 16.0f);
+
+		static std::tuple<VkSampler, std::array<Image, 6>> LoadImagesForSkybox(VulkanContext& context);
 	};
 }
 

@@ -21,6 +21,7 @@
 #include "Graphics/Swapchain.h"
 #include "Core/Camera.h"
 #include "Core/ModelLoader.h"
+#include "Graphics/SkyboxPipeline.h"
 
 struct Object
 {
@@ -95,6 +96,8 @@ private:
     void pickPhysicalDevice();
     void createLogicalDevice();
     void createDescriptorSetLayout();
+	void createSkyboxDescriptorSetLayout();
+    void createSkyboxDescriptorSets(VkImageView cubemapView, VkSampler cubemapSampler);
     void createCommandPool();
     void createDescriptorPool();
     void createDescriptorSets();
@@ -154,6 +157,15 @@ private:
     // --- Graphics Pipeline ---
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     Engine::Pipeline pipeline;
+	Engine::SkyboxPipeline skyboxPipeline;
+	VkDescriptorSetLayout skyboxDescriptorSetLayout = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSet> skyboxDescriptorSets;
+	VkImageView skyboxCubemapView = VK_NULL_HANDLE;
+	VkSampler skyboxCubemapSampler = VK_NULL_HANDLE;
+	Engine::Mesh skyboxMesh;
+
+	VkImage skyboxCubeImage = VK_NULL_HANDLE;
+	VkDeviceMemory skyboxCubemapMemory = VK_NULL_HANDLE;
 
     // --- Camera ---
     Engine::Camera camera;

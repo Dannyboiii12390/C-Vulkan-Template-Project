@@ -14,14 +14,14 @@ namespace Engine {
     class Pipeline {
     public:
         Pipeline() = default;
-        ~Pipeline();
+        virtual ~Pipeline();
 
         // Prevent copying
         Pipeline(const Pipeline&) = delete;
         Pipeline& operator=(const Pipeline&) = delete;
 
         // Pipeline creation with shader paths
-        void create(
+        virtual void create(
             VulkanContext& context,
             const std::string& vertShaderPath,
             const std::string& fragShaderPath,
@@ -37,7 +37,7 @@ namespace Engine {
         VkPipelineLayout getLayout() const { return pipelineLayout; }
         VkPipeline getPipeline() const { return graphicsPipeline; }
 
-    private:
+    protected:
         // Pipeline resources
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
         VkPipeline graphicsPipeline = VK_NULL_HANDLE;
@@ -53,12 +53,12 @@ namespace Engine {
         VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code);
 
         // Pipeline state setup methods
-        VkPipelineVertexInputStateCreateInfo createVertexInputState(const std::vector<VkVertexInputAttributeDescription>& attributeDescriptions, const std::vector<VkVertexInputBindingDescription>& bindingDescriptions);
-        VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState();
-        VkPipelineViewportStateCreateInfo createViewportState();
-        VkPipelineRasterizationStateCreateInfo createRasterizationState();
-        VkPipelineMultisampleStateCreateInfo createMultisampleState();
-        VkPipelineColorBlendStateCreateInfo createColorBlendState(const VkPipelineColorBlendAttachmentState& colorBlendAttachment);
-        VkPipelineDynamicStateCreateInfo createDynamicState();
+        virtual VkPipelineVertexInputStateCreateInfo createVertexInputState(const std::vector<VkVertexInputAttributeDescription>& attributeDescriptions, const std::vector<VkVertexInputBindingDescription>& bindingDescriptions);
+        virtual VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState();
+        virtual VkPipelineViewportStateCreateInfo createViewportState();
+        virtual VkPipelineRasterizationStateCreateInfo createRasterizationState();
+        virtual VkPipelineMultisampleStateCreateInfo createMultisampleState();
+        virtual VkPipelineColorBlendStateCreateInfo createColorBlendState(const VkPipelineColorBlendAttachmentState& colorBlendAttachment);
+        virtual VkPipelineDynamicStateCreateInfo createDynamicState();
     };
 }

@@ -71,6 +71,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     mesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
 	leftMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
 	rightMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
+	skyboxMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
     
     //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
@@ -99,6 +100,20 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     //should be in shader class
     createDescriptorPool();
     createDescriptorSets();
+
+	createSkyboxDescriptorSetLayout();
+	auto [cubeSampler, cubeImages] = Engine::ModelLoader::LoadImagesForSkybox(*this);
+
+	skyboxCubemapView = cubeImages[0].imageView;
+    skyboxCubemapSampler = cubeSampler;
+	skyboxCubeImage = cubeImages[0].image;
+	skyboxCubemapMemory = cubeImages[0].imageMemory;
+    createSkyboxDescriptorSets(cubeImages[0].imageView, cubeSampler);
+
+    // create skybox pipeline after descriptor set layout is available (see next step)
+    skyboxPipeline.create(*this, "shaders/skybox.vert.spv", "shaders/skybox.frag.spv", swapChain.imageFormat, swapChain.depthFormat, skyboxDescriptorSetLayout);
+    ASSERT(skyboxPipeline.getPipeline() != VK_NULL_HANDLE);
+
 
     createCommandBuffers();
     createSyncObjects();
@@ -183,6 +198,15 @@ void VulkanContext::cleanup() {
     cleanupTexture(tileTexture);
     cleanupTexture(textureNormal);
     cleanupTexture(tileTextureNormal);
+
+    // In cleanup(), after other textures destroyed:
+    if (skyboxCubemapSampler != VK_NULL_HANDLE) { vkDestroySampler(device, skyboxCubemapSampler, nullptr); skyboxCubemapSampler = VK_NULL_HANDLE; }
+    if (skyboxCubemapView != VK_NULL_HANDLE) { vkDestroyImageView(device, skyboxCubemapView, nullptr); skyboxCubemapView = VK_NULL_HANDLE; }
+    if (skyboxCubeImage != VK_NULL_HANDLE) { vkDestroyImage(device, skyboxCubeImage, nullptr); skyboxCubeImage = VK_NULL_HANDLE; }
+    if (skyboxCubemapMemory != VK_NULL_HANDLE) { vkFreeMemory(device, skyboxCubemapMemory, nullptr); skyboxCubemapMemory = VK_NULL_HANDLE; }
+
+    if (skyboxDescriptorSetLayout != VK_NULL_HANDLE) { vkDestroyDescriptorSetLayout(device, skyboxDescriptorSetLayout, nullptr); skyboxDescriptorSetLayout = VK_NULL_HANDLE; }
+    skyboxPipeline.destroy(device);
 
 
     // Device
@@ -360,6 +384,80 @@ void VulkanContext::createDescriptorSetLayout() {
 
     ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) == VK_SUCCESS);
 }
+void VulkanContext::createSkyboxDescriptorSetLayout() {
+    // Binding 0: UBO
+    VkDescriptorSetLayoutBinding uboLayoutBinding{};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.pImmutableSamplers = nullptr;
+
+    // Binding 1: combined image sampler (cubemap)
+    VkDescriptorSetLayoutBinding cubemapBinding{};
+    cubemapBinding.binding = 1;
+    cubemapBinding.descriptorCount = 1;
+    cubemapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    cubemapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    cubemapBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, cubemapBinding };
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+    ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &skyboxDescriptorSetLayout) == VK_SUCCESS);
+}
+void VulkanContext::createSkyboxDescriptorSets(VkImageView cubemapView, VkSampler cubemapSampler) {
+    // Allocate descriptor sets (one per swapchain image)
+    std::vector<VkDescriptorSetLayout> layouts(swapChain.imageCount, skyboxDescriptorSetLayout);
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChain.imageCount);
+    allocInfo.pSetLayouts = layouts.data();
+
+    skyboxDescriptorSets.resize(swapChain.imageCount);
+    ASSERT(vkAllocateDescriptorSets(device, &allocInfo, skyboxDescriptorSets.data()) == VK_SUCCESS);
+
+    // Update each descriptor set
+    for (size_t i = 0; i < swapChain.imageCount; ++i)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = uniformBuffers[i].buffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(Engine::UniformBufferObject);
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = cubemapView;
+        imageInfo.sampler = cubemapSampler;
+
+        VkWriteDescriptorSet uboWrite{};
+        uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        uboWrite.dstSet = skyboxDescriptorSets[i];
+        uboWrite.dstBinding = 0;
+        uboWrite.dstArrayElement = 0;
+        uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboWrite.descriptorCount = 1;
+        uboWrite.pBufferInfo = &bufferInfo;
+
+        VkWriteDescriptorSet samplerWrite{};
+        samplerWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        samplerWrite.dstSet = skyboxDescriptorSets[i];
+        samplerWrite.dstBinding = 1;
+        samplerWrite.dstArrayElement = 0;
+        samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerWrite.descriptorCount = 1;
+        samplerWrite.pImageInfo = &imageInfo;
+
+        std::array<VkWriteDescriptorSet, 2> writes = { uboWrite, samplerWrite };
+        vkUpdateDescriptorSets(device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    }
+}
+
 void VulkanContext::createCommandPool() {
     Engine::QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
     VkCommandPoolCreateInfo poolInfo{};
@@ -370,18 +468,32 @@ void VulkanContext::createCommandPool() {
     ASSERT(vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) == VK_SUCCESS);
 }
 void VulkanContext::createDescriptorPool() {
-    // Pool sizes for UBO and combined image sampler
+    uint32_t n = static_cast<uint32_t>(swapChain.imageCount);
+
+    // Main descriptor sets: 1 UBO + 4 combined image samplers per frame
+    // Skybox descriptor sets: 1 UBO + 1 combined image sampler per frame
+    const uint32_t mainSets = n;
+    const uint32_t skyboxSets = n;
+    const uint32_t totalSets = mainSets + skyboxSets;
+
+    const uint32_t totalUBOs = totalSets * 1;  // Both layouts have 1 UBO each
+    const uint32_t mainSamplers = mainSets * 4;  // albedo(2) + normal(2)
+    const uint32_t skyboxSamplers = skyboxSets * 1;  // cubemap(1)
+    const uint32_t totalSamplers = mainSamplers + skyboxSamplers;
+
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChain.imageCount * 1); // 1 UBO per set
+    poolSizes[0].descriptorCount = totalUBOs;
+
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChain.imageCount * 4); // 2 textures
+    poolSizes[1].descriptorCount = totalSamplers;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(swapChain.imageCount);
+    poolInfo.maxSets = totalSets;
+
     ASSERT(vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) == VK_SUCCESS);
 }
 void VulkanContext::createDescriptorSets() {
@@ -622,9 +734,6 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     renderingInfo.pColorAttachments = &colorAttachment;
     renderingInfo.pDepthAttachment = &depthAttachment;
 
-    vkCmdBeginRendering(commandBuffer, &renderingInfo);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getPipeline());
-
     VkViewport viewport{};
     viewport.width = static_cast<float>(swapChain.extent.width);
     viewport.height = static_cast<float>(swapChain.extent.height);
@@ -635,14 +744,29 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     scissor.extent = swapChain.extent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+    vkCmdBeginRendering(commandBuffer, &renderingInfo);
+
+    // Skybox rendering
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline.getPipeline());
+    auto frameIndex = window.getCurrentFrame();
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline.getLayout(), 0, 1, &skyboxDescriptorSets[frameIndex], 0, nullptr);
+    
+    Engine::PushConstantModel skyPC{};
+    skyPC.model = glm::mat4(1.0f);
+    // Fix: Push to vertex stage only (skybox doesn't need fragment stage push constants)
+    vkCmdPushConstants(commandBuffer, skyboxPipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &skyPC);
+    skyboxMesh.bind(commandBuffer);
+    skyboxMesh.draw(commandBuffer);
+
+    // Main mesh rendering
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getPipeline());
     auto currentFrame = window.getCurrentFrame();
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
-    // Draw single mesh with blended textures (texIndex = 0)
     {
         Engine::PushConstantModel pushConstant{};
         pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f));
-        int texIdx = 0; // 0 = blend both textures
+        int texIdx = 0;
 
         struct {
             Engine::PushConstantModel pc;

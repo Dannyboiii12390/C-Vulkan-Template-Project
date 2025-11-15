@@ -17,6 +17,7 @@ namespace Engine
 
         VkDevice device = context.getDevice();
 
+        bool isSkybox = (vertShaderPath.find("skybox") != std::string::npos);
 
         // Load shaders
         auto vertShaderCode = readFile(vertShaderPath);
@@ -61,21 +62,30 @@ namespace Engine
         VkPipelineColorBlendStateCreateInfo colorBlending = createColorBlendState(colorBlendAttachment);
         VkPipelineDynamicStateCreateInfo dynamicState = createDynamicState();
 
-        // Push constants
+        // Push constant range setup
         VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        if (isSkybox) {
+            // Skybox: only vertex stage, 64 bytes (mat4 model only)
+            pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+            pushConstantRange.size = sizeof(Engine::PushConstantModel); // 64 bytes
+        }
+        else {
+            // Main: both stages, 68 bytes (mat4 model + int texIndex)
+            pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+            pushConstantRange.size = sizeof(Engine::PushConstantModel) + sizeof(int); // 68 bytes
+        }
         pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(Engine::PushConstantModel) + sizeof(int);
 
-        // Create pipeline layout
+        // Pipeline layout creation
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout; // Uses the passed layout (skybox or main)
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-        ASSERT(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+        ASSERT(vkCreatePipelineLayout(context.getDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+
 
         // Dynamic rendering info
         VkPipelineRenderingCreateInfo renderingCreateInfo{};

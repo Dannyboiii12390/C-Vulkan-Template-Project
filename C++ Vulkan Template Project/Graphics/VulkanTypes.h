@@ -55,6 +55,11 @@ namespace Engine
         VkSampler trilinearSampler = VK_NULL_HANDLE;
         VkSampler anisotropicSampler = VK_NULL_HANDLE;
     };
+    struct Image {
+        VkImage image = VK_NULL_HANDLE;
+        VkDeviceMemory imageMemory = VK_NULL_HANDLE;
+		VkImageView imageView = VK_NULL_HANDLE;
+    };
 
 
     struct QueueFamilyIndices {

@@ -57,6 +57,12 @@
     <ClCompile Include="Graphics\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\SkyboxPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanContext.h">
@@ -98,6 +104,9 @@
     <ClInclude Include="Graphics\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\SkyboxPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -107,6 +116,8 @@
     <CustomBuild Include="shaders\shader.vert" />
     <CustomBuild Include="SHADERS\shaderBMP.frag" />
     <CustomBuild Include="SHADERS\shaderBMP.vert" />
+    <CustomBuild Include="SHADERS\skybox.frag" />
+    <CustomBuild Include="SHADERS\skybox.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Objects\WoodTex.png">
