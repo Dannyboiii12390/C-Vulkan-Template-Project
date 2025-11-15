@@ -26,10 +26,6 @@ namespace Engine
 		// Hide base destroy to also clean up skyboxPipeline
 		void destroy(VkDevice device);
 
-	private:
-		// Separate handle for the skybox pipeline (kept distinct as requested)
-		VkPipeline skyboxPipeline = VK_NULL_HANDLE;
-
 	};
 }
 

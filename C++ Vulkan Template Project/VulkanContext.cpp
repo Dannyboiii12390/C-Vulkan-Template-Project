@@ -97,18 +97,18 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
         uniformBuffers.emplace_back(Engine::Buffer::createUniformBuffer(*this, sizeof(Engine::UniformBufferObject)));
     }
 
+    createSkyboxDescriptorSetLayout();
+    auto [cubeSampler, cubeImages] = Engine::ModelLoader::LoadImagesForSkybox(*this);
+
+    skyboxCubemapView = cubeImages[0].imageView;
+    skyboxCubemapSampler = cubeSampler;
+    skyboxCubeImage = cubeImages[0].image;
+    skyboxCubemapMemory = cubeImages[0].imageMemory;
+
     //should be in shader class
     createDescriptorPool();
-    createDescriptorSets();
-
-	createSkyboxDescriptorSetLayout();
-	auto [cubeSampler, cubeImages] = Engine::ModelLoader::LoadImagesForSkybox(*this);
-
-	skyboxCubemapView = cubeImages[0].imageView;
-    skyboxCubemapSampler = cubeSampler;
-	skyboxCubeImage = cubeImages[0].image;
-	skyboxCubemapMemory = cubeImages[0].imageMemory;
     createSkyboxDescriptorSets(cubeImages[0].imageView, cubeSampler);
+    createDescriptorSets();
 
     // create skybox pipeline after descriptor set layout is available (see next step)
     skyboxPipeline.create(*this, "shaders/skybox.vert.spv", "shaders/skybox.frag.spv", swapChain.imageFormat, swapChain.depthFormat, skyboxDescriptorSetLayout);
@@ -127,36 +127,53 @@ void VulkanContext::cleanup() {
     vkDeviceWaitIdle(device);
 
     // --- Cleanup code ---
-	cleanSemaphores(renderFinishedSemaphores);
-	cleanSemaphores(imageAvailableSemaphores);
-	cleanFences(inFlightFences);
+    cleanSemaphores(renderFinishedSemaphores);
+    cleanSemaphores(imageAvailableSemaphores);
+    cleanFences(inFlightFences);
 
     swapChain.destroy(device);
 
+    // Clean up pipelines BEFORE destroying descriptor set layouts
     pipeline.destroy(device);
-    vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+    skyboxPipeline.destroy(device);
 
+    // Clean up descriptor sets and pools
+    if (descriptorPool != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+        descriptorPool = VK_NULL_HANDLE;
+    }
+
+    // Clean up descriptor set layouts
+    if (descriptorSetLayout != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+        descriptorSetLayout = VK_NULL_HANDLE;
+    }
+
+    if (skyboxDescriptorSetLayout != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(device, skyboxDescriptorSetLayout, nullptr);
+        skyboxDescriptorSetLayout = VK_NULL_HANDLE;
+    }
+
+    // Clean up meshes
     mesh.cleanup(*this);
-	leftMesh.cleanup(*this);
-	rightMesh.cleanup(*this);
-	//terrain.cleanup(*this);
-	//obj1.mesh.cleanup(*this);
-	//obj2.mesh.cleanup(*this);
-	//obj3.mesh.cleanup(*this);
+    leftMesh.cleanup(*this);
+    rightMesh.cleanup(*this);
+    skyboxMesh.cleanup(*this);
 
+    // Clean up uniform buffers
     for (auto& buf : uniformBuffers) buf.destroy(device);
     uniformBuffers.clear();
-    instanceBuffer.destroy(device);
 
-	// Descriptor pool
-	ASSERT(descriptorPool != VK_NULL_HANDLE);
-    vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-    descriptorPool = VK_NULL_HANDLE;
+    // Clean up instance buffer if it exists
+    if (instanceBuffer.buffer != VK_NULL_HANDLE) {
+        instanceBuffer.destroy(device);
+    }
 
     // Command pool
-	ASSERT(commandPool != VK_NULL_HANDLE);
-	vkDestroyCommandPool(device, commandPool, nullptr);
-	commandPool = VK_NULL_HANDLE;
+    if (commandPool != VK_NULL_HANDLE) {
+        vkDestroyCommandPool(device, commandPool, nullptr);
+        commandPool = VK_NULL_HANDLE;
+    }
 
     // Cleanup textures - only destroy if valid
     auto cleanupTexture = [this](Engine::Texture& tex) {
@@ -192,44 +209,54 @@ void VulkanContext::cleanup() {
             vkFreeMemory(device, tex.imageMemory, nullptr);
             tex.imageMemory = VK_NULL_HANDLE;
         }
-    };
+        };
 
     cleanupTexture(texture);
     cleanupTexture(tileTexture);
     cleanupTexture(textureNormal);
     cleanupTexture(tileTextureNormal);
 
-    // In cleanup(), after other textures destroyed:
-    if (skyboxCubemapSampler != VK_NULL_HANDLE) { vkDestroySampler(device, skyboxCubemapSampler, nullptr); skyboxCubemapSampler = VK_NULL_HANDLE; }
-    if (skyboxCubemapView != VK_NULL_HANDLE) { vkDestroyImageView(device, skyboxCubemapView, nullptr); skyboxCubemapView = VK_NULL_HANDLE; }
-    if (skyboxCubeImage != VK_NULL_HANDLE) { vkDestroyImage(device, skyboxCubeImage, nullptr); skyboxCubeImage = VK_NULL_HANDLE; }
-    if (skyboxCubemapMemory != VK_NULL_HANDLE) { vkFreeMemory(device, skyboxCubemapMemory, nullptr); skyboxCubemapMemory = VK_NULL_HANDLE; }
-
-    if (skyboxDescriptorSetLayout != VK_NULL_HANDLE) { vkDestroyDescriptorSetLayout(device, skyboxDescriptorSetLayout, nullptr); skyboxDescriptorSetLayout = VK_NULL_HANDLE; }
-    skyboxPipeline.destroy(device);
-
+    // Skybox cleanup
+    if (skyboxCubemapSampler != VK_NULL_HANDLE) {
+        vkDestroySampler(device, skyboxCubemapSampler, nullptr);
+        skyboxCubemapSampler = VK_NULL_HANDLE;
+    }
+    if (skyboxCubemapView != VK_NULL_HANDLE) {
+        vkDestroyImageView(device, skyboxCubemapView, nullptr);
+        skyboxCubemapView = VK_NULL_HANDLE;
+    }
+    if (skyboxCubeImage != VK_NULL_HANDLE) {
+        vkDestroyImage(device, skyboxCubeImage, nullptr);
+        skyboxCubeImage = VK_NULL_HANDLE;
+    }
+    if (skyboxCubemapMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(device, skyboxCubemapMemory, nullptr);
+        skyboxCubemapMemory = VK_NULL_HANDLE;
+    }
 
     // Device
-	ASSERT(device != VK_NULL_HANDLE);
-	vkDestroyDevice(device, nullptr);
-	device = VK_NULL_HANDLE;
-    
+    if (device != VK_NULL_HANDLE) {
+        vkDestroyDevice(device, nullptr);
+        device = VK_NULL_HANDLE;
+    }
+
     // Debug messenger (instance object)
-    if (enableValidationLayers)
-    {
+    if (enableValidationLayers && debugMessenger != VK_NULL_HANDLE) {
         DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         debugMessenger = VK_NULL_HANDLE;
     }
 
     // Surface
-	ASSERT(instance != VK_NULL_HANDLE);
-    vkDestroySurfaceKHR(instance, surface, nullptr);
-    surface = VK_NULL_HANDLE;
+    if (surface != VK_NULL_HANDLE) {
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        surface = VK_NULL_HANDLE;
+    }
 
-	// Instance
-	ASSERT(instance != VK_NULL_HANDLE);
-    vkDestroyInstance(instance, nullptr);
-	instance = VK_NULL_HANDLE;
+    // Instance
+    if (instance != VK_NULL_HANDLE) {
+        vkDestroyInstance(instance, nullptr);
+        instance = VK_NULL_HANDLE;
+    }
 }
 
 // --- Vulkan Initialization Methods ---
@@ -375,7 +402,15 @@ void VulkanContext::createDescriptorSetLayout() {
     normalBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     normalBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, albedoBinding, normalBinding };
+    // Skybox cubemap binding (binding = 3) - for reflections
+    VkDescriptorSetLayoutBinding skyboxBinding{};
+    skyboxBinding.binding = 3;
+    skyboxBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    skyboxBinding.descriptorCount = 1;
+    skyboxBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    skyboxBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, albedoBinding, normalBinding, skyboxBinding };
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -470,14 +505,14 @@ void VulkanContext::createCommandPool() {
 void VulkanContext::createDescriptorPool() {
     uint32_t n = static_cast<uint32_t>(swapChain.imageCount);
 
-    // Main descriptor sets: 1 UBO + 4 combined image samplers per frame
+    // Main descriptor sets: 1 UBO + 5 combined image samplers per frame (albedo(2) + normal(2) + skybox(1))
     // Skybox descriptor sets: 1 UBO + 1 combined image sampler per frame
     const uint32_t mainSets = n;
     const uint32_t skyboxSets = n;
     const uint32_t totalSets = mainSets + skyboxSets;
 
     const uint32_t totalUBOs = totalSets * 1;  // Both layouts have 1 UBO each
-    const uint32_t mainSamplers = mainSets * 4;  // albedo(2) + normal(2)
+    const uint32_t mainSamplers = mainSets * 5;  // albedo(2) + normal(2) + skybox(1)
     const uint32_t skyboxSamplers = skyboxSets * 1;  // cubemap(1)
     const uint32_t totalSamplers = mainSamplers + skyboxSamplers;
 
@@ -498,7 +533,7 @@ void VulkanContext::createDescriptorPool() {
 }
 void VulkanContext::createDescriptorSets() {
 
-	descriptorSets.resize(swapChain.imageCount);
+    descriptorSets.resize(swapChain.imageCount);
 
     std::vector<VkDescriptorSetLayout> layouts(swapChain.imageCount, descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -536,6 +571,13 @@ void VulkanContext::createDescriptorSets() {
         normalInfos[1].imageView = tileTextureNormal.imageView;
         normalInfos[1].sampler = getCurrentSampler(tileTextureNormal);
 
+        // Skybox cubemap (binding = 3) - for reflections
+        VkDescriptorImageInfo skyboxInfo{};
+        skyboxInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        skyboxInfo.imageView = skyboxCubemapView;
+        skyboxInfo.sampler = skyboxCubemapSampler;
+
+
         VkWriteDescriptorSet uboWrite{};
         uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         uboWrite.dstSet = descriptorSets[i];
@@ -563,10 +605,18 @@ void VulkanContext::createDescriptorSets() {
         normalWrite.descriptorCount = static_cast<uint32_t>(normalInfos.size()); // 2
         normalWrite.pImageInfo = normalInfos.data();
 
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites = { uboWrite, albedoWrite, normalWrite };
+        VkWriteDescriptorSet skyboxWrite{};
+        skyboxWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        skyboxWrite.dstSet = descriptorSets[i];
+        skyboxWrite.dstBinding = 3;
+        skyboxWrite.dstArrayElement = 0;
+        skyboxWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        skyboxWrite.descriptorCount = 1;
+        skyboxWrite.pImageInfo = &skyboxInfo;
+
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites = { uboWrite, albedoWrite, normalWrite, skyboxWrite };
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-        //vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 void VulkanContext::createCommandBuffers() {

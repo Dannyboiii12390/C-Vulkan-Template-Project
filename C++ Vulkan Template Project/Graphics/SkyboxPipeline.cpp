@@ -117,10 +117,7 @@ namespace Engine
 		pipelineInfo.subpass = 0;
 		pipelineInfo.pDepthStencilState = &depthStencil;
 
-		ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &skyboxPipeline) == VK_SUCCESS);
-
-		// Also store in base graphicsPipeline if caller expects it there
-		graphicsPipeline = skyboxPipeline;
+		ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) == VK_SUCCESS);
 
 		// Cleanup shader modules
 		vkDestroyShaderModule(device, fragShaderModule, nullptr);
@@ -128,12 +125,6 @@ namespace Engine
 	}
 
 	void SkyboxPipeline::destroy(VkDevice device) {
-		// Destroy the skybox pipeline if created
-		if (skyboxPipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, skyboxPipeline, nullptr);
-			skyboxPipeline = VK_NULL_HANDLE;
-		}
-		// Let base class clean up layout and graphicsPipeline (graphicsPipeline already set to skyboxPipeline)
 		Pipeline::destroy(device);
 	}
 }

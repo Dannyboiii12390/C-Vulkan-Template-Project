@@ -17,8 +17,6 @@ namespace Engine
 
         VkDevice device = context.getDevice();
 
-        bool isSkybox = (vertShaderPath.find("skybox") != std::string::npos);
-
         // Load shaders
         auto vertShaderCode = readFile(vertShaderPath);
         auto fragShaderCode = readFile(fragShaderPath);
@@ -43,10 +41,11 @@ namespace Engine
 
         // Get vertex binding and attribute descriptions
         auto attributeDescriptions = Engine::Vertex::getAttributeDescriptions();
-        auto bindingDescriptions = Engine::Vertex::getBindingDescriptions();
+        auto bindingDescriptions = Engine::Vertex::getBindingDescription();
 
+		const std::vector<VkVertexInputBindingDescription> bindingDescriptionsVec = { bindingDescriptions };
 
-        VkPipelineVertexInputStateCreateInfo vertexInputInfo = createVertexInputState(attributeDescriptions, bindingDescriptions);
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo = createVertexInputState(attributeDescriptions, bindingDescriptionsVec);
         VkPipelineInputAssemblyStateCreateInfo inputAssembly = createInputAssemblyState();
         VkPipelineViewportStateCreateInfo viewportState = createViewportState();
         VkPipelineRasterizationStateCreateInfo rasterizer = createRasterizationState();
@@ -64,16 +63,11 @@ namespace Engine
 
         // Push constant range setup
         VkPushConstantRange pushConstantRange{};
-        if (isSkybox) {
-            // Skybox: only vertex stage, 64 bytes (mat4 model only)
-            pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-            pushConstantRange.size = sizeof(Engine::PushConstantModel); // 64 bytes
-        }
-        else {
-            // Main: both stages, 68 bytes (mat4 model + int texIndex)
-            pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-            pushConstantRange.size = sizeof(Engine::PushConstantModel) + sizeof(int); // 68 bytes
-        }
+        
+        // Main: both stages, 68 bytes (mat4 model + int texIndex)
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.size = sizeof(Engine::PushConstantModel) + sizeof(int); // 68 bytes
+        
         pushConstantRange.offset = 0;
 
         // Pipeline layout creation

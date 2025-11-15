@@ -1,60 +1,44 @@
 #version 450
 
-layout(push_constant) uniform PushConstantModel {
-    mat4 model;
-    int texIndex;
-} pushConstants;
-
-layout(binding = 0) uniform UniformBufferObject {
-    mat4 view;
-    mat4 proj;
-    vec3 lightPos;
-    vec3 redLightPos;
-    vec3 eyePos;
-} ubo;
-
-layout(location = 0) in vec3 inPos;
+// Input attributes
+layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec2 inTexCoord;
 layout(location = 4) in vec3 inTangent;
 layout(location = 5) in vec3 inBinormal;
 
-layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec3 fragWorldNormal;
-layout(location = 2) out vec3 fragWorldPos;
-layout(location = 3) out vec2 fragTexCoord;
-layout(location = 4) out vec3 fragLightPos_tangent;
-layout(location = 5) out vec3 fragViewPos_tangent;
-layout(location = 6) out vec3 fragPos_tangent;
+// Output to fragment shader
+layout(location = 0) out vec2 outTexCoord;
+layout(location = 1) out vec3 outWorldPos;
+layout(location = 2) out vec3 outWorldNormal;
+
+// Uniform Buffer Object
+layout(binding = 0) uniform UniformBufferObject {
+    mat4 view;
+    mat4 proj;
+    vec3 viewPos;
+    vec3 lightPos;
+    vec3 redLightPos;
+} ubo;
+
+// Push constants
+layout(push_constant) uniform PushConstants {
+    mat4 model;
+    int texIndex;
+} pushConstants;
 
 void main() {
-    mat4 model = pushConstants.model;
-    vec4 worldPos4 = model * vec4(inPos, 1.0);
-    fragWorldPos = worldPos4.xyz;
-
-    // Normal matrix (inverse-transpose of model's 3x3)
-    mat3 normalMatrix = transpose(inverse(mat3(model)));
-    fragWorldNormal = normalize(normalMatrix * inNormal);
-
-    fragColor = inColor;
-    fragTexCoord = inTexCoord;
-    gl_Position = ubo.proj * ubo.view * worldPos4;
-
-    // Transform tangents/normals to world space
-    vec3 T = normalize(normalMatrix * inTangent);
-    vec3 B = normalize(normalMatrix * inBinormal);
-    vec3 N = normalize(normalMatrix * inNormal);
-
-    // TBN matrix: columns are tangent, bitangent, normal (world-space basis)
-    mat3 TBN = mat3(T, B, N);
-
-    vec3 lightPos_world = ubo.lightPos;
-    vec3 viewPos_world  = ubo.eyePos;
-    vec3 fragPos_world  = fragWorldPos;
-
-    // Convert world-space light/view vectors to tangent space
-    fragLightPos_tangent = TBN * (lightPos_world - fragPos_world);
-    fragViewPos_tangent  = TBN * (viewPos_world  - fragPos_world);
-    fragPos_tangent      = TBN * fragPos_world;
+    // Transform position to world space
+    vec4 worldPos = pushConstants.model * vec4(inPosition, 1.0);
+    outWorldPos = worldPos.xyz;
+    
+    // Transform normal to world space (use transpose of inverse for non-uniform scaling)
+    outWorldNormal = mat3(transpose(inverse(pushConstants.model))) * inNormal;
+    
+    // Pass through texture coordinates
+    outTexCoord = inTexCoord;
+    
+    // Transform to clip space
+    gl_Position = ubo.proj * ubo.view * worldPos;
 }
