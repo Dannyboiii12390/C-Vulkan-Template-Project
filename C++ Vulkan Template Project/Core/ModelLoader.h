@@ -20,6 +20,7 @@ namespace Engine {
 		static Engine::Mesh createCylinder(VulkanContext& context, float radius, float height, int segmentCount);
 		static Engine::Mesh loadObj(VulkanContext& context, const char* filepath);
 		static Engine::Mesh createSphere(VulkanContext& context, float radius, int sectorCount, int stackCount);
+		static Engine::Mesh createParticleSystem(VulkanContext& context, int maxParticles);
         
 		static Texture createTextureImage(VulkanContext& context, const char* filepath, bool srgb = true);
         static void transitionImageLayout(VulkanContext& context, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);

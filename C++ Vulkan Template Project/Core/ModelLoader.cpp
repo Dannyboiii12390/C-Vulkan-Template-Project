@@ -385,6 +385,27 @@ namespace Engine
         return mesh;
 
     }
+    Engine::Mesh ModelLoader::createParticleSystem(VulkanContext& context, int particleCount) {
+        std::vector<Vertex> vertices;
+        vertices.reserve(particleCount);
+
+        // Create random particle positions
+        for (uint32_t i = 0; i < particleCount; ++i) {
+            Vertex v{};
+            // Random position in a volume
+            v.pos = glm::vec3(
+                (rand() / (float)RAND_MAX - 0.5f) * 2.0f,
+                (rand() / (float)RAND_MAX - 0.5f) * 2.0f,
+                (rand() / (float)RAND_MAX - 0.5f) * 2.0f
+            );
+            v.normal = glm::normalize(v.pos);  // Use as velocity direction
+            v.texCoord = glm::vec2(rand() / (float)RAND_MAX, 0.0f);  // lifetime
+            vertices.push_back(v);
+        }
+        Engine::Mesh mesh;
+		mesh.create(context, std::move(vertices));
+        return mesh; // No indices for points
+    }
 
     Texture ModelLoader::createTextureImage(VulkanContext& context, const char* filepath, bool srgb)
     {

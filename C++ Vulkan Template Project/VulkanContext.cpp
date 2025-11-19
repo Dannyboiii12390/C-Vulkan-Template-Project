@@ -48,6 +48,7 @@ void Object::draw(Engine::Pipeline& pipeline, VkCommandBuffer commandBuffer, flo
 }
 
 // --- Main Application Flow ---
+// --- Main Application Flow ---
 VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inputHandler(window)
 {
     createInstance();
@@ -57,7 +58,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     createLogicalDevice();
 
     swapChain.create(*this);
-    
+
     createDescriptorSetLayout();
 
     // --- create graphics pipeline ---
@@ -65,28 +66,28 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
     createCommandPool();
 
-	//terrain = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
+    //terrain = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //terrain = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
     //mesh = Engine::ModelLoader::createCube(*this);
     mesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
-	leftMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
-	rightMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
-	skyboxMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
-    
+    leftMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
+    rightMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
+    skyboxMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
+
     //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
     //mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
     //mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
-	//mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
+    //mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
 
-	// Load albedo (sRGB) and normal (UNORM) maps for both materials
-	texture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
-	textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockheight.tga", false);
-	tileTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
+    // Load albedo (sRGB) and normal (UNORM) maps for both materials
+    texture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
+    textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockheight.tga", false);
+    tileTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
     tileTextureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockheight.tga", false);
 
     currentTextureIndex = 0;
-	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
+    Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
 
 
     // --- create uniform buffers ---
@@ -113,6 +114,61 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     // create skybox pipeline after descriptor set layout is available (see next step)
     skyboxPipeline.create(*this, "shaders/skybox.vert.spv", "shaders/skybox.frag.spv", swapChain.imageFormat, swapChain.depthFormat, skyboxDescriptorSetLayout);
     ASSERT(skyboxPipeline.getPipeline() != VK_NULL_HANDLE);
+
+    // === Particle System Setup ===
+    // Create particle descriptor set layout (same as skybox - just UBO)
+    VkDescriptorSetLayoutBinding uboLayoutBinding{};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    uboLayoutBinding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutCreateInfo particleLayoutInfo{};
+    particleLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    particleLayoutInfo.bindingCount = 1;
+    particleLayoutInfo.pBindings = &uboLayoutBinding;
+
+    ASSERT(vkCreateDescriptorSetLayout(device, &particleLayoutInfo, nullptr, &particleDescriptorSetLayout) == VK_SUCCESS);
+
+    // Create particle mesh (only once, after descriptor pool is created)
+    particleMesh = Engine::ModelLoader::createParticleSystem(*this, 10000);
+
+    // Create particle pipeline
+    particlePipeline.create(*this, "shaders/particle.vert.spv", "shaders/particle.frag.spv",
+        swapChain.imageFormat, swapChain.depthFormat, particleDescriptorSetLayout);
+    ASSERT(particlePipeline.getPipeline() != VK_NULL_HANDLE);
+
+    // Create particle descriptor sets
+    std::vector<VkDescriptorSetLayout> particleLayouts(swapChain.imageCount, particleDescriptorSetLayout);
+    VkDescriptorSetAllocateInfo particleAllocInfo{};
+    particleAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    particleAllocInfo.descriptorPool = descriptorPool;
+    particleAllocInfo.descriptorSetCount = static_cast<uint32_t>(swapChain.imageCount);
+    particleAllocInfo.pSetLayouts = particleLayouts.data();
+
+    particleDescriptorSets.resize(swapChain.imageCount);
+    ASSERT(vkAllocateDescriptorSets(device, &particleAllocInfo, particleDescriptorSets.data()) == VK_SUCCESS);
+
+    // Update particle descriptor sets
+    for (size_t i = 0; i < swapChain.imageCount; ++i)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = uniformBuffers[i].buffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(Engine::UniformBufferObject);
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = particleDescriptorSets[i];
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+    }
 
 
     createCommandBuffers();
@@ -159,6 +215,14 @@ void VulkanContext::cleanup() {
     leftMesh.cleanup(*this);
     rightMesh.cleanup(*this);
     skyboxMesh.cleanup(*this);
+
+    particlePipeline.destroy(device);
+    particleMesh.cleanup(*this);
+
+    if (particleDescriptorSetLayout != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(device, particleDescriptorSetLayout, nullptr);
+        particleDescriptorSetLayout = VK_NULL_HANDLE;
+    }
 
     // Clean up uniform buffers
     for (auto& buf : uniformBuffers) buf.destroy(device);
@@ -233,6 +297,11 @@ void VulkanContext::cleanup() {
         vkFreeMemory(device, skyboxCubemapMemory, nullptr);
         skyboxCubemapMemory = VK_NULL_HANDLE;
     }
+    // In cleanup(), after cleaning other pipelines:
+    particlePipeline.destroy(device);
+    particleMesh.cleanup(*this);
+
+
 
     // Device
     if (device != VK_NULL_HANDLE) {
@@ -507,11 +576,13 @@ void VulkanContext::createDescriptorPool() {
 
     // Main descriptor sets: 1 UBO + 5 combined image samplers per frame (albedo(2) + normal(2) + skybox(1))
     // Skybox descriptor sets: 1 UBO + 1 combined image sampler per frame
+    // Particle descriptor sets: 1 UBO per frame
     const uint32_t mainSets = n;
     const uint32_t skyboxSets = n;
-    const uint32_t totalSets = mainSets + skyboxSets;
+    const uint32_t particleSets = n;  // Add particle sets
+    const uint32_t totalSets = mainSets + skyboxSets + particleSets;
 
-    const uint32_t totalUBOs = totalSets * 1;  // Both layouts have 1 UBO each
+    const uint32_t totalUBOs = totalSets * 1;  // All three layouts have 1 UBO each
     const uint32_t mainSamplers = mainSets * 5;  // albedo(2) + normal(2) + skybox(1)
     const uint32_t skyboxSamplers = skyboxSets * 1;  // cubemap(1)
     const uint32_t totalSamplers = mainSamplers + skyboxSamplers;
@@ -832,6 +903,12 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
         mesh.bind(commandBuffer);
         mesh.draw(commandBuffer);
     }
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, particlePipeline.getPipeline());
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        particlePipeline.getLayout(), 0, 1,
+        &particleDescriptorSets[currentFrame], 0, nullptr);
+    particleMesh.bind(commandBuffer);
+    particleMesh.draw(commandBuffer);
 
     vkCmdEndRendering(commandBuffer);
 
@@ -868,6 +945,7 @@ void VulkanContext::updateUniformBuffer(uint32_t currentImage)
         1.0f,             // Y height = 1
         radius * sin(time)  // Z position (radius = 3)
     );
+	ubo.time = time;
 
 
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));

@@ -22,6 +22,7 @@
 #include "Core/Camera.h"
 #include "Core/ModelLoader.h"
 #include "Graphics/SkyboxPipeline.h"
+#include "Graphics/ParticlePipeline.h"
 
 struct Object
 {
@@ -163,6 +164,11 @@ private:
 	VkImageView skyboxCubemapView = VK_NULL_HANDLE;
 	VkSampler skyboxCubemapSampler = VK_NULL_HANDLE;
 	Engine::Mesh skyboxMesh;
+
+    Engine::ParticlePipeline particlePipeline;
+    Engine::Mesh particleMesh;
+    VkDescriptorSetLayout particleDescriptorSetLayout = VK_NULL_HANDLE;
+    std::vector<VkDescriptorSet> particleDescriptorSets;
 
 	VkImage skyboxCubeImage = VK_NULL_HANDLE;
 	VkDeviceMemory skyboxCubemapMemory = VK_NULL_HANDLE;

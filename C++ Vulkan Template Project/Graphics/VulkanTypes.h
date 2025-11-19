@@ -30,7 +30,13 @@ namespace Engine
 
         static VkVertexInputBindingDescription getBindingDescription();
     };
+    struct ParticleVertex
+    {
+        glm::vec3 particlePos;
 
+        static VkVertexInputBindingDescription getBindingDescription();
+        static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+    };
     struct PushConstantModel
     {
         glm::mat4 model;
@@ -81,6 +87,7 @@ namespace Engine
         alignas(16) glm::vec3 lightPos;
         alignas(16) glm::vec3 redLightPos;
 		alignas(16) glm::vec3 eyePos;
+        alignas(4) float time;
     };
 
     

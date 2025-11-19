@@ -66,6 +66,29 @@ namespace Engine
         return attributes;
     }
 
+    // --- ParticleVertex Implementation ---
+    VkVertexInputBindingDescription ParticleVertex::getBindingDescription() {
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(ParticleVertex);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        return bindingDescription;
+    }
+
+    std::vector<VkVertexInputAttributeDescription> ParticleVertex::getAttributeDescriptions()
+    {
+        std::vector<VkVertexInputAttributeDescription> attributes{};
+
+        VkVertexInputAttributeDescription posAttr{};
+        posAttr.location = 0;
+        posAttr.binding = 0;
+        posAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
+        posAttr.offset = static_cast<uint32_t>(offsetof(ParticleVertex, particlePos));
+        attributes.push_back(posAttr);
+
+        return attributes;
+    }
+
 	// -- - InstanceData Implementation ---
     VkVertexInputBindingDescription InstanceData::getBindingDescription() {
         VkVertexInputBindingDescription bindingDesc{};

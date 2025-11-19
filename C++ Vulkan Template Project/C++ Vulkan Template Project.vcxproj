@@ -152,6 +152,7 @@
     <ClCompile Include="Graphics\Buffer.cpp" />
     <ClCompile Include="Core\DebugUtils.cpp" />
     <ClCompile Include="Core\InputHandler.cpp" />
+    <ClCompile Include="Graphics\ParticlePipeline.cpp" />
     <ClCompile Include="Graphics\SkyboxPipeline.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphics\VulkanTypes.cpp" />
@@ -167,6 +168,7 @@
     <ClInclude Include="Core\Camera.h" />
     <ClInclude Include="Graphics\Buffer.h" />
     <ClInclude Include="Core\Debug Utils.h" />
+    <ClInclude Include="Graphics\ParticlePipeline.h" />
     <ClInclude Include="Graphics\SkyboxPipeline.h" />
     <ClInclude Include="Graphics\VulkanTypes.h" />
     <ClInclude Include="Graphics\Mesh.h" />
@@ -227,6 +229,18 @@
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\skybox.vert -o .\shaders\skybox.vert.spv</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\shaders\skybox.vert.spv;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="SHADERS\particle.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\particle.frag -o .\shaders\particle.frag.spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\shaders\particle.frag.spv;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="SHADERS\particle.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\particle.vert -o .\shaders\particle.vert.spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\shaders\particle.vert.spv;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
