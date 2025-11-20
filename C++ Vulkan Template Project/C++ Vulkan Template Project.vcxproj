@@ -83,7 +83,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)Dependencies\IMGUI;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -101,7 +101,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)Dependencies\IMGUI;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -117,7 +117,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)packages\Assimp.3.0.0\build\native\lib\x64;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalDependencies)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)Dependencies\IMGUI;$(SolutionDir)packages\Assimp.3.0.0\build\native\lib\x64;$(SolutionDir)Dependencies\GLFW\lib-vc2022;$(SolutionDir)Dependencies\IMGUI;%(AdditionalDependencies)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -139,7 +139,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)packages\Assimp.3.0.0\build\native\lib\x64;$(SolutionDir)Dependencies\GLFW\lib-vc2022;%(AdditionalDependencies)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.313.2\Lib;$(SolutionDir)Dependencies\IMGUI;$(SolutionDir)packages\Assimp.3.0.0\build\native\lib\x64;$(SolutionDir)Dependencies\GLFW\lib-vc2022;$(SolutionDir)Dependencies\IMGUI;%(AdditionalDependencies)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -155,6 +155,13 @@
     <ClCompile Include="Core\InputHandler.cpp" />
     <ClCompile Include="Graphics\ParticlePipeline.cpp" />
     <ClCompile Include="Graphics\SkyboxPipeline.cpp" />
+    <ClCompile Include="IMGUI\imgui.cpp" />
+    <ClCompile Include="IMGUI\imgui_demo.cpp" />
+    <ClCompile Include="IMGUI\imgui_draw.cpp" />
+    <ClCompile Include="IMGUI\imgui_impl_glfw.cpp" />
+    <ClCompile Include="IMGUI\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="IMGUI\imgui_tables.cpp" />
+    <ClCompile Include="IMGUI\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphics\VulkanTypes.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
@@ -178,6 +185,14 @@
     <ClInclude Include="Core\ModelLoader.h" />
     <ClInclude Include="Graphics\Swapchain.h" />
     <ClInclude Include="Core\InputHandler.h" />
+    <ClInclude Include="IMGUI\imconfig.h" />
+    <ClInclude Include="IMGUI\imgui.h" />
+    <ClInclude Include="IMGUI\imgui_impl_glfw.h" />
+    <ClInclude Include="IMGUI\imgui_impl_vulkan.h" />
+    <ClInclude Include="IMGUI\imgui_internal.h" />
+    <ClInclude Include="IMGUI\imstb_rectpack.h" />
+    <ClInclude Include="IMGUI\imstb_textedit.h" />
+    <ClInclude Include="IMGUI\imstb_truetype.h" />
     <ClInclude Include="VulkanContext.h" />
     <ClInclude Include="Core\Window.h" />
   </ItemGroup>

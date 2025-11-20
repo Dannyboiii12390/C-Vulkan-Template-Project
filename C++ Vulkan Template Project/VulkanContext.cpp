@@ -1,4 +1,4 @@
-#include "VulkanContext.h"
+﻿#include "VulkanContext.h"
 #include "Graphics/VulkanTypes.h"
 #include "Graphics/Swapchain.h"
 
@@ -25,6 +25,20 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     pipeline.create(*this, "shaders/shader.vert.spv", "shaders/shader.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 
     createCommandPool();
+
+    // Create a small render pass + framebuffers used for ImGui overlay, then initialize ImGui
+    createImGuiRenderPass();
+    createImGuiFramebuffers();
+
+    // Find queue family index to pass to ImGui create
+    Engine::QueueFamilyIndices qfi = findQueueFamilies(physicalDevice);
+    uint32_t queueFamilyIndex = qfi.graphicsFamily.value();
+
+    // Initialize ImGui Vulkan backend (pipelineCache is optional - pass VK_NULL_HANDLE)
+    if (!m_gui.create(window.getGLFWwindow(), instance, physicalDevice, device, queueFamilyIndex, graphicsQueue, VK_NULL_HANDLE, imguiRenderPass, swapChain.imageCount, commandPool, nullptr))
+    {
+        ASSERT_MSG(false, "Failed to initialize ImGui");
+    }
 
     //terrain = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
     //terrain = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
@@ -143,6 +157,10 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 }
 void VulkanContext::cleanup() {
     vkDeviceWaitIdle(device);
+
+    // Shutdown ImGui and destroy ImGui framebuffers/renderpass before destroying swapchain image views
+    m_gui.shutdown();
+    destroyImGuiResources(device);
 
     // --- Cleanup code ---
     cleanSemaphores(renderFinishedSemaphores);
@@ -311,13 +329,15 @@ void VulkanContext::createInstance() {
     createInfo.ppEnabledExtensionNames = extensions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (enableValidationLayers) {
+    if (enableValidationLayers)
+    {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = &debugCreateInfo;
     }
-    else {
+    else
+    {
         createInfo.enabledLayerCount = 0;
         createInfo.pNext = nullptr;
     }
@@ -681,21 +701,55 @@ void VulkanContext::createSyncObjects() {
     }
 }
 void VulkanContext::drawFrame() {
-	uint32_t currentFrame = window.getCurrentFrame();
+    uint32_t currentFrame = window.getCurrentFrame();
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(device, swapChain.swapchain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
-    {
-		swapChain.recreate(*this);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        swapChain.recreate(*this);
+        createCommandBuffers();
+        createSyncObjects();
+        createImGuiRenderPass();
+        createImGuiFramebuffers();
+        createDescriptorPool();
+        createDescriptorSets();
+        createSkyboxDescriptorSets(skyboxCubemapView, skyboxCubemapSampler);
+        return;
+    } else {
+        ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+        //LOG(result);
+    }
+
+    // Only start ImGui frame if render pass and framebuffers are valid
+    if (imguiRenderPass == VK_NULL_HANDLE || imguiFramebuffers.empty()) {
+        // Optionally: log a warning here
         return;
     }
-    else 
+
+    // Start ImGui frame
+    m_gui.newFrame();
+    bool imguiFrameStarted = true;
+
+    // Simple settings UI
+    ImGui::Begin("Settings");
+    if (ImGui::Button("Coin Texture"))
     {
-		ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+        switchTexture(0);
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Tile Texture"))
+    {
+        switchTexture(1);
+    }
+    const char* filterModes[] = { "Nearest", "Bilinear", "Trilinear", "Anisotropic" };
+    int mode = static_cast<int>(currentFilterMode);
+    if (ImGui::Combo("Filter Mode", &mode, filterModes, IM_ARRAYSIZE(filterModes)))
+    {
+        switchFilterMode(static_cast<Engine::TextureFilterMode>(mode));
+    }
+    ImGui::End();
 
     handleInput();
     updateUniformBuffer(currentFrame);
@@ -727,9 +781,7 @@ void VulkanContext::drawFrame() {
     submitInfo.signalSemaphoreInfoCount = 1;
     submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
 
-
-	VkResult res = vkQueueSubmit2(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
-
+    VkResult res = vkQueueSubmit2(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
     ASSERT(res == VK_SUCCESS);
 
     VkPresentInfoKHR presentInfo{};
@@ -743,7 +795,20 @@ void VulkanContext::drawFrame() {
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.wasFramebufferResized()) swapChain.recreate(*this);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.wasFramebufferResized()) {
+        // Cleanup ImGui resources before recreating swapchain
+        destroyImGuiResources(device);
+
+        swapChain.recreate(*this);
+        createCommandBuffers();
+        createSyncObjects();
+        createImGuiRenderPass();
+        createImGuiFramebuffers();
+
+        // Recreate ImGui render pass and framebuffers
+        //createImGuiRenderPass();
+        //createImGuiFramebuffers();
+    }
     else ASSERT(result == VK_SUCCESS);
 
     window.resetCurrentFrame(swapChain.imageCount);
@@ -874,6 +939,23 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
     vkCmdEndRendering(commandBuffer);
 
+    // Begin a short render pass (load existing attachments) for ImGui draw calls
+    if (imguiRenderPass != VK_NULL_HANDLE && !imguiFramebuffers.empty())
+    {
+        VkRenderPassBeginInfo rpBegin{};
+        rpBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rpBegin.renderPass = imguiRenderPass;
+        rpBegin.framebuffer = imguiFramebuffers[imageIndex];
+        rpBegin.renderArea.offset = { 0, 0 };
+        rpBegin.renderArea.extent = swapChain.extent;
+        // No clear values because we load the existing image
+        vkCmdBeginRenderPass(commandBuffer, &rpBegin, VK_SUBPASS_CONTENTS_INLINE);
+
+        m_gui.render(commandBuffer);
+
+        vkCmdEndRenderPass(commandBuffer);
+    }
+
     VkImageMemoryBarrier2 imageBarrierToPresent{};
     imageBarrierToPresent.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
     imageBarrierToPresent.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -894,20 +976,20 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 }
 void VulkanContext::updateUniformBuffer(uint32_t currentImage) 
 {
-	static auto startTime = std::chrono::high_resolution_clock::now();
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float>(currentTime - startTime).count();
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float>(currentTime - startTime).count();
 
     Engine::UniformBufferObject ubo = camera.getCameraUBO();
-	ubo.lightPos = glm::vec3(5.0f, 0.0f, 0.0f);
-	//red light moving in circle around origin
-	float radius = 3.0f;
+    ubo.lightPos = glm::vec3(5.0f, 0.0f, 0.0f);
+    //red light moving in circle around origin
+    float radius = 3.0f;
     ubo.redLightPos = glm::vec3(
         radius * cos(time), // X position (radius = 3)
         1.0f,             // Y height = 1
         radius * sin(time)  // Z position (radius = 3)
     );
-	ubo.time = time;
+    ubo.time = time;
 
 
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
@@ -1146,7 +1228,6 @@ void VulkanContext::cleanFences(std::vector<VkFence>& fences)
     }
     fences.clear();
 }
-
 void VulkanContext::switchTexture(int textureIndex)
 {
     if (textureIndex < 0 || textureIndex > 1) return;
@@ -1158,7 +1239,6 @@ void VulkanContext::switchTexture(int textureIndex)
         std::cout << "Switched to " << (textureIndex == 0 ? "Coin" : "Tile") << " texture" << std::endl;
     }
 }
-
 void VulkanContext::switchFilterMode(Engine::TextureFilterMode mode)
 {
     if (currentFilterMode != mode)
@@ -1250,13 +1330,11 @@ void VulkanContext::updateAllDescriptorSets()
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(tileWrites.size()), tileWrites.data(), 0, nullptr);
     }
 }
-
 void VulkanContext::cycleFilterMode()
 {
     int nextMode = (static_cast<int>(currentFilterMode) + 1) % 4;
     switchFilterMode(static_cast<Engine::TextureFilterMode>(nextMode));
 }
-
 VkSampler VulkanContext::getCurrentSampler(const Engine::Texture& texture)
 {
     switch (currentFilterMode)
@@ -1374,5 +1452,91 @@ void VulkanContext::createDescriptorSetsForTexture(const Engine::Texture& tex, s
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()),
             descriptorWrites.data(), 0, nullptr);
+    }
+}
+
+// --- ImGui Render-pass + Framebuffer helpers ---
+void VulkanContext::createImGuiRenderPass()
+{
+    if (imguiRenderPass != VK_NULL_HANDLE) return;
+
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = swapChain.imageFormat;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD; // keep already rendered scene
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency.dependencyFlags = 0;
+
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    ASSERT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &imguiRenderPass) == VK_SUCCESS);
+}
+
+void VulkanContext::createImGuiFramebuffers()
+{
+    if (imguiRenderPass == VK_NULL_HANDLE) return;
+
+    destroyImGuiResources(device);
+
+    imguiFramebuffers.resize(swapChain.imageViews.size());
+    for (size_t i = 0; i < swapChain.imageViews.size(); ++i)
+    {
+        VkImageView attachments[] = { swapChain.imageViews[i] };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = imguiRenderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = swapChain.extent.width;
+        framebufferInfo.height = swapChain.extent.height;
+        framebufferInfo.layers = 1;
+
+        ASSERT(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &imguiFramebuffers[i]) == VK_SUCCESS);
+    }
+}
+void VulkanContext::destroyImGuiResources(VkDevice device)
+{
+    for (auto fb : imguiFramebuffers)
+    {
+        if (fb != VK_NULL_HANDLE)
+        {
+            vkDestroyFramebuffer(device, fb, nullptr);
+        }
+    }
+    imguiFramebuffers.clear();
+
+    if (imguiRenderPass != VK_NULL_HANDLE)
+    {
+        vkDestroyRenderPass(device, imguiRenderPass, nullptr);
+        imguiRenderPass = VK_NULL_HANDLE;
     }
 }
