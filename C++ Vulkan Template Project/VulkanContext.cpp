@@ -8,46 +8,6 @@
 
 #include <array>
 
-
-
-void Object::draw(Engine::Pipeline& pipeline, VkCommandBuffer commandBuffer, float time, int positive)
-{
-    //positive = positive % 1;
-	// Drawing logic for the object
-        // Orbit parameters
-    float orbitSpeedDegPerSec = 45.0f;   // degrees per second
-    float orbitRadius = 3.0f;            // distance from terrain center
-    glm::vec3 orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
-
-    Engine::PushConstantModel pushConstant{};
-    mesh.bind(commandBuffer);
-    //glm::mat4 meshScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 2.5f)); // adjust mesh scale as desired
-
-    if (orbitingAround)
-    {
-        glm::mat4 offset = glm::translate(glm::mat4(1.0f), glm::vec3(orbitRadius, 0.0f, 0.0f));
-        glm::mat4 orbitRotation = VulkanContext::rotateAboutPoint(orbitingAround->position, time * glm::radians(orbitSpeedDegPerSec)*positive, orbitAxis);
-
-        Engine::PushConstantModel pushConstant{};
-        mesh.bind(commandBuffer);
-        pushConstant.model = orbitRotation * offset;
-        vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
-        glm::vec4 worldPos = pushConstant.model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        position = glm::vec3(worldPos);
-    }
-    else
-    {
-        glm::mat4 orbitRotation = VulkanContext::rotateAboutPoint(position, time * glm::radians(orbitSpeedDegPerSec), orbitAxis);
-        pushConstant.model = orbitRotation;
-        vkCmdPushConstants(commandBuffer, pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &pushConstant);
-        mesh.draw(commandBuffer);
-    }
-
-    mesh.draw(commandBuffer);
-
-}
-
-// --- Main Application Flow ---
 // --- Main Application Flow ---
 VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inputHandler(window)
 {
