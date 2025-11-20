@@ -1,4 +1,4 @@
-﻿#include "VulkanContext.h"
+#include "VulkanContext.h"
 #include "Graphics/VulkanTypes.h"
 #include "Graphics/Swapchain.h"
 
@@ -704,12 +704,10 @@ void VulkanContext::drawFrame() {
     uint32_t currentFrame = window.getCurrentFrame();
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
-    uint32_t imageIndex = 0;
+    uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(device, swapChain.swapchain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        destroyImGuiResources(device);
-
         swapChain.recreate(*this);
         createCommandBuffers();
         createSyncObjects();
@@ -760,7 +758,6 @@ void VulkanContext::drawFrame() {
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
-    // --- Ensure all Vulkan structs are zero-initialized ---
     VkCommandBufferSubmitInfo commandBufferInfo{};
     commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
     commandBufferInfo.commandBuffer = commandBuffers[currentFrame];

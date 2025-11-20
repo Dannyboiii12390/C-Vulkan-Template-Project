@@ -23,7 +23,16 @@
 #include "Core/ModelLoader.h"
 #include "Graphics/SkyboxPipeline.h"
 #include "Graphics/ParticlePipeline.h"
-#include "Core/GUI.h"
+
+struct Object
+{
+    std::string name;
+	Engine::Mesh mesh;
+    float orbitRadius = 3.0f;
+	glm::vec3 position;
+	Object* orbitingAround = nullptr;
+    void draw(Engine::Pipeline& pipeline, VkCommandBuffer commandBuffer, float time, int positive);
+};
 
 
 // --- Configuration ---
@@ -79,8 +88,6 @@ public:
     void createDescriptorSetsForTexture(const Engine::Texture& tex, std::vector<VkDescriptorSet>& descSets);
     void updateAllDescriptorSets();
 
-
-
 private:
 
     // --- Vulkan Initialization Steps ---
@@ -97,11 +104,6 @@ private:
     void createDescriptorSets();
     void createCommandBuffers();
     void createSyncObjects();
-
-    // ImGui helpers
-    void createImGuiRenderPass();
-    void createImGuiFramebuffers();
-    void destroyImGuiResources(VkDevice device);
 
 	// --- Cleanup Helpers ---
 	template<typename T>
@@ -191,11 +193,6 @@ private:
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
-
-    // --- ImGui ---
-    GUI m_gui;
-    VkRenderPass imguiRenderPass = VK_NULL_HANDLE;
-    std::vector<VkFramebuffer> imguiFramebuffers;
 
 
 };
