@@ -155,6 +155,13 @@
     <ClCompile Include="Core\InputHandler.cpp" />
     <ClCompile Include="Graphics\ParticlePipeline.cpp" />
     <ClCompile Include="Graphics\SkyboxPipeline.cpp" />
+    <ClCompile Include="IMGUI\imgui.cpp" />
+    <ClCompile Include="IMGUI\imgui_demo.cpp" />
+    <ClCompile Include="IMGUI\imgui_draw.cpp" />
+    <ClCompile Include="IMGUI\imgui_impl_glfw.cpp" />
+    <ClCompile Include="IMGUI\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="IMGUI\imgui_tables.cpp" />
+    <ClCompile Include="IMGUI\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphics\VulkanTypes.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
@@ -178,6 +185,14 @@
     <ClInclude Include="Core\ModelLoader.h" />
     <ClInclude Include="Graphics\Swapchain.h" />
     <ClInclude Include="Core\InputHandler.h" />
+    <ClInclude Include="IMGUI\imconfig.h" />
+    <ClInclude Include="IMGUI\imgui.h" />
+    <ClInclude Include="IMGUI\imgui_impl_glfw.h" />
+    <ClInclude Include="IMGUI\imgui_impl_vulkan.h" />
+    <ClInclude Include="IMGUI\imgui_internal.h" />
+    <ClInclude Include="IMGUI\imstb_rectpack.h" />
+    <ClInclude Include="IMGUI\imstb_textedit.h" />
+    <ClInclude Include="IMGUI\imstb_truetype.h" />
     <ClInclude Include="VulkanContext.h" />
     <ClInclude Include="Core\Window.h" />
   </ItemGroup>
