@@ -165,6 +165,9 @@ private:
 	VkSampler skyboxCubemapSampler = VK_NULL_HANDLE;
 	Engine::Mesh skyboxMesh;
 
+
+    //Engine::Pipeline pipeline2;
+
     Engine::ParticlePipeline particlePipeline;
     Engine::Mesh particleMesh;
     VkDescriptorSetLayout particleDescriptorSetLayout = VK_NULL_HANDLE;

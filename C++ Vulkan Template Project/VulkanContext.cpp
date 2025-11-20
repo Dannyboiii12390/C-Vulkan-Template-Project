@@ -134,6 +134,8 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     // Create particle mesh (only once, after descriptor pool is created)
     particleMesh = Engine::ModelLoader::createParticleSystem(*this, 10000);
 
+	//pipeline2.create(*this, "shaders/template.vert.spv", "shaders/template.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
+
     // Create particle pipeline
     particlePipeline.create(*this, "shaders/particle.vert.spv", "shaders/particle.frag.spv",
         swapChain.imageFormat, swapChain.depthFormat, particleDescriptorSetLayout);

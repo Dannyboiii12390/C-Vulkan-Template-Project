@@ -120,12 +120,12 @@
   <ItemGroup>
     <CustomBuild Include="shaders\shader.frag" />
     <CustomBuild Include="shaders\shader.vert" />
-    <CustomBuild Include="SHADERS\shaderBMP.frag" />
-    <CustomBuild Include="SHADERS\shaderBMP.vert" />
     <CustomBuild Include="SHADERS\skybox.frag" />
     <CustomBuild Include="SHADERS\skybox.vert" />
     <CustomBuild Include="SHADERS\particle.vert" />
     <CustomBuild Include="SHADERS\particle.frag" />
+    <CustomBuild Include="SHADERS\template.frag" />
+    <CustomBuild Include="SHADERS\template.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Objects\WoodTex.png">
