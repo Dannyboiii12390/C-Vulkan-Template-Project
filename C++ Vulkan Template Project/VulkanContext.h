@@ -24,17 +24,6 @@
 #include "Graphics/SkyboxPipeline.h"
 #include "Graphics/ParticlePipeline.h"
 
-struct Object
-{
-    std::string name;
-	Engine::Mesh mesh;
-    float orbitRadius = 3.0f;
-	glm::vec3 position;
-	Object* orbitingAround = nullptr;
-    void draw(Engine::Pipeline& pipeline, VkCommandBuffer commandBuffer, float time, int positive);
-};
-
-
 // --- Configuration ---
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -81,12 +70,10 @@ public:
     static glm::mat4 rotateAboutPoint(const glm::vec3& pivot, const float angle, const glm::vec3& axis);
 
     void switchTexture(int textureIndex);
-    void switchFilterMode(Engine::TextureFilterMode mode);
 	void cycleFilterMode();
     VkSampler getCurrentSampler(const Engine::Texture& texture);
     void updateDescriptorSetsForTexture(int textureIndex);
     void createDescriptorSetsForTexture(const Engine::Texture& tex, std::vector<VkDescriptorSet>& descSets);
-    void updateAllDescriptorSets();
 
 private:
 
@@ -137,12 +124,6 @@ private:
     Engine::Mesh leftMesh;
 	Engine::Mesh rightMesh;
     //Engine::Mesh terrain;
-    
-    /*Object obj1;
-    Object obj2;
-    Object obj3;*/
-	std::vector<VkDescriptorSet> coinDescriptorSets;
-	std::vector<VkDescriptorSet> tileDescriptorSets;
 
     Engine::Texture texture;
     Engine::Texture tileTexture;
