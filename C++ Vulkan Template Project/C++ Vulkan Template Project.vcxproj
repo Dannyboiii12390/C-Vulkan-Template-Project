@@ -153,9 +153,10 @@
     <ClCompile Include="Graphics\Buffer.cpp" />
     <ClCompile Include="Core\DebugUtils.cpp" />
     <ClCompile Include="Core\InputHandler.cpp" />
-    <ClCompile Include="Graphics\ParticlePipeline.cpp" />
+    <ClCompile Include="Graphics\Object.cpp" />
+    <ClCompile Include="Graphics\Pipelines\ParticlePipeline.cpp" />
     <ClCompile Include="Graphics\Shader.cpp" />
-    <ClCompile Include="Graphics\SkyboxPipeline.cpp" />
+    <ClCompile Include="Graphics\Pipelines\SkyboxPipeline.cpp" />
     <ClCompile Include="IMGUI\imgui.cpp" />
     <ClCompile Include="IMGUI\imgui_demo.cpp" />
     <ClCompile Include="IMGUI\imgui_draw.cpp" />
@@ -166,7 +167,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphics\VulkanTypes.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
-    <ClCompile Include="Graphics\Pipeline.cpp" />
+    <ClCompile Include="Graphics\Pipelines\Pipeline.cpp" />
     <ClCompile Include="Core\ModelLoader.cpp" />
     <ClCompile Include="Graphics\Swapchain.cpp" />
     <ClCompile Include="Pipeline.cpp" />
@@ -178,12 +179,13 @@
     <ClInclude Include="Core\GUI.h" />
     <ClInclude Include="Graphics\Buffer.h" />
     <ClInclude Include="Core\Debug Utils.h" />
-    <ClInclude Include="Graphics\ParticlePipeline.h" />
+    <ClInclude Include="Graphics\Object.h" />
+    <ClInclude Include="Graphics\Pipelines\ParticlePipeline.h" />
     <ClInclude Include="Graphics\Shader.h" />
-    <ClInclude Include="Graphics\SkyboxPipeline.h" />
+    <ClInclude Include="Graphics\Pipelines\SkyboxPipeline.h" />
     <ClInclude Include="Graphics\VulkanTypes.h" />
     <ClInclude Include="Graphics\Mesh.h" />
-    <ClInclude Include="Graphics\Pipeline.h" />
+    <ClInclude Include="Graphics\Pipelines\Pipeline.h" />
     <ClInclude Include="Core\ModelLoader.h" />
     <ClInclude Include="Graphics\Swapchain.h" />
     <ClInclude Include="Core\InputHandler.h" />
@@ -265,6 +267,18 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).spv;%(Outputs)</Outputs>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </CustomBuild>
+    <CustomBuild Include="SHADERS\textureVertLighting.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"%VULKAN_SDK%\bin\glslangValidator.exe" -V "$(ProjectDir)SHADERS\%(Filename).frag" -o "$(ProjectDir)SHADERS\%(Filename).frag.spv"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).spv</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="SHADERS\textureVertLighting.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"%VULKAN_SDK%\bin\glslangValidator.exe" -V "$(ProjectDir)SHADERS\%(Filename).vert" -o "$(ProjectDir)SHADERS\%(Filename).vert.spv"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).spv</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

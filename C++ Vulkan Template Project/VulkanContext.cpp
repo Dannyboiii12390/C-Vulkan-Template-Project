@@ -26,25 +26,16 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
     createCommandPool();
 
-    //terrain = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
-    //terrain = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
     //mesh = Engine::ModelLoader::createCube(*this);
     mesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
-    leftMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
-    rightMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
     skyboxMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
 
-    //mesh = Engine::ModelLoader::createCylinder(*this, 0.5f, 1.0f, 36);
-    //mesh = Engine::ModelLoader::createGrid(*this, 20, 20);
-    //mesh = Engine::ModelLoader::createTerrain(*this, 50, 50, 1.0f);
-    //mesh = Engine::ModelLoader::loadObj(*this, "Objects/drone.obj");
-    //mesh = Engine::ModelLoader::createSphere(*this, 1.0f, 36, 18);
 
+    terrainMesh = Engine::ModelLoader::createTerrain(*this, 200, 200, 5.0f, 10);
     // Load albedo (sRGB) and normal (UNORM) maps for both materials
-    texture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
-    textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockheight.tga", false);
-    tileTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/stones.png", true);
-    tileTextureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\rockheight.tga", false);
+    texture = Engine::ModelLoader::createTextureImage(*this, "Objects/gravelly_sand_diff_4k.jpg", true);
+    textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\gravelly_sand_disp_height.png", false);
+	terrainPipeline.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 
     currentTextureIndex = 0;
     Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
@@ -137,7 +128,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     createSyncObjects();
 
     // --- Initialize camera ---
-    camera.create(45.0f, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 100.0f);
+    camera.create(45.0f, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 2500.0f);
     camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
     camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
 }
@@ -174,12 +165,13 @@ void VulkanContext::cleanup() {
 
     // Clean up meshes
     mesh.cleanup(*this);
-    leftMesh.cleanup(*this);
-    rightMesh.cleanup(*this);
     skyboxMesh.cleanup(*this);
+	terrainMesh.cleanup(*this);
+	terrainPipeline.destroy(device);
 
     particlePipeline.destroy(device);
     particleMesh.cleanup(*this);
+
 
     if (particleDescriptorSetLayout != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(device, particleDescriptorSetLayout, nullptr);
@@ -421,7 +413,7 @@ void VulkanContext::createDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding albedoBinding{};
     albedoBinding.binding = 1; // 0 is already used by the UBO
     albedoBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    albedoBinding.descriptorCount = 2; // two albedo textures in the array (coin, tile)
+    albedoBinding.descriptorCount = 1; // two albedo textures in the array (coin, tile)
     albedoBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     albedoBinding.pImmutableSamplers = nullptr;
 
@@ -429,7 +421,7 @@ void VulkanContext::createDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding normalBinding{};
     normalBinding.binding = 2;
     normalBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    normalBinding.descriptorCount = 2;
+    normalBinding.descriptorCount = 1;
     normalBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     normalBinding.pImmutableSamplers = nullptr;
 
@@ -545,7 +537,7 @@ void VulkanContext::createDescriptorPool() {
     const uint32_t totalSets = mainSets + skyboxSets + particleSets;
 
     const uint32_t totalUBOs = totalSets * 1;  // All three layouts have 1 UBO each
-    const uint32_t mainSamplers = mainSets * 5;  // albedo(2) + normal(2) + skybox(1)
+    const uint32_t mainSamplers = mainSets * 3;  // albedo(1) + normal(1) + skybox(1)
     const uint32_t skyboxSamplers = skyboxSets * 1;  // cubemap(1)
     const uint32_t totalSamplers = mainSamplers + skyboxSamplers;
 
@@ -585,24 +577,24 @@ void VulkanContext::createDescriptorSets() {
         bufferInfo.range = sizeof(Engine::UniformBufferObject);
 
         // Albedo images (binding = 1): coin, tile
-        std::array<VkDescriptorImageInfo, 2> albedoInfos{};
+        std::array<VkDescriptorImageInfo, 1> albedoInfos{};
         albedoInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         albedoInfos[0].imageView = texture.imageView;
         albedoInfos[0].sampler = getCurrentSampler(texture);
 
-        albedoInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        albedoInfos[1].imageView = tileTexture.imageView;
-        albedoInfos[1].sampler = getCurrentSampler(tileTexture);
+        //albedoInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        //albedoInfos[1].imageView = tileTexture.imageView;
+        //albedoInfos[1].sampler = getCurrentSampler(tileTexture);
 
         // Normal images (binding = 2): coin normal, tile normal
-        std::array<VkDescriptorImageInfo, 2> normalInfos{};
+        std::array<VkDescriptorImageInfo, 1> normalInfos{};
         normalInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         normalInfos[0].imageView = textureNormal.imageView;
         normalInfos[0].sampler = getCurrentSampler(textureNormal);
 
-        normalInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        normalInfos[1].imageView = tileTextureNormal.imageView;
-        normalInfos[1].sampler = getCurrentSampler(tileTextureNormal);
+        //normalInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        //normalInfos[1].imageView = tileTextureNormal.imageView;
+        //normalInfos[1].sampler = getCurrentSampler(tileTextureNormal);
 
         // Skybox cubemap (binding = 3) - for reflections
         VkDescriptorImageInfo skyboxInfo{};
@@ -626,7 +618,7 @@ void VulkanContext::createDescriptorSets() {
         albedoWrite.dstBinding = 1;
         albedoWrite.dstArrayElement = 0;
         albedoWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        albedoWrite.descriptorCount = static_cast<uint32_t>(albedoInfos.size()); // 2
+        albedoWrite.descriptorCount = static_cast<uint32_t>(albedoInfos.size());
         albedoWrite.pImageInfo = albedoInfos.data();
 
         VkWriteDescriptorSet normalWrite{};
@@ -635,7 +627,7 @@ void VulkanContext::createDescriptorSets() {
         normalWrite.dstBinding = 2;
         normalWrite.dstArrayElement = 0;
         normalWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        normalWrite.descriptorCount = static_cast<uint32_t>(normalInfos.size()); // 2
+        normalWrite.descriptorCount = static_cast<uint32_t>(normalInfos.size());
         normalWrite.pImageInfo = normalInfos.data();
 
         VkWriteDescriptorSet skyboxWrite{};
@@ -751,6 +743,9 @@ void VulkanContext::drawFrame() {
 
 void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
+
+    auto currentFrame = window.getCurrentFrame();
+
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     ASSERT(vkBeginCommandBuffer(commandBuffer, &beginInfo) == VK_SUCCESS);
@@ -831,8 +826,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
     // Skybox rendering
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline.getPipeline());
-    auto frameIndex = window.getCurrentFrame();
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline.getLayout(), 0, 1, &skyboxDescriptorSets[frameIndex], 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline.getLayout(), 0, 1, &skyboxDescriptorSets[currentFrame], 0, nullptr);
     
     Engine::PushConstantModel skyPC{};
     skyPC.model = glm::mat4(1.0f);
@@ -841,11 +835,17 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     skyboxMesh.bind(commandBuffer);
     skyboxMesh.draw(commandBuffer);
 
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipeline.getPipeline());
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+    glm::mat4 terrainLocation = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    vkCmdPushConstants(commandBuffer, terrainPipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(terrainLocation), &terrainLocation);
+    terrainMesh.bind(commandBuffer);
+    terrainMesh.draw(commandBuffer);
+
+
     // Main mesh rendering
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getPipeline());
-    auto currentFrame = window.getCurrentFrame();
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-
     {
         Engine::PushConstantModel pushConstant{};
         pushConstant.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f));
@@ -1068,7 +1068,7 @@ void VulkanContext::handleInput()
     auto currentFrameTime = std::chrono::high_resolution_clock::now();
     float deltaTime = std::chrono::duration<float>(currentFrameTime - lastFrameTime).count();
     lastFrameTime = currentFrameTime;
-    float sprintSpeed = 5.0f;
+    float sprintSpeed = 50.0f;
 
     // keyboard input to move camera
     //branchless

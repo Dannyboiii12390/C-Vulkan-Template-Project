@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include "Mesh.h"
-#include "Pipeline.h"
+#include "Pipelines/Pipeline.h"
 #include "Buffer.h"
 
 // Forward declarations

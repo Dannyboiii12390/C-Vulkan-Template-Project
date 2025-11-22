@@ -17,12 +17,13 @@
 
 #include "Graphics/VulkanTypes.h"
 #include "Graphics/Mesh.h"
-#include "Graphics/Pipeline.h"
+#include "Graphics/Pipelines/Pipeline.h"
 #include "Graphics/Swapchain.h"
 #include "Core/Camera.h"
 #include "Core/ModelLoader.h"
-#include "Graphics/SkyboxPipeline.h"
-#include "Graphics/ParticlePipeline.h"
+#include "Graphics/Pipelines/SkyboxPipeline.h"
+#include "Graphics/Pipelines/ParticlePipeline.h"
+#include "Graphics/Object.h"
 
 // --- Configuration ---
 const uint32_t WIDTH = 800;
@@ -69,11 +70,10 @@ public:
 
     static glm::mat4 rotateAboutPoint(const glm::vec3& pivot, const float angle, const glm::vec3& axis);
 
-    void switchTexture(int textureIndex);
-	void cycleFilterMode();
     VkSampler getCurrentSampler(const Engine::Texture& texture);
     void updateDescriptorSetsForTexture(int textureIndex);
     void createDescriptorSetsForTexture(const Engine::Texture& tex, std::vector<VkDescriptorSet>& descSets);
+
 
 private:
 
@@ -121,9 +121,10 @@ private:
     Engine::Window window;
     Engine::InputHandler inputHandler;
     Engine::Mesh mesh;
-    Engine::Mesh leftMesh;
-	Engine::Mesh rightMesh;
-    //Engine::Mesh terrain;
+
+    Engine::Mesh terrainMesh;
+	Engine::Pipeline terrainPipeline;
+
 
     Engine::Texture texture;
     Engine::Texture tileTexture;
@@ -144,10 +145,7 @@ private:
 	std::vector<VkDescriptorSet> skyboxDescriptorSets;
 	VkImageView skyboxCubemapView = VK_NULL_HANDLE;
 	VkSampler skyboxCubemapSampler = VK_NULL_HANDLE;
-	Engine::Mesh skyboxMesh;
-
-
-    //Engine::Pipeline pipeline2;
+    Engine::Mesh skyboxMesh;
 
     Engine::ParticlePipeline particlePipeline;
     Engine::Mesh particleMesh;
