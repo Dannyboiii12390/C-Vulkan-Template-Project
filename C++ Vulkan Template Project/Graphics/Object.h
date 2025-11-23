@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <vector>
+#include <tuple>
 #include "Mesh.h"
 #include "Pipelines/Pipeline.h"
 #include "Buffer.h"
@@ -33,10 +34,12 @@ namespace Engine
         void create(
             VulkanContext& context,
             Mesh&& mesh,
-            Pipeline* pipeline,
+            Pipeline&& pipeline,
             VkDescriptorSetLayout descriptorSetLayout,
             VkDescriptorPool descriptorPool,
-            const std::vector<Buffer>& uniformBuffers
+            const std::vector<Buffer>& uniformBuffers,
+            const Engine::Texture& albedoTex,
+            const Engine::Texture& normalTex
         );
 
         // Cleanup resources
@@ -67,18 +70,31 @@ namespace Engine
         // Getters
         Mesh& getMesh() { return mesh; }
         const Mesh& getMesh() const { return mesh; }
-        Pipeline* getPipeline() const { return pipeline; }
+        Pipeline& getPipeline() { return pipeline; }
         const std::vector<VkDescriptorSet>& getDescriptorSets() const { return descriptorSets; }
 
         // Set transform
         void setTransform(const glm::mat4& transform) { modelMatrix = transform; }
         glm::mat4 getTransform() const { return modelMatrix; }
 
+        void setPushConstantStages(VkShaderStageFlags stages) { pushConstantStages = stages; }
+        void addPushconstantStage(VkShaderStageFlagBits stage) { pushConstantStages |= stage; }
+        void removePushconstantStage(VkShaderStageFlagBits stage) { pushConstantStages &= ~stage; }
+
+        // Returns descriptor image infos for albedo (binding 1) and normal (binding 2)
+        std::tuple<VkDescriptorImageInfo, VkDescriptorImageInfo> getImages();
+		const Texture& getAlbedoTexture() const { return albedoTexture; }
+		const Texture& getNormalTexture() const { return normalTexture; }
+
+
     private:
         Mesh mesh;
-        Pipeline* pipeline = nullptr; // Reference to shared pipeline
+        Pipeline pipeline;
         std::vector<VkDescriptorSet> descriptorSets;
-        std::vector<Buffer*> uniformBuffers; // References to shared uniform buffers
+        std::vector<Buffer*> uniformBuffers;
         glm::mat4 modelMatrix = glm::mat4(1.0f);
+        VkShaderStageFlags pushConstantStages = VK_SHADER_STAGE_VERTEX_BIT;
+        Engine::Texture albedoTexture;
+        Engine::Texture normalTexture;
     };
 }

@@ -127,7 +127,6 @@ namespace Engine
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
     }
-
     void Pipeline::destroy(VkDevice device) {
         if (graphicsPipeline != VK_NULL_HANDLE) {
             vkDestroyPipeline(device, graphicsPipeline, nullptr);
@@ -139,6 +138,7 @@ namespace Engine
             pipelineLayout = VK_NULL_HANDLE;
         }
     }
+    
     std::vector<char> Pipeline::readFile(const std::string& filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -225,4 +225,6 @@ namespace Engine
         dynamicState.pDynamicStates = dynamicStates.data();
         return dynamicState;
     }
+
+
 }

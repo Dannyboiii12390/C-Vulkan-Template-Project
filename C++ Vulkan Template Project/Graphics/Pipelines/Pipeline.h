@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "../VulkanTypes.h"
 
@@ -20,6 +21,30 @@ namespace Engine {
         Pipeline(const Pipeline&) = delete;
         Pipeline& operator=(const Pipeline&) = delete;
 
+        // Move operations: transfer ownership of Vulkan handles and dynamic state.
+        Pipeline(Pipeline&& other) noexcept
+            : pipelineLayout(other.pipelineLayout),
+              graphicsPipeline(other.graphicsPipeline),
+              dynamicStates(std::move(other.dynamicStates))
+        {
+            other.pipelineLayout = VK_NULL_HANDLE;
+            other.graphicsPipeline = VK_NULL_HANDLE;
+        }
+
+        Pipeline& operator=(Pipeline&& other) noexcept
+        {
+            if (this != &other) {
+                // Note: we do NOT destroy existing handles here because destruction requires a VkDevice.
+                pipelineLayout = other.pipelineLayout;
+                graphicsPipeline = other.graphicsPipeline;
+                dynamicStates = std::move(other.dynamicStates);
+
+                other.pipelineLayout = VK_NULL_HANDLE;
+                other.graphicsPipeline = VK_NULL_HANDLE;
+            }
+            return *this;
+        }
+
         // Pipeline creation with shader paths
         virtual void create(
             VulkanContext& context,
@@ -36,6 +61,7 @@ namespace Engine {
         // Getters
         VkPipelineLayout getLayout() const { return pipelineLayout; }
         VkPipeline getPipeline() const { return graphicsPipeline; }
+
 
     protected:
         // Pipeline resources

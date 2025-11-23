@@ -30,9 +30,6 @@
     <ClCompile Include="Graphics\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Pipeline.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Core\ModelLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,13 +54,7 @@
     <ClCompile Include="Graphics\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\SkyboxPipeline.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Pipeline.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\ParticlePipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Core\GUI.cpp">
@@ -93,6 +84,18 @@
     <ClCompile Include="Graphics\Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\Object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Pipelines\ParticlePipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Pipelines\SkyboxPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Pipelines\Pipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanContext.h">
@@ -105,9 +108,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Mesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Pipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Core\ModelLoader.h">
@@ -132,12 +132,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Mesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\SkyboxPipeline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\ParticlePipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Core\GUI.h">
@@ -170,6 +164,18 @@
     <ClInclude Include="Graphics\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\Object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Pipelines\ParticlePipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Pipelines\SkyboxPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Pipelines\Pipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -183,16 +189,7 @@
     <CustomBuild Include="SHADERS\particle.frag" />
     <CustomBuild Include="SHADERS\template.frag" />
     <CustomBuild Include="SHADERS\template.vert" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="Objects\WoodTex.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="Objects\Tiles.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="Objects\Coin.png">
-      <Filter>Resource Files</Filter>
-    </Image>
+    <CustomBuild Include="SHADERS\textureVertLighting.frag" />
+    <CustomBuild Include="SHADERS\textureVertLighting.vert" />
   </ItemGroup>
 </Project>

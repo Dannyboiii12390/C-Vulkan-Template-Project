@@ -3,14 +3,10 @@
 #define GLFW_INCLUDE_VULKAN
 #define GLM_FORCE_RADIANS
 
-#include <set>
-#include <chrono>
 #include <string>
 #include <vector>
 
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include "Core/Window.h"
 #include "Core/InputHandler.h"
@@ -20,7 +16,6 @@
 #include "Graphics/Pipelines/Pipeline.h"
 #include "Graphics/Swapchain.h"
 #include "Core/Camera.h"
-#include "Core/ModelLoader.h"
 #include "Graphics/Pipelines/SkyboxPipeline.h"
 #include "Graphics/Pipelines/ParticlePipeline.h"
 #include "Graphics/Object.h"
@@ -122,14 +117,15 @@ private:
     Engine::InputHandler inputHandler;
     Engine::Mesh mesh;
 
-    Engine::Mesh terrainMesh;
-	Engine::Pipeline terrainPipeline;
+    /*Engine::Mesh terrainMesh;
+	Engine::Pipeline terrainPipeline;*/
+	Engine::Object terrainObject;
 
 
-    Engine::Texture texture;
+   /* Engine::Texture texture;
     Engine::Texture tileTexture;
     Engine::Texture textureNormal;
-	Engine::Texture tileTextureNormal;
+	Engine::Texture tileTextureNormal;*/
 
 	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
 	int currentTextureIndex = 0;

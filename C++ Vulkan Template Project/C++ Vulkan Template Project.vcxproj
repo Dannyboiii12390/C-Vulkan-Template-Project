@@ -281,11 +281,6 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).spv</Outputs>
     </CustomBuild>
   </ItemGroup>
-  <ItemGroup>
-    <Image Include="Objects\Coin.png" />
-    <Image Include="Objects\Tiles.png" />
-    <Image Include="Objects\WoodTex.png" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Assimp.redist.3.0.0\build\native\Assimp.redist.targets" Condition="Exists('..\packages\Assimp.redist.3.0.0\build\native\Assimp.redist.targets')" />

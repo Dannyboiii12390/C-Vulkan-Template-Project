@@ -1,12 +1,15 @@
 #include "VulkanContext.h"
 #include "Graphics/VulkanTypes.h"
 #include "Graphics/Swapchain.h"
+#include "Core/ModelLoader.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
 #include <array>
+#include <set>
+#include <chrono>
 
 // --- Main Application Flow ---
 VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inputHandler(window)
@@ -30,16 +33,18 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     mesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
     skyboxMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
 
+    Engine::Mesh terrainMeshLocal = Engine::ModelLoader::createTerrain(*this, 200, 200, 5.0f, 10);
 
-    terrainMesh = Engine::ModelLoader::createTerrain(*this, 200, 200, 5.0f, 10);
     // Load albedo (sRGB) and normal (UNORM) maps for both materials
-    texture = Engine::ModelLoader::createTextureImage(*this, "Objects/gravelly_sand_diff_4k.jpg", true);
-    textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\gravelly_sand_disp_height.png", false);
-	terrainPipeline.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
+    Engine::Texture texture = Engine::ModelLoader::createTextureImage(*this, "Objects/gravelly_sand_diff_4k.jpg", true);
+    Engine::Texture textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\gravelly_sand_disp_height.png", false);
+
+    Engine::Pipeline terrainPipelineLocal;
+    terrainPipelineLocal.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
+
 
     currentTextureIndex = 0;
     Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
-
 
     // --- create uniform buffers ---
     uniformBuffers.clear();
@@ -50,16 +55,19 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     }
 
     createSkyboxDescriptorSetLayout();
-    auto [cubeSampler, cubeImages] = Engine::ModelLoader::LoadImagesForSkybox(*this);
 
+    //should be in shader class
+    createDescriptorPool();
+    auto [cubeSampler, cubeImages] = Engine::ModelLoader::LoadImagesForSkybox(*this);
     skyboxCubemapView = cubeImages[0].imageView;
     skyboxCubemapSampler = cubeSampler;
     skyboxCubeImage = cubeImages[0].image;
     skyboxCubemapMemory = cubeImages[0].imageMemory;
-
-    //should be in shader class
-    createDescriptorPool();
     createSkyboxDescriptorSets(cubeImages[0].imageView, cubeSampler);
+
+    // Now that the descriptor pool / layouts / uniform buffers exist, create terrainObject by moving mesh + pipeline in
+    terrainObject.create(*this, std::move(terrainMeshLocal), std::move(terrainPipelineLocal), descriptorSetLayout, descriptorPool, uniformBuffers, texture, textureNormal);
+	terrainObject.addPushconstantStage(VK_SHADER_STAGE_FRAGMENT_BIT);
     createDescriptorSets();
 
     // create skybox pipeline after descriptor set layout is available (see next step)
@@ -166,8 +174,7 @@ void VulkanContext::cleanup() {
     // Clean up meshes
     mesh.cleanup(*this);
     skyboxMesh.cleanup(*this);
-	terrainMesh.cleanup(*this);
-	terrainPipeline.destroy(device);
+	terrainObject.cleanup(*this);
 
     particlePipeline.destroy(device);
     particleMesh.cleanup(*this);
@@ -229,11 +236,6 @@ void VulkanContext::cleanup() {
         }
         };
 
-    cleanupTexture(texture);
-    cleanupTexture(tileTexture);
-    cleanupTexture(textureNormal);
-    cleanupTexture(tileTextureNormal);
-
     // Skybox cleanup
     if (skyboxCubemapSampler != VK_NULL_HANDLE) {
         vkDestroySampler(device, skyboxCubemapSampler, nullptr);
@@ -254,8 +256,6 @@ void VulkanContext::cleanup() {
     // In cleanup(), after cleaning other pipelines:
     particlePipeline.destroy(device);
     particleMesh.cleanup(*this);
-
-
 
     // Device
     if (device != VK_NULL_HANDLE) {
@@ -413,7 +413,7 @@ void VulkanContext::createDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding albedoBinding{};
     albedoBinding.binding = 1; // 0 is already used by the UBO
     albedoBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    albedoBinding.descriptorCount = 1; // two albedo textures in the array (coin, tile)
+    albedoBinding.descriptorCount = 1;
     albedoBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     albedoBinding.pImmutableSamplers = nullptr;
 
@@ -528,16 +528,14 @@ void VulkanContext::createCommandPool() {
 void VulkanContext::createDescriptorPool() {
     uint32_t n = static_cast<uint32_t>(swapChain.imageCount);
 
-    // Main descriptor sets: 1 UBO + 5 combined image samplers per frame (albedo(2) + normal(2) + skybox(1))
-    // Skybox descriptor sets: 1 UBO + 1 combined image sampler per frame
-    // Particle descriptor sets: 1 UBO per frame
-    const uint32_t mainSets = n;
+    // Account for main descriptor sets for two "main" objects (original main mesh + terrainObject)
+    const uint32_t mainSets = n * 2; // main mesh + terrain object
     const uint32_t skyboxSets = n;
-    const uint32_t particleSets = n;  // Add particle sets
+    const uint32_t particleSets = n;
     const uint32_t totalSets = mainSets + skyboxSets + particleSets;
 
     const uint32_t totalUBOs = totalSets * 1;  // All three layouts have 1 UBO each
-    const uint32_t mainSamplers = mainSets * 3;  // albedo(1) + normal(1) + skybox(1)
+    const uint32_t mainSamplers = mainSets * 3;  // albedo(1) + normal(1) + skybox(1) per main set
     const uint32_t skyboxSamplers = skyboxSets * 1;  // cubemap(1)
     const uint32_t totalSamplers = mainSamplers + skyboxSamplers;
 
@@ -576,25 +574,20 @@ void VulkanContext::createDescriptorSets() {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Engine::UniformBufferObject);
 
-        // Albedo images (binding = 1): coin, tile
-        std::array<VkDescriptorImageInfo, 1> albedoInfos{};
-        albedoInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        albedoInfos[0].imageView = texture.imageView;
-        albedoInfos[0].sampler = getCurrentSampler(texture);
+		std::vector<VkDescriptorImageInfo> albedoInfos;
+		std::vector<VkDescriptorImageInfo> normalInfos;
 
-        //albedoInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        //albedoInfos[1].imageView = tileTexture.imageView;
-        //albedoInfos[1].sampler = getCurrentSampler(tileTexture);
+        auto [albedoInfo, normalInfo] = terrainObject.getImages();
+		albedoInfos.push_back(albedoInfo);
+		normalInfos.push_back(normalInfo);
 
-        // Normal images (binding = 2): coin normal, tile normal
-        std::array<VkDescriptorImageInfo, 1> normalInfos{};
-        normalInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        normalInfos[0].imageView = textureNormal.imageView;
-        normalInfos[0].sampler = getCurrentSampler(textureNormal);
 
-        //normalInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        //normalInfos[1].imageView = tileTextureNormal.imageView;
-        //normalInfos[1].sampler = getCurrentSampler(tileTextureNormal);
+        // Defensive validation: ensure imageView and sampler are valid before writing descriptors.
+        // If invalid, fail early so driver doesn't dereference null handles.
+        if (albedoInfos[0].imageView == VK_NULL_HANDLE || albedoInfos[0].sampler == VK_NULL_HANDLE ||
+            normalInfos[0].imageView == VK_NULL_HANDLE || normalInfos[0].sampler == VK_NULL_HANDLE) {
+            throw std::runtime_error("createDescriptorSets(): texture imageView or sampler is VK_NULL_HANDLE — resources not ready before descriptor update");
+        }
 
         // Skybox cubemap (binding = 3) - for reflections
         VkDescriptorImageInfo skyboxInfo{};
@@ -830,18 +823,12 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     
     Engine::PushConstantModel skyPC{};
     skyPC.model = glm::mat4(1.0f);
-    // Fix: Push to vertex stage only (skybox doesn't need fragment stage push constants)
     vkCmdPushConstants(commandBuffer, skyboxPipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Engine::PushConstantModel), &skyPC);
     skyboxMesh.bind(commandBuffer);
     skyboxMesh.draw(commandBuffer);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipeline.getPipeline());
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, terrainPipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-    glm::mat4 terrainLocation = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-    vkCmdPushConstants(commandBuffer, terrainPipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(terrainLocation), &terrainLocation);
-    terrainMesh.bind(commandBuffer);
-    terrainMesh.draw(commandBuffer);
-
+	glm::mat4 terrainLocation = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+	terrainObject.draw(commandBuffer, currentFrame, terrainLocation);
 
     // Main mesh rendering
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getPipeline());
@@ -1124,10 +1111,11 @@ void VulkanContext::updateDescriptorSetsForTexture(int textureIndex)
     // Wait for device to be idle before updating descriptors
     vkDeviceWaitIdle(device);
 
-    const Engine::Texture& currentAlbedo = (textureIndex == 0) ? texture : tileTexture;
-    const Engine::Texture& currentNormal = (textureIndex == 0) ? textureNormal : tileTextureNormal;
+	const Engine::Texture& currentAlbedo = terrainObject.getAlbedoTexture();
+    const Engine::Texture& currentNormal = terrainObject.getNormalTexture();
+
     VkSampler activeAlbedoSampler = getCurrentSampler(currentAlbedo);
-    VkSampler activeNormalSampler = getCurrentSampler(currentNormal);
+    VkSampler activeNormalSampler = getCurrentSampler(terrainObject.getNormalTexture());
 
     for (size_t i = 0; i < swapChain.imageCount; i++)
     {
