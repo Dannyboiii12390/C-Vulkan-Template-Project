@@ -14,13 +14,13 @@ namespace Engine
 		VkDescriptorSetLayout descriptorSetLayout,
 		VkDescriptorPool descriptorPool,
 		const std::vector<Buffer>& uniformBuffersRef,
-		const Engine::Texture& albedoTex,
-		const Engine::Texture& normalTex
+		Engine::Texture& albedoTex,
+		Engine::Texture& normalTex
 	)
 	{
 		// Store textures (these are lightweight handle copies; VulkanContext remains owner)
-		albedoTexture = albedoTex;
-		normalTexture = normalTex;
+		albedoTexture = albedoTex.clone(context.getDevice());
+		normalTexture = normalTex.clone(context.getDevice());
 
 		// Move mesh data
 		mesh = std::move(meshData);
@@ -150,9 +150,10 @@ namespace Engine
 			};
 
 		VkDevice device = context.getDevice();
-		cleanupTexture(albedoTexture, device);
-		cleanupTexture(normalTexture, device);
-
+		//cleanupTexture(albedoTexture, device);
+		//cleanupTexture(normalTexture, device);
+		albedoTexture.destroy(device);
+		normalTexture.destroy(device);
 		// Clear descriptor sets (they're owned by the descriptor pool)
 		descriptorSets.clear();
 

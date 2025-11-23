@@ -11,6 +11,8 @@
 #include <set>
 #include <chrono>
 
+
+
 // --- Main Application Flow ---
 VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inputHandler(window)
 {
@@ -24,27 +26,24 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
     createDescriptorSetLayout();
 
-    // --- create graphics pipeline ---
-    pipeline.create(*this, "shaders/shader.vert.spv", "shaders/shader.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
-
     createCommandPool();
-
-    //mesh = Engine::ModelLoader::createCube(*this);
+    //create meshes
     mesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
     skyboxMesh = Engine::ModelLoader::createCubeWithoutIndex(*this);
 
     Engine::Mesh terrainMeshLocal = Engine::ModelLoader::createTerrain(*this, 200, 200, 5.0f, 10);
 
-    // Load albedo (sRGB) and normal (UNORM) maps for both materials
+    //Load Textures
     Engine::Texture texture = Engine::ModelLoader::createTextureImage(*this, "Objects/gravelly_sand_diff_4k.jpg", true);
     Engine::Texture textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\gravelly_sand_disp_height.png", false);
-
+	
+    //Create Pipelines
     Engine::Pipeline terrainPipelineLocal;
+    pipeline.create(*this, "shaders/shader.vert.spv", "shaders/shader.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
     terrainPipelineLocal.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 
-
     currentTextureIndex = 0;
-    Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
+    currentFilterMode = Engine::TextureFilterMode::Anisotropic;
 
     // --- create uniform buffers ---
     uniformBuffers.clear();
@@ -65,9 +64,28 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     skyboxCubemapMemory = cubeImages[0].imageMemory;
     createSkyboxDescriptorSets(cubeImages[0].imageView, cubeSampler);
 
-    // Now that the descriptor pool / layouts / uniform buffers exist, create terrainObject by moving mesh + pipeline in
+    //Create Objects
     terrainObject.create(*this, std::move(terrainMeshLocal), std::move(terrainPipelineLocal), descriptorSetLayout, descriptorPool, uniformBuffers, texture, textureNormal);
 	terrainObject.addPushconstantStage(VK_SHADER_STAGE_FRAGMENT_BIT);
+	texture.destroy(device);
+	textureNormal.destroy(device);
+    for (int i = 0; i < numCacti; ++i) 
+    {
+        Engine::Object cactusObject;
+        Engine::Mesh cactusMesh = Engine::ModelLoader::createCylinder(*this, 1.0f, 1.0f, 50, 1.0f);
+        Engine::Texture cactusTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/Cactus_Albedo.jpg", true);
+        Engine::Texture cactusNormal = Engine::ModelLoader::createTextureImage(*this, "Objects/Cactus_Normal.png", false);
+        Engine::Pipeline cactusPipeline;
+        cactusPipeline.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
+		cactusObject.create(*this, std::move(cactusMesh), std::move(cactusPipeline), descriptorSetLayout, descriptorPool, uniformBuffers, cactusTexture, cactusNormal);
+        cactusObject.addPushconstantStage(VK_SHADER_STAGE_FRAGMENT_BIT);
+		cacti.push_back(std::move(cactusObject));
+
+        cactusTexture.destroy(device);
+		cactusNormal.destroy(device);
+    }
+
+
     createDescriptorSets();
 
     // create skybox pipeline after descriptor set layout is available (see next step)
@@ -92,8 +110,6 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
     // Create particle mesh (only once, after descriptor pool is created)
     particleMesh = Engine::ModelLoader::createParticleSystem(*this, 10000);
-
-	//pipeline2.create(*this, "shaders/template.vert.spv", "shaders/template.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 
     // Create particle pipeline
     particlePipeline.create(*this, "shaders/particle.vert.spv", "shaders/particle.frag.spv",
@@ -143,24 +159,40 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 void VulkanContext::cleanup() {
     vkDeviceWaitIdle(device);
 
-    // --- Cleanup code ---
+    // --- Cleanup synchronization objects first ---
     cleanSemaphores(renderFinishedSemaphores);
     cleanSemaphores(imageAvailableSemaphores);
     cleanFences(inFlightFences);
 
+    // Destroy or release swapchain resources
     swapChain.destroy(device);
 
-    // Clean up pipelines BEFORE destroying descriptor set layouts
+    // --- Cleanup per-object resources while device is still valid ---
+    // Objects own textures, samplers and pipelines; make sure they are fully cleaned
+    // before destroying device or other global pipeline/sampler objects.
+    terrainObject.cleanup(*this);
+    for (auto& cactus : cacti) {
+        cactus.cleanup(*this);
+    }
+    // Remove objects so their destructors run now (releasing any remaining shared_ptrs)
+    cacti.clear();
+
+    // Cleanup meshes (these may reference device resources)
+    mesh.cleanup(*this);
+    skyboxMesh.cleanup(*this);
+    particleMesh.cleanup(*this);
+
+    // --- Destroy pipelines owned by the context (safe now that objects cleaned) ---
     pipeline.destroy(device);
     skyboxPipeline.destroy(device);
+    particlePipeline.destroy(device);
 
-    // Clean up descriptor sets and pools
+    // --- Descriptor pools and layouts ---
     if (descriptorPool != VK_NULL_HANDLE) {
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
         descriptorPool = VK_NULL_HANDLE;
     }
 
-    // Clean up descriptor set layouts
     if (descriptorSetLayout != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
         descriptorSetLayout = VK_NULL_HANDLE;
@@ -171,21 +203,12 @@ void VulkanContext::cleanup() {
         skyboxDescriptorSetLayout = VK_NULL_HANDLE;
     }
 
-    // Clean up meshes
-    mesh.cleanup(*this);
-    skyboxMesh.cleanup(*this);
-	terrainObject.cleanup(*this);
-
-    particlePipeline.destroy(device);
-    particleMesh.cleanup(*this);
-
-
     if (particleDescriptorSetLayout != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(device, particleDescriptorSetLayout, nullptr);
         particleDescriptorSetLayout = VK_NULL_HANDLE;
     }
 
-    // Clean up uniform buffers
+    // --- Clean up uniform buffers ---
     for (auto& buf : uniformBuffers) buf.destroy(device);
     uniformBuffers.clear();
 
@@ -200,43 +223,7 @@ void VulkanContext::cleanup() {
         commandPool = VK_NULL_HANDLE;
     }
 
-    // Cleanup textures - only destroy if valid
-    auto cleanupTexture = [this](Engine::Texture& tex) {
-        if (tex.nearestSampler != VK_NULL_HANDLE) {
-            vkDestroySampler(device, tex.nearestSampler, nullptr);
-            tex.nearestSampler = VK_NULL_HANDLE;
-        }
-        if (tex.bilinearSampler != VK_NULL_HANDLE) {
-            vkDestroySampler(device, tex.bilinearSampler, nullptr);
-            tex.bilinearSampler = VK_NULL_HANDLE;
-        }
-        if (tex.trilinearSampler != VK_NULL_HANDLE) {
-            vkDestroySampler(device, tex.trilinearSampler, nullptr);
-            tex.trilinearSampler = VK_NULL_HANDLE;
-        }
-        if (tex.anisotropicSampler != VK_NULL_HANDLE) {
-            vkDestroySampler(device, tex.anisotropicSampler, nullptr);
-            tex.anisotropicSampler = VK_NULL_HANDLE;
-        }
-        if (tex.sampler != VK_NULL_HANDLE) {
-            vkDestroySampler(device, tex.sampler, nullptr);
-            tex.sampler = VK_NULL_HANDLE;
-        }
-        if (tex.imageView != VK_NULL_HANDLE) {
-            vkDestroyImageView(device, tex.imageView, nullptr);
-            tex.imageView = VK_NULL_HANDLE;
-        }
-        if (tex.image != VK_NULL_HANDLE) {
-            vkDestroyImage(device, tex.image, nullptr);
-            tex.image = VK_NULL_HANDLE;
-        }
-        if (tex.imageMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(device, tex.imageMemory, nullptr);
-            tex.imageMemory = VK_NULL_HANDLE;
-        }
-        };
-
-    // Skybox cleanup
+    // --- Skybox resources (sampler/view/image/memory) ---
     if (skyboxCubemapSampler != VK_NULL_HANDLE) {
         vkDestroySampler(device, skyboxCubemapSampler, nullptr);
         skyboxCubemapSampler = VK_NULL_HANDLE;
@@ -253,11 +240,8 @@ void VulkanContext::cleanup() {
         vkFreeMemory(device, skyboxCubemapMemory, nullptr);
         skyboxCubemapMemory = VK_NULL_HANDLE;
     }
-    // In cleanup(), after cleaning other pipelines:
-    particlePipeline.destroy(device);
-    particleMesh.cleanup(*this);
 
-    // Device
+    // --- Final device destroy (all child objects must be gone by now) ---
     if (device != VK_NULL_HANDLE) {
         vkDestroyDevice(device, nullptr);
         device = VK_NULL_HANDLE;
@@ -528,15 +512,19 @@ void VulkanContext::createCommandPool() {
 void VulkanContext::createDescriptorPool() {
     uint32_t n = static_cast<uint32_t>(swapChain.imageCount);
 
-    // Account for main descriptor sets for two "main" objects (original main mesh + terrainObject)
-    const uint32_t mainSets = n * 2; // main mesh + terrain object
+    // Objects that use the main descriptor layout:
+    //  - main mesh (1)
+    //  - terrainObject (1)
+    //  - cacti (numCacti)
+    uint32_t mainObjectCount = 2 + static_cast<uint32_t>(numCacti); // adjust if you add more
+    const uint32_t mainSets = n * mainObjectCount;
     const uint32_t skyboxSets = n;
     const uint32_t particleSets = n;
     const uint32_t totalSets = mainSets + skyboxSets + particleSets;
 
-    const uint32_t totalUBOs = totalSets * 1;  // All three layouts have 1 UBO each
-    const uint32_t mainSamplers = mainSets * 3;  // albedo(1) + normal(1) + skybox(1) per main set
-    const uint32_t skyboxSamplers = skyboxSets * 1;  // cubemap(1)
+    const uint32_t totalUBOs = totalSets; // 1 UBO per set
+    const uint32_t mainSamplers = mainSets * 2; // albedo + normal per main set
+    const uint32_t skyboxSamplers = skyboxSets * 1; // cubemap
     const uint32_t totalSamplers = mainSamplers + skyboxSamplers;
 
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
@@ -858,6 +846,16 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
         &particleDescriptorSets[currentFrame], 0, nullptr);
     particleMesh.bind(commandBuffer);
     particleMesh.draw(commandBuffer);
+
+
+
+	for (int i = 0; i < cacti.size(); i++)
+    {
+		auto& cactus = cacti[i];
+		glm::mat4 cactusLocation = glm::translate(glm::mat4(1.0f), glm::vec3(3 * i, 0, 3 * i));
+		cactusLocation = glm::translate(cactusLocation, glm::vec3(2.0f, 0.0f, 0.0f));
+        cactus.draw(commandBuffer, currentFrame, cactusLocation);
+    }
 
     vkCmdEndRendering(commandBuffer);
 

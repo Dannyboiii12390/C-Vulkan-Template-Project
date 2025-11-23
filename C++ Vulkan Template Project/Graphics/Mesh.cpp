@@ -46,4 +46,38 @@ namespace Engine
 
 
     }
+
+    /*
+    Pseudocode / Plan (detailed):
+    - Create a new Mesh object 'newMesh'.
+    - Determine if 'other' is indexed by calling 'other.isIndexed()' (preferred over checking indexCount).
+    - If not indexed:
+        - Make a copy of 'other.vertices' into a temporary std::vector<Vertex> (prvalue).
+        - Call 'newMesh.create(context, <temp_vertices>)' which takes an rvalue reference.
+    - If indexed:
+        - Make copies of 'other.vertices' and 'other.indices' into temporary prvalue vectors
+          of matching element types (Vertex and uint16_t).
+        - Call 'newMesh.create(context, <temp_vertices>, <temp_indices>)'.
+    - Return the newly created mesh.
+    Notes:
+    - Use direct prvalue construction of std::vector to bind to rvalue references; do NOT use
+      non-existent std::make_move. Avoid incorrect element-type conversions (e.g., uint32_t).
+    */
+
+    Mesh Mesh::copy(VulkanContext& context, const Mesh& other)
+    {
+        Mesh newMesh;
+        // Create GPU resources by copying CPU-side data and forwarding prvalue vectors
+        if (!other.isIndexed()) {
+            // construct a temporary vector<Vertex> from other.vertices and forward it
+            newMesh.create(context, std::vector<Vertex>(other.vertices));
+        }
+        else {
+            // construct temporaries for vertices and indices and forward them
+            newMesh.create(context,
+                std::vector<Vertex>(other.vertices),
+                std::vector<uint16_t>(other.indices));
+        }
+        return newMesh;
+	}
 }

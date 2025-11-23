@@ -5,6 +5,7 @@
 namespace Engine
 {
     void Buffer::create(const VulkanContext& ctx, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memProperties) {
+        
         size = bufferSize;
         usage = bufferUsage;
         properties = memProperties;

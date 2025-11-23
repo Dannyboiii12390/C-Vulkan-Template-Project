@@ -120,12 +120,8 @@ private:
     /*Engine::Mesh terrainMesh;
 	Engine::Pipeline terrainPipeline;*/
 	Engine::Object terrainObject;
-
-
-   /* Engine::Texture texture;
-    Engine::Texture tileTexture;
-    Engine::Texture textureNormal;
-	Engine::Texture tileTextureNormal;*/
+    std::vector<Engine::Object> cacti;
+    int numCacti = 5;
 
 	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
 	int currentTextureIndex = 0;

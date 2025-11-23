@@ -8,13 +8,19 @@ namespace Engine
 
     void Pipeline::create(
         VulkanContext& context,
-        const std::string& vertShaderPath,
-        const std::string& fragShaderPath,
-        VkFormat colorFormat,
-        VkFormat depthFormat,
-        VkDescriptorSetLayout descriptorSetLayout) {
+        const std::string& pVertShaderPath,
+        const std::string& pFragShaderPath,
+        VkFormat pColorFormat,
+        VkFormat pDepthFormat,
+        VkDescriptorSetLayout pDescriptorSetLayout) {
 
         VkDevice device = context.getDevice();
+		vertShaderPath = pVertShaderPath;
+		fragShaderPath = pFragShaderPath;
+		this->colorFormat = pColorFormat;
+		this->depthFormat = pDepthFormat;
+		this->descriptorSetLayout = pDescriptorSetLayout;
+
 
         // Load shaders
         auto vertShaderCode = readFile(vertShaderPath);
@@ -138,7 +144,21 @@ namespace Engine
             pipelineLayout = VK_NULL_HANDLE;
         }
     }
-    
+    Pipeline Pipeline::copy(VulkanContext& context, const Pipeline& original) {
+        Pipeline newPipeline;
+
+        // Use the original's stored creation parameters to recreate a separate pipeline.
+        newPipeline.create(
+            context,
+            original.vertShaderPath,
+            original.fragShaderPath,
+            original.colorFormat,
+            original.depthFormat,
+            original.descriptorSetLayout
+        );
+
+        return newPipeline;
+    }
     std::vector<char> Pipeline::readFile(const std::string& filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 

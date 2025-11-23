@@ -38,8 +38,8 @@ namespace Engine
             VkDescriptorSetLayout descriptorSetLayout,
             VkDescriptorPool descriptorPool,
             const std::vector<Buffer>& uniformBuffers,
-            const Engine::Texture& albedoTex,
-            const Engine::Texture& normalTex
+            Engine::Texture& albedoTex,
+            Engine::Texture& normalTex
         );
 
         // Cleanup resources

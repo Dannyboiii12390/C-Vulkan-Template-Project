@@ -277,77 +277,186 @@ namespace Engine
         mesh.create(context, std::move(vertices));
         return mesh;
     }
-    Mesh ModelLoader::createCylinder(VulkanContext& context, float radius, float height, int segmentCount)
+    Mesh ModelLoader::createCylinder(VulkanContext & context, float radius, float height, int segmentCount, float UVsize)
     {
         std::vector<Vertex> vertices;
-        std::vector<uint16_t> indices;
 
-        float halfHeight = height / 2.0f;
-        float angleStep = glm::two_pi<float>() / segmentCount;
+        if (segmentCount < 3) segmentCount = 3;
+        if (radius <= 0.0f) radius = 1.0f;
+        if (UVsize <= 0.0f) UVsize = 1.0f;
 
-        // === Bottom cap vertices ===
-        uint32_t bottomCenterIndex = static_cast<uint32_t>(vertices.size());
-        vertices.push_back({ {0.0f, -halfHeight, 0.0f}, {1.0f, 1.0f, 1.0f} });  // center vertex
+        const float halfHeight = height * 0.5f;
+        const float angleStep = glm::two_pi<float>() / static_cast<float>(segmentCount);
 
-        for (int i = 0; i <= segmentCount; ++i)
-        {
-            float angle = i * angleStep;
-            float x = radius * cos(angle);
-            float z = radius * sin(angle);
-            vertices.push_back({ {x, -halfHeight, z}, {1.0f, 0.0f, 0.0f} });
+        // Precompute rim positions (include wrap-around vertex at the end)
+        std::vector<glm::vec3> rimPos(segmentCount + 1);
+        for (int i = 0; i <= segmentCount; ++i) {
+            float a = i * angleStep;
+            rimPos[i] = glm::vec3(radius * std::cos(a), 0.0f, radius * std::sin(a));
         }
 
-        // === Top cap vertices ===
-        uint32_t topCenterIndex = static_cast<uint32_t>(vertices.size());
-        vertices.push_back({ {0.0f, +halfHeight, 0.0f}, {1.0f, 1.0f, 1.0f} });  // center vertex
-
-        for (int i = 0; i <= segmentCount; ++i)
+        // --- Bottom cap (non-indexed) ---
         {
-            float angle = i * angleStep;
-            float x = radius * cos(angle);
-            float z = radius * sin(angle);
-            vertices.push_back({ {x, +halfHeight, z}, {0.0f, 0.0f, 1.0f} });
+            glm::vec3 normal = glm::vec3(0.0f, -1.0f, 0.0f);
+            // center UV
+            glm::vec2 centerUV = glm::vec2(0.5f, 0.5f) * UVsize;
+            for (int i = 0; i < segmentCount; ++i) {
+                // Triangle: center, rim[i+1], rim[i]  (matches previous winding)
+                Vertex vc{};
+                vc.pos = glm::vec3(0.0f, -halfHeight, 0.0f);
+                vc.normal = normal;
+                vc.color = glm::vec3(1.0f);
+                vc.texCoord = centerUV;
+                vc.tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+                vc.binormal = glm::cross(normal, vc.tangent);
+                vertices.push_back(vc);
+
+                auto p1 = rimPos[i + 1];
+                Vertex v1{};
+                v1.pos = glm::vec3(p1.x, -halfHeight, p1.z);
+                v1.normal = normal;
+                v1.color = glm::vec3(1.0f);
+                v1.texCoord = (glm::vec2((p1.x / radius) * 0.5f + 0.5f, (p1.z / radius) * 0.5f + 0.5f)) * UVsize;
+                v1.tangent = glm::normalize(glm::vec3(std::cos((i + 1) * angleStep), 0.0f, std::sin((i + 1) * angleStep)));
+                v1.binormal = glm::cross(normal, v1.tangent);
+                vertices.push_back(v1);
+
+                auto p0 = rimPos[i];
+                Vertex v0{};
+                v0.pos = glm::vec3(p0.x, -halfHeight, p0.z);
+                v0.normal = normal;
+                v0.color = glm::vec3(1.0f);
+                v0.texCoord = (glm::vec2((p0.x / radius) * 0.5f + 0.5f, (p0.z / radius) * 0.5f + 0.5f)) * UVsize;
+                v0.tangent = glm::normalize(glm::vec3(std::cos(i * angleStep), 0.0f, std::sin(i * angleStep)));
+                v0.binormal = glm::cross(normal, v0.tangent);
+                vertices.push_back(v0);
+            }
         }
 
-        // === Indices for bottom cap ===
-        for (int i = 1; i <= segmentCount; ++i)
+        // --- Top cap (non-indexed) ---
         {
-            indices.push_back(bottomCenterIndex);
-            indices.push_back(bottomCenterIndex + i);
-            indices.push_back(bottomCenterIndex + i + 1);
+            glm::vec3 normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::vec2 centerUV = glm::vec2(0.5f, 0.5f) * UVsize;
+            for (int i = 0; i < segmentCount; ++i) {
+                // Triangle: center, rim[i], rim[i+1] (winding consistent)
+                Vertex vc{};
+                vc.pos = glm::vec3(0.0f, +halfHeight, 0.0f);
+                vc.normal = normal;
+                vc.color = glm::vec3(1.0f);
+                vc.texCoord = centerUV;
+                vc.tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+                vc.binormal = glm::cross(normal, vc.tangent);
+                vertices.push_back(vc);
+
+                auto p0 = rimPos[i];
+                Vertex v0{};
+                v0.pos = glm::vec3(p0.x, +halfHeight, p0.z);
+                v0.normal = normal;
+                v0.color = glm::vec3(1.0f);
+                v0.texCoord = (glm::vec2((p0.x / radius) * 0.5f + 0.5f, (p0.z / radius) * 0.5f + 0.5f)) * UVsize;
+                v0.tangent = glm::normalize(glm::vec3(std::cos(i * angleStep), 0.0f, std::sin(i * angleStep)));
+                v0.binormal = glm::cross(normal, v0.tangent);
+                vertices.push_back(v0);
+
+                auto p1 = rimPos[i + 1];
+                Vertex v1{};
+                v1.pos = glm::vec3(p1.x, +halfHeight, p1.z);
+                v1.normal = normal;
+                v1.color = glm::vec3(1.0f);
+                v1.texCoord = (glm::vec2((p1.x / radius) * 0.5f + 0.5f, (p1.z / radius) * 0.5f + 0.5f)) * UVsize;
+                v1.tangent = glm::normalize(glm::vec3(std::cos((i + 1) * angleStep), 0.0f, std::sin((i + 1) * angleStep)));
+                v1.binormal = glm::cross(normal, v1.tangent);
+                vertices.push_back(v1);
+            }
         }
 
-        // === Indices for top cap ===
-        for (int i = 1; i <= segmentCount; ++i)
-        {
-            indices.push_back(topCenterIndex);
-            indices.push_back(topCenterIndex + i + 1);
-            indices.push_back(topCenterIndex + i);
+        // --- Side wall (non-indexed) ---
+        // Build two triangles per segment; side normals are radial; UV.u spans [0..1]*UVsize around, v is 0..1 * UVsize
+        for (int i = 0; i < segmentCount; ++i) {
+            float a0 = i * angleStep;
+            float a1 = (i + 1) * angleStep;
+
+            glm::vec3 p0_bottom = glm::vec3(radius * std::cos(a0), -halfHeight, radius * std::sin(a0));
+            glm::vec3 p1_bottom = glm::vec3(radius * std::cos(a1), -halfHeight, radius * std::sin(a1));
+            glm::vec3 p0_top = glm::vec3(radius * std::cos(a0), +halfHeight, radius * std::sin(a0));
+            glm::vec3 p1_top = glm::vec3(radius * std::cos(a1), +halfHeight, radius * std::sin(a1));
+
+            glm::vec3 radial0 = glm::normalize(glm::vec3(p0_bottom.x, 0.0f, p0_bottom.z));
+            glm::vec3 radial1 = glm::normalize(glm::vec3(p1_bottom.x, 0.0f, p1_bottom.z));
+
+            // Tangent direction along circumferential direction
+            glm::vec3 tangent0 = glm::normalize(glm::vec3(-std::sin(a0), 0.0f, std::cos(a0)));
+            glm::vec3 tangent1 = glm::normalize(glm::vec3(-std::sin(a1), 0.0f, std::cos(a1)));
+
+            float u0 = (static_cast<float>(i) / static_cast<float>(segmentCount)) * UVsize;
+            float u1 = (static_cast<float>(i + 1) / static_cast<float>(segmentCount)) * UVsize;
+            float v0 = 0.0f * UVsize;
+            float v1 = 1.0f * UVsize;
+
+            // First triangle (bottom p0, top p0, top p1)
+            {
+                Vertex vb{};
+                vb.pos = p0_bottom;
+                vb.normal = radial0;
+                vb.color = glm::vec3(1.0f);
+                vb.texCoord = glm::vec2(u0, v0);
+                vb.tangent = tangent0;
+                vb.binormal = glm::cross(radial0, tangent0);
+                vertices.push_back(vb);
+
+                Vertex vt0{};
+                vt0.pos = p0_top;
+                vt0.normal = radial0;
+                vt0.color = glm::vec3(1.0f);
+                vt0.texCoord = glm::vec2(u0, v1);
+                vt0.tangent = tangent0;
+                vt0.binormal = glm::cross(radial0, tangent0);
+                vertices.push_back(vt0);
+
+                Vertex vt1{};
+                vt1.pos = p1_top;
+                vt1.normal = radial1;
+                vt1.color = glm::vec3(1.0f);
+                vt1.texCoord = glm::vec2(u1, v1);
+                vt1.tangent = tangent1;
+                vt1.binormal = glm::cross(radial1, tangent1);
+                vertices.push_back(vt1);
+            }
+
+            // Second triangle (bottom p0, top p1, bottom p1)
+            {
+                Vertex vb{};
+                vb.pos = p0_bottom;
+                vb.normal = radial0;
+                vb.color = glm::vec3(1.0f);
+                vb.texCoord = glm::vec2(u0, v0);
+                vb.tangent = tangent0;
+                vb.binormal = glm::cross(radial0, tangent0);
+                vertices.push_back(vb);
+
+                Vertex vt1{};
+                vt1.pos = p1_top;
+                vt1.normal = radial1;
+                vt1.color = glm::vec3(1.0f);
+                vt1.texCoord = glm::vec2(u1, v1);
+                vt1.tangent = tangent1;
+                vt1.binormal = glm::cross(radial1, tangent1);
+                vertices.push_back(vt1);
+
+                Vertex vb1{};
+                vb1.pos = p1_bottom;
+                vb1.normal = radial1;
+                vb1.color = glm::vec3(1.0f);
+                vb1.texCoord = glm::vec2(u1, v0);
+                vb1.tangent = tangent1;
+                vb1.binormal = glm::cross(radial1, tangent1);
+                vertices.push_back(vb1);
+            }
         }
 
-        // === Indices for side walls ===
-        uint32_t bottomStart = bottomCenterIndex + 1;
-        uint32_t topStart = topCenterIndex + 1;
-
-        for (int i = 0; i < segmentCount; ++i)
-        {
-            uint32_t bl = bottomStart + i;
-            uint32_t br = bottomStart + i + 1;
-            uint32_t tl = topStart + i;
-            uint32_t tr = topStart + i + 1;
-
-            // First triangle
-            indices.push_back(bl);
-            indices.push_back(tl);
-            indices.push_back(tr);
-
-            // Second triangle
-            indices.push_back(bl);
-            indices.push_back(tr);
-            indices.push_back(br);
-        }
         Mesh mesh;
-        mesh.create(context, std::move(vertices), std::move(indices));
+        // Non-indexed mesh creation
+        mesh.create(context, std::move(vertices));
         return mesh;
     }
     Mesh ModelLoader::loadObj(VulkanContext& context, const char* filepath)

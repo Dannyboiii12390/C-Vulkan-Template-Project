@@ -31,6 +31,7 @@ namespace Engine {
             other.graphicsPipeline = VK_NULL_HANDLE;
         }
 
+
         Pipeline& operator=(Pipeline&& other) noexcept
         {
             if (this != &other) {
@@ -55,6 +56,11 @@ namespace Engine {
             VkDescriptorSetLayout descriptorSetLayout
         );
 
+        // New: deep copy method
+        // Creates a new Pipeline with its own Vulkan objects by calling `create` on the new instance.
+        // The caller must provide the same creation parameters used to create the original pipeline.
+        static Pipeline copy(VulkanContext& context, const Pipeline& original);
+
         // Cleanup resources
         virtual void destroy(VkDevice device);
 
@@ -67,6 +73,11 @@ namespace Engine {
         // Pipeline resources
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
         VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+		std::string vertShaderPath;
+		std::string fragShaderPath;
+        VkFormat colorFormat;
+        VkFormat depthFormat;
+        VkDescriptorSetLayout descriptorSetLayout;
 
         std::vector<VkDynamicState> dynamicStates =
         {
