@@ -6,6 +6,8 @@
 
 int main() {
 
+    //main bottleneck at the moment is loading the textures
+
 	std::fstream fpsFile("fps_log.txt", std::ios::out);
     
 	float totalTime = 0.0f;

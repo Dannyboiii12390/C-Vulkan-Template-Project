@@ -34,8 +34,8 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     Engine::Mesh terrainMeshLocal = Engine::ModelLoader::createTerrain(*this, 200, 200, 5.0f, 10);
 
     //Load Textures
-    Engine::Texture texture = Engine::ModelLoader::createTextureImage(*this, "Objects/gravelly_sand_diff_4k.jpg", true);
-    Engine::Texture textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\gravelly_sand_disp_height.png", false);
+    Engine::Texture texture = Engine::ModelLoader::createTextureImage(*this, "Objects/gravelly_sand_albedo.jpg", true);
+    Engine::Texture textureNormal = Engine::ModelLoader::createTextureImage(*this, "Objects\\gravelly_sand_normal.png", false);
 	
     //Create Pipelines
     Engine::Pipeline terrainPipelineLocal;
@@ -523,7 +523,7 @@ void VulkanContext::createDescriptorPool() {
     const uint32_t totalSets = mainSets + skyboxSets + particleSets;
 
     const uint32_t totalUBOs = totalSets; // 1 UBO per set
-    const uint32_t mainSamplers = mainSets * 2; // albedo + normal per main set
+    const uint32_t mainSamplers = mainSets * 3; // albedo + normal per main set
     const uint32_t skyboxSamplers = skyboxSets * 1; // cubemap
     const uint32_t totalSamplers = mainSamplers + skyboxSamplers;
 
