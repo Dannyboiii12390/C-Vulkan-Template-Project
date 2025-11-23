@@ -57,7 +57,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 
     //should be in shader class
     createDescriptorPool();
-    auto [cubeSampler, cubeImages] = Engine::ModelLoader::LoadImagesForSkybox(*this);
+    auto [cubeSampler, cubeImages] = Engine::ModelLoader::LoadCubemapForSkybox(*this);
     skyboxCubemapView = cubeImages[0].imageView;
     skyboxCubemapSampler = cubeSampler;
     skyboxCubeImage = cubeImages[0].image;
@@ -1053,7 +1053,7 @@ void VulkanContext::handleInput()
     auto currentFrameTime = std::chrono::high_resolution_clock::now();
     float deltaTime = std::chrono::duration<float>(currentFrameTime - lastFrameTime).count();
     lastFrameTime = currentFrameTime;
-    float sprintSpeed = 50.0f;
+    float sprintSpeed = 20.0f;
 
     // keyboard input to move camera
     //branchless

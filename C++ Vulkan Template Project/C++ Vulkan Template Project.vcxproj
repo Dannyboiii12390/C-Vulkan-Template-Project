@@ -170,9 +170,8 @@
     <ClCompile Include="Graphics\Pipelines\Pipeline.cpp" />
     <ClCompile Include="Core\ModelLoader.cpp" />
     <ClCompile Include="Graphics\Swapchain.cpp" />
-    <ClCompile Include="Pipeline.cpp" />
-    <ClCompile Include="VulkanContext.cpp" />
     <ClCompile Include="Core\Window.cpp" />
+    <ClCompile Include="VulkanContext.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Camera.h" />

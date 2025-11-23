@@ -979,63 +979,118 @@ namespace Engine
         return textureSampler;
     }
 
-    std::tuple<VkSampler, std::array<Image, 6>> ModelLoader::LoadImagesForSkybox(VulkanContext& context) {
-        // Order required:
+
+    std::tuple<VkSampler, std::array<Image, 6>> ModelLoader::LoadCubemapForSkybox(VulkanContext& context)
+    {
+        std::string path = "Objects/Cubemap.png";
+        int srcW = 0, srcH = 0, srcChannels = 0;
+        constexpr int reqChannels = STBI_rgb_alpha;
+        stbi_uc* srcPixels = stbi_load(path.c_str(), &srcW, &srcH, &srcChannels, reqChannels);
+        if (!srcPixels) {
+            std::cerr << "Failed to load cubemap image: " << path << " - " << stbi_failure_reason() << std::endl;
+            throw std::runtime_error("Failed to load cubemap image");
+        }
+
+        // Determine layout and face size.
+        int faceW = 0, faceH = 0;
+        enum class Layout { HorizontalStrip, VerticalStrip, Cross4x3 } layout = Layout::HorizontalStrip;
+
+        if (srcW % 6 == 0 && srcH > 0 && (srcW / 6) == srcH) {
+            // perfect horizontal strip (6x1)
+            faceW = srcW / 6;
+            faceH = srcH;
+            layout = Layout::HorizontalStrip;
+        }
+        else if (srcH % 6 == 0 && srcW > 0 && (srcH / 6) == srcW) {
+            // perfect vertical strip (1x6)
+            faceW = srcW;
+            faceH = srcH / 6;
+            layout = Layout::VerticalStrip;
+        }
+        else if (srcW % 4 == 0 && srcH % 3 == 0 && (srcW / 4) == (srcH / 3)) {
+            // 4x3 cross layout
+            faceW = srcW / 4;
+            faceH = srcH / 3;
+            layout = Layout::Cross4x3;
+        }
+        else {
+            stbi_image_free(srcPixels);
+            std::cerr << "Unsupported cubemap layout for image: " << path << " (w=" << srcW << " h=" << srcH << ")" << std::endl;
+            throw std::runtime_error("Unsupported cubemap layout");
+        }
+
+        const VkDeviceSize singleImageSize = static_cast<VkDeviceSize>(faceW) * faceH * 4;
+        const size_t facesCount = 6;
+        std::vector<uint8_t> combined;
+        combined.resize(singleImageSize * facesCount);
+
+        // Order required by the engine:
         // 0 +X Right
         // 1 -X Left
         // 2 +Y Top
         // 3 -Y Bottom
         // 4 +Z Front
         // 5 -Z Back
-        const std::array<std::string, 6> faces = {
-            "Objects/cubemap_0(+X).jpg", // +X Right
-            "Objects/cubemap_1(-X).jpg", // -X Left
-            "Objects/cubemap_2(+Y).jpg", // +Y Top
-            "Objects/cubemap_3(-Y).jpg", // -Y Bottom
-            "Objects/cubemap_4(+Z).jpg", // +Z Front
-            "Objects/cubemap_5(-Z).jpg", // -Z Back
-        };
+        // We'll compute source (x0,y0) for each face depending on layout.
+        std::array<std::pair<int, int>, 6> srcOffsets{}; // {x0,y0} in pixels
 
-        int texWidth = 0, texHeight = 0, texChannels = 0;
-        constexpr int channelsReq = STBI_rgb_alpha; // force 4 channels
-        std::vector<stbi_uc*> loadedFaces;
-        loadedFaces.reserve(6);
-
-        // Load faces
-        for (const auto& f : faces)
-        {
-            stbi_uc* pixels = stbi_load(f.c_str(), &texWidth, &texHeight, &texChannels, channelsReq);
-            if (!pixels)
-            {
-                for (auto p : loadedFaces) if (p) stbi_image_free(p);
-                std::cerr << "Failed to load skybox face: " << f << " - " << stbi_failure_reason() << std::endl;
-                throw std::runtime_error("Failed to load skybox images");
+        if (layout == Layout::HorizontalStrip) {
+            for (int i = 0; i < 6; ++i) {
+                srcOffsets[i] = { i * faceW, 0 };
             }
-            loadedFaces.push_back(pixels);
+        }
+        else if (layout == Layout::VerticalStrip) {
+            for (int i = 0; i < 6; ++i) {
+                srcOffsets[i] = { 0, i * faceH };
+            }
+        }
+        else /* Cross4x3 */ {
+            // Assume the common cross arrangement:
+            // row0:   [   ][ +Y ][   ][   ]
+            // row1:   [ -X ][ +Z ][ +X ][ -Z ]
+            // row2:   [   ][ -Y ][   ][   ]
+            //
+            // Coordinates are (col, row) for each face:
+            // +X -> (2,1)
+            // -X -> (0,1)
+            // +Y -> (1,0)
+            // -Y -> (1,2)
+            // +Z -> (1,1)
+            // -Z -> (3,1)
+            const std::array<std::pair<int, int>, 6> cell = {
+                std::make_pair(2,1), // +X
+                std::make_pair(0,1), // -X
+                std::make_pair(1,0), // +Y
+                std::make_pair(1,2), // -Y
+                std::make_pair(1,1), // +Z
+                std::make_pair(3,1)  // -Z
+            };
+            for (size_t i = 0; i < cell.size(); ++i) {
+                srcOffsets[i] = { cell[i].first * faceW, cell[i].second * faceH };
+            }
         }
 
-        VkDeviceSize singleImageSize = static_cast<VkDeviceSize>(texWidth) * texHeight * 4;
-        VkDeviceSize totalSize = singleImageSize * loadedFaces.size();
+        // Copy each face into 'combined' in the required order, row by row
+        for (size_t f = 0; f < facesCount; ++f) {
+            int sx = srcOffsets[f].first;
+            int sy = srcOffsets[f].second;
+            uint8_t* dstPtr = combined.data() + f * singleImageSize;
+            for (int y = 0; y < faceH; ++y) {
+                const stbi_uc* srcRow = srcPixels + ((sy + y) * srcW + sx) * 4;
+                std::memcpy(dstPtr + static_cast<size_t>(y) * faceW * 4, srcRow, static_cast<size_t>(faceW) * 4);
+            }
+        }
 
-        // staging buffer
+        stbi_image_free(srcPixels);
+
+        // Create staging buffer and upload combined data
         Engine::Buffer stagingBuffer;
+        VkDeviceSize totalSize = singleImageSize * facesCount;
         stagingBuffer.create(context, totalSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        // copy faces into contiguous buffer
-        std::vector<uint8_t> combined;
-        combined.reserve(static_cast<size_t>(totalSize));
-        for (auto p : loadedFaces)
-        {
-            combined.insert(combined.end(), p, p + static_cast<size_t>(singleImageSize));
-        }
-
         stagingBuffer.write(context.getDevice(), combined.data(), totalSize);
-
-        for (auto p : loadedFaces) if (p) stbi_image_free(p);
-        loadedFaces.clear();
-        combined.clear();
 
         // Create cube-compatible image (one VkImage, 6 array layers)
         VkImage cubeImage = VK_NULL_HANDLE;
@@ -1046,9 +1101,9 @@ namespace Engine
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.extent = { static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1 };
+        imageInfo.extent = { static_cast<uint32_t>(faceW), static_cast<uint32_t>(faceH), 1 };
         imageInfo.mipLevels = 1;
-        imageInfo.arrayLayers = static_cast<uint32_t>(faces.size()); // 6
+        imageInfo.arrayLayers = static_cast<uint32_t>(facesCount); // 6
         imageInfo.format = imageFormat;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -1086,7 +1141,7 @@ namespace Engine
             barrier.subresourceRange.baseMipLevel = 0;
             barrier.subresourceRange.levelCount = 1;
             barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = static_cast<uint32_t>(faces.size());
+            barrier.subresourceRange.layerCount = static_cast<uint32_t>(facesCount);
             barrier.srcAccessMask = 0;
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
@@ -1104,8 +1159,8 @@ namespace Engine
         // Copy each face into its layer
         {
             VkCommandBuffer cmd = beginSingleTimeCommands(context);
-            std::vector<VkBufferImageCopy> regions(faces.size());
-            for (size_t i = 0; i < faces.size(); ++i)
+            std::vector<VkBufferImageCopy> regions(facesCount);
+            for (size_t i = 0; i < facesCount; ++i)
             {
                 VkBufferImageCopy region{};
                 region.bufferOffset = singleImageSize * i;
@@ -1116,7 +1171,7 @@ namespace Engine
                 region.imageSubresource.baseArrayLayer = static_cast<uint32_t>(i);
                 region.imageSubresource.layerCount = 1;
                 region.imageOffset = { 0, 0, 0 };
-                region.imageExtent = { static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1 };
+                region.imageExtent = { static_cast<uint32_t>(faceW), static_cast<uint32_t>(faceH), 1 };
                 regions[i] = region;
             }
 
@@ -1146,7 +1201,7 @@ namespace Engine
             barrier.subresourceRange.baseMipLevel = 0;
             barrier.subresourceRange.levelCount = 1;
             barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = static_cast<uint32_t>(faces.size());
+            barrier.subresourceRange.layerCount = static_cast<uint32_t>(facesCount);
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
@@ -1162,8 +1217,9 @@ namespace Engine
             endSingleTimeCommands(context, cmd);
         }
 
-        // staging not needed
+        // staging no longer needed
         stagingBuffer.destroy(context.getDevice());
+        combined.clear();
 
         // Create cube image view (VK_IMAGE_VIEW_TYPE_CUBE)
         VkImageViewCreateInfo viewInfo{};
@@ -1175,7 +1231,7 @@ namespace Engine
         viewInfo.subresourceRange.baseMipLevel = 0;
         viewInfo.subresourceRange.levelCount = 1;
         viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = static_cast<uint32_t>(faces.size());
+        viewInfo.subresourceRange.layerCount = static_cast<uint32_t>(facesCount);
 
         VkImageView cubeImageView;
         if (vkCreateImageView(context.getDevice(), &viewInfo, nullptr, &cubeImageView) != VK_SUCCESS)
@@ -1212,6 +1268,5 @@ namespace Engine
 
         return std::make_tuple(cubeSampler, result);
     }
-    
 }
 

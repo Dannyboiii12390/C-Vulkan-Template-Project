@@ -35,7 +35,7 @@ namespace Engine {
 		static VkSampler createTrilinearSampler(VulkanContext& context);
 		static VkSampler createAnisotropicSampler(VulkanContext& context, float maxAnisotropy = 16.0f);
 
-		static std::tuple<VkSampler, std::array<Image, 6>> LoadImagesForSkybox(VulkanContext& context);
+		static std::tuple<VkSampler, std::array<Image, 6>> LoadCubemapForSkybox(VulkanContext& context);
 	};
 }
 
