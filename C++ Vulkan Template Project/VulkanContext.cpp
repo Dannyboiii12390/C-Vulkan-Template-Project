@@ -69,21 +69,20 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
 	terrainObject.addPushconstantStage(VK_SHADER_STAGE_FRAGMENT_BIT);
 	texture.destroy(device);
 	textureNormal.destroy(device);
+    Engine::Texture cactusTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/Cactus_Albedo.jpg", true);
+    Engine::Texture cactusNormal = Engine::ModelLoader::createTextureImage(*this, "Objects/Cactus_Normal.png", false);
     for (int i = 0; i < numCacti; ++i) 
     {
         Engine::Object cactusObject;
         Engine::Mesh cactusMesh = Engine::ModelLoader::createCylinder(*this, 1.0f, 1.0f, 50, 1.0f);
-        Engine::Texture cactusTexture = Engine::ModelLoader::createTextureImage(*this, "Objects/Cactus_Albedo.jpg", true);
-        Engine::Texture cactusNormal = Engine::ModelLoader::createTextureImage(*this, "Objects/Cactus_Normal.png", false);
         Engine::Pipeline cactusPipeline;
         cactusPipeline.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 		cactusObject.create(*this, std::move(cactusMesh), std::move(cactusPipeline), descriptorSetLayout, descriptorPool, uniformBuffers, cactusTexture, cactusNormal);
         cactusObject.addPushconstantStage(VK_SHADER_STAGE_FRAGMENT_BIT);
 		cacti.push_back(std::move(cactusObject));
-
-        cactusTexture.destroy(device);
-		cactusNormal.destroy(device);
     }
+    cactusTexture.destroy(device);
+    cactusNormal.destroy(device);
 
 
     createDescriptorSets();

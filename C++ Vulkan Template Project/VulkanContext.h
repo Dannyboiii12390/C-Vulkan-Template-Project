@@ -121,7 +121,7 @@ private:
 	Engine::Pipeline terrainPipeline;*/
 	Engine::Object terrainObject;
     std::vector<Engine::Object> cacti;
-    int numCacti = 1;
+    int numCacti = 5;
 
 	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
 	int currentTextureIndex = 0;
