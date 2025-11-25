@@ -45,6 +45,7 @@ namespace Engine
 		{
 			return (vertices.size() == other.vertices.size()) && (indices.size() == other.indices.size());
 		}
+		
 
 
 	};
