@@ -41,6 +41,11 @@ namespace Engine
 		void draw(VkCommandBuffer commandBuffer, uint32_t instanceCount = 1);
 		bool isIndexed() const { return indices.size() != 0; }
 
+		bool operator==(const Mesh& other) const
+		{
+			return (vertices.size() == other.vertices.size()) && (indices.size() == other.indices.size());
+		}
+
 
 	};
 }

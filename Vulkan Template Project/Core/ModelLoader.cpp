@@ -117,3 +117,94 @@ Mesh ModelLoader::createTerrain(VulkanContext& context, int width, int depth, fl
     mesh.create(context, std::move(vertices), std::move(indices));
     return mesh;
 }
+
+Mesh ModelLoader::loadObjHomebrew(VulkanContext& context, const char* filepath, float UVsize)
+{
+    // Pseudocode:
+    // 1. Open the file and read all lines.
+    // 2. Parse vertex positions (v), texture coordinates (vt), normals (vn).
+    // 3. Parse faces (f) and build indices.
+    // 4. For each face, create Vertex objects (pos, normal, texCoord, color, tangent, binormal).
+    // 5. Store vertices and indices, avoiding duplicates (vertex deduplication).
+    // 6. Create Mesh using mesh.create(context, vertices, indices).
+
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+        throw std::runtime_error(std::string("Failed to open OBJ file: ") + filepath);
+    }
+
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec2> texCoords;
+    std::vector<glm::vec3> normals;
+    struct Index { int v, vt, vn; bool operator<(const Index& o) const { return std::tie(v, vt, vn) < std::tie(o.v, o.vt, o.vn); } };
+    std::map<Index, uint16_t> indexMap;
+    std::vector<Vertex> vertices;
+    std::vector<uint16_t> indices;
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string prefix;
+        iss >> prefix;
+        if (prefix == "v") {
+            float x, y, z;
+            iss >> x >> y >> z;
+            positions.emplace_back(x, y, z);
+        } else if (prefix == "vt") {
+            float u, v;
+            iss >> u >> v;
+            texCoords.emplace_back(u * UVsize, v * UVsize);
+        } else if (prefix == "vn") {
+            float nx, ny, nz;
+            iss >> nx >> ny >> nz;
+            normals.emplace_back(nx, ny, nz);
+        } else if (prefix == "f") {
+            std::vector<Index> faceIndices;
+            std::string vertStr;
+            while (iss >> vertStr) {
+                int v = 0, vt = 0, vn = 0;
+                size_t p1 = vertStr.find('/');
+                size_t p2 = vertStr.find('/', p1 + 1);
+                v = std::stoi(vertStr.substr(0, p1)) - 1;
+                if (p1 != std::string::npos && p2 != std::string::npos && p2 > p1 + 1)
+                    vt = std::stoi(vertStr.substr(p1 + 1, p2 - p1 - 1)) - 1;
+                else
+                    vt = -1;
+                if (p2 != std::string::npos)
+                    vn = std::stoi(vertStr.substr(p2 + 1)) - 1;
+                else
+                    vn = -1;
+                faceIndices.push_back({ v, vt, vn });
+            }
+            // Triangulate polygons (assume convex)
+            for (size_t i = 1; i + 1 < faceIndices.size(); ++i) {
+                Index idxs[3] = { faceIndices[0], faceIndices[i], faceIndices[i + 1] };
+                for (int k = 0; k < 3; ++k) {
+                    auto it = indexMap.find(idxs[k]);
+                    if (it == indexMap.end()) {
+                        Vertex vert{};
+                        vert.pos = positions[idxs[k].v];
+                        vert.texCoord = (idxs[k].vt >= 0 && idxs[k].vt < (int)texCoords.size()) ? texCoords[idxs[k].vt] : glm::vec2(0.0f);
+                        vert.normal = (idxs[k].vn >= 0 && idxs[k].vn < (int)normals.size()) ? normals[idxs[k].vn] : glm::vec3(0.0f, 1.0f, 0.0f);
+                        vert.color = glm::vec3(1.0f);
+                        // Tangent/binormal: simple orthonormal basis
+                        glm::vec3 up = glm::abs(vert.normal.y) < 0.999f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
+                        vert.tangent = glm::normalize(glm::cross(up, vert.normal));
+                        vert.binormal = glm::normalize(glm::cross(vert.normal, vert.tangent));
+                        uint16_t idx = static_cast<uint16_t>(vertices.size());
+                        vertices.push_back(vert);
+                        indexMap[idxs[k]] = idx;
+                        indices.push_back(idx);
+                    } else {
+                        indices.push_back(it->second);
+                    }
+                }
+            }
+        }
+    }
+    file.close();
+
+    Mesh mesh;
+    mesh.create(context, std::move(vertices), std::move(indices));
+    return mesh;
+}

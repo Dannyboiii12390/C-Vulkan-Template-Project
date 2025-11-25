@@ -1,6 +1,9 @@
 #include "ModelLoader.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <fstream>
+#include <map>
+#include <sstream>
 
 #include "../VulkanContext.h"
 
@@ -162,7 +165,7 @@ namespace Engine
         return mesh;
 
     }
-    Mesh ModelLoader::createTerrain(VulkanContext& context, int totalWidth, int totalDepth, float cellSize, int uvSize)
+    Mesh ModelLoader::createTerrain(VulkanContext& context, int totalWidth, int totalDepth, float cellSize, float UVsize)
     {
         std::vector<Vertex> vertices;
         // Validate inputs
@@ -214,10 +217,10 @@ namespace Engine
                 glm::vec3 dPos = positionAt(ix + 1, iz + 1);
 
                 // Texture coordinates span 0..1 across the whole terrain (use cell index / cell count)
-                glm::vec2 aUV = glm::vec2(static_cast<float>(ix) / static_cast<float>(cellsX), static_cast<float>(iz) / static_cast<float>(cellsZ)) * static_cast<float>(uvSize);
-                glm::vec2 bUV = glm::vec2(static_cast<float>(ix + 1) / static_cast<float>(cellsX), static_cast<float>(iz) / static_cast<float>(cellsZ)) * static_cast<float>(uvSize);
-                glm::vec2 cUV = glm::vec2(static_cast<float>(ix) / static_cast<float>(cellsX), static_cast<float>(iz + 1) / static_cast<float>(cellsZ)) * static_cast<float>(uvSize);
-                glm::vec2 dUV = glm::vec2(static_cast<float>(ix + 1) / static_cast<float>(cellsX), static_cast<float>(iz + 1) / static_cast<float>(cellsZ)) * static_cast<float>(uvSize);
+                glm::vec2 aUV = glm::vec2(static_cast<float>(ix) / static_cast<float>(cellsX), static_cast<float>(iz) / static_cast<float>(cellsZ)) * static_cast<float>(UVsize);
+                glm::vec2 bUV = glm::vec2(static_cast<float>(ix + 1) / static_cast<float>(cellsX), static_cast<float>(iz) / static_cast<float>(cellsZ)) * static_cast<float>(UVsize);
+                glm::vec2 cUV = glm::vec2(static_cast<float>(ix) / static_cast<float>(cellsX), static_cast<float>(iz + 1) / static_cast<float>(cellsZ)) * static_cast<float>(UVsize);
+                glm::vec2 dUV = glm::vec2(static_cast<float>(ix + 1) / static_cast<float>(cellsX), static_cast<float>(iz + 1) / static_cast<float>(cellsZ)) * static_cast<float>(UVsize);
 
 
                 // First triangle: a, c, d
@@ -459,161 +462,102 @@ namespace Engine
         mesh.create(context, std::move(vertices));
         return mesh;
     }
-    Mesh ModelLoader::loadObj(VulkanContext& context, const char* filepath, float UVsize)
+    
+    Mesh ModelLoader::loadOBJ(VulkanContext& context, const char* filepath, float UVsize)
     {
-        Assimp::Importer importer;
+        // Pseudocode:
+        // 1. Open the file and read all lines.
+        // 2. Parse vertex positions (v), texture coordinates (vt), normals (vn).
+        // 3. Parse faces (f) and build indices.
+        // 4. For each face, create Vertex objects (pos, normal, texCoord, color, tangent, binormal).
+        // 5. Store vertices and indices, avoiding duplicates (vertex deduplication).
+        // 6. Create Mesh using mesh.create(context, vertices, indices).
 
-        // Request triangulation, generate normals/tangents if missing, flip UVs to match Vulkan, and join identical vertices
-        const unsigned int flags = aiProcess_Triangulate
-            | aiProcess_FlipUVs
-            | aiProcess_GenSmoothNormals
-            | aiProcess_CalcTangentSpace
-            | aiProcess_JoinIdenticalVertices;
-
-        const aiScene* scene = importer.ReadFile(filepath, flags);
-
-        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-        {
-            throw std::runtime_error(std::string("ASSIMP ERROR: ") + importer.GetErrorString());
+        std::ifstream file(filepath);
+        if (!file.is_open()) {
+            throw std::runtime_error(std::string("Failed to open OBJ file: ") + filepath);
         }
 
-        if (!scene->HasMeshes() || scene->mNumMeshes == 0)
-        {
-            throw std::runtime_error("No meshes found in file.");
-        }
-
+        std::vector<glm::vec3> positions;
+        std::vector<glm::vec2> texCoords;
+        std::vector<glm::vec3> normals;
+        struct Index { int v, vt, vn; bool operator<(const Index& o) const { return std::tie(v, vt, vn) < std::tie(o.v, o.vt, o.vn); } };
+        std::map<Index, uint16_t> indexMap;
         std::vector<Vertex> vertices;
         std::vector<uint16_t> indices;
 
-        // Concatenate all meshes into a single vertex/index buffer.
-        // Keep track of a vertex offset when processing subsequent meshes.
-        uint32_t vertexOffset = 0u;
-
-        for (unsigned int meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex)
-        {
-            aiMesh* aimesh = scene->mMeshes[meshIndex];
-            if (!aimesh) continue;
-
-            // Reserve space to reduce reallocations
-            vertices.reserve(vertices.size() + aimesh->mNumVertices);
-
-            // Vertices
-            for (unsigned int i = 0; i < aimesh->mNumVertices; ++i)
-            {
-                Vertex v{};
-                // Positions (should always be present)
-                if (aimesh->HasPositions())
-                {
-                    v.pos = glm::vec3(
-                        aimesh->mVertices[i].x,
-                        aimesh->mVertices[i].y,
-                        aimesh->mVertices[i].z
-                    );
-                }
-                else
-                {
-                    v.pos = glm::vec3(0.0f);
-                }
-
-                // Normals (may have been generated by Assimp)
-                if (aimesh->HasNormals())
-                {
-                    v.normal = glm::vec3(
-                        aimesh->mNormals[i].x,
-                        aimesh->mNormals[i].y,
-                        aimesh->mNormals[i].z
-                    );
-                }
-                else
-                {
-                    v.normal = glm::vec3(0.0f, 1.0f, 0.0f);
-                }
-
-                // Texture coordinates (channel 0) - scaled by UVsize
-                if (aimesh->HasTextureCoords(0) && aimesh->mTextureCoords[0])
-                {
-                    v.texCoord = glm::vec2(
-                        aimesh->mTextureCoords[0][i].x * UVsize,
-                        aimesh->mTextureCoords[0][i].y * UVsize
-                    );
-                }
-                else
-                {
-                    v.texCoord = glm::vec2(0.0f);
-                }
-
-                // Vertex colors (channel 0)
-                if (aimesh->HasVertexColors(0) && aimesh->mColors[0])
-                {
-                    v.color = glm::vec3(
-                        aimesh->mColors[0][i].r,
-                        aimesh->mColors[0][i].g,
-                        aimesh->mColors[0][i].b
-                    );
-                }
-                else
-                {
-                    v.color = glm::vec3(1.0f); // default white
-                }
-
-                // Tangent / Bitangent (may have been generated by CalcTangentSpace)
-                if (aimesh->HasTangentsAndBitangents())
-                {
-                    v.tangent = glm::vec3(
-                        aimesh->mTangents[i].x,
-                        aimesh->mTangents[i].y,
-                        aimesh->mTangents[i].z
-                    );
-                    v.binormal = glm::vec3(
-                        aimesh->mBitangents[i].x,
-                        aimesh->mBitangents[i].y,
-                        aimesh->mBitangents[i].z
-                    );
-                }
-                else
-                {
-                    // Fallback tangent/binormal (construct orthonormal frame if possible)
-                    glm::vec3 up = glm::abs(v.normal.y) < 0.999f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
-                    v.tangent = glm::normalize(glm::cross(up, v.normal));
-                    v.binormal = glm::normalize(glm::cross(v.normal, v.tangent));
-                }
-
-                vertices.push_back(v);
+        std::string line;
+        while (std::getline(file, line)) {
+            std::istringstream iss(line);
+            std::string prefix;
+            iss >> prefix;
+            if (prefix == "v") {
+                float x, y, z;
+                iss >> x >> y >> z;
+                positions.emplace_back(x, y, z);
             }
-
-            // Faces -> Indices
-            for (unsigned int f = 0; f < aimesh->mNumFaces; ++f)
-            {
-                const aiFace& face = aimesh->mFaces[f];
-                // Assimp with aiProcess_Triangulate ensures faces are triangles (mNumIndices == 3)
-                for (unsigned int k = 0; k < face.mNumIndices; ++k)
-                {
-                    uint32_t idx32 = vertexOffset + face.mIndices[k];
-                    if (idx32 > std::numeric_limits<uint16_t>::max())
-                    {
-                        throw std::runtime_error("Loaded mesh is too large for 16-bit indices. Split into smaller meshes or use 32-bit indices.");
+            else if (prefix == "vt") {
+                float u, v;
+                iss >> u >> v;
+                texCoords.emplace_back(u * UVsize, v * UVsize);
+            }
+            else if (prefix == "vn") {
+                float nx, ny, nz;
+                iss >> nx >> ny >> nz;
+                normals.emplace_back(nx, ny, nz);
+            }
+            else if (prefix == "f") {
+                std::vector<Index> faceIndices;
+                std::string vertStr;
+                while (iss >> vertStr) {
+                    int v = 0, vt = 0, vn = 0;
+                    size_t p1 = vertStr.find('/');
+                    size_t p2 = vertStr.find('/', p1 + 1);
+                    v = std::stoi(vertStr.substr(0, p1)) - 1;
+                    if (p1 != std::string::npos && p2 != std::string::npos && p2 > p1 + 1)
+                        vt = std::stoi(vertStr.substr(p1 + 1, p2 - p1 - 1)) - 1;
+                    else
+                        vt = -1;
+                    if (p2 != std::string::npos)
+                        vn = std::stoi(vertStr.substr(p2 + 1)) - 1;
+                    else
+                        vn = -1;
+                    faceIndices.push_back({ v, vt, vn });
+                }
+                // Triangulate polygons (assume convex)
+                for (size_t i = 1; i + 1 < faceIndices.size(); ++i) {
+                    Index idxs[3] = { faceIndices[0], faceIndices[i], faceIndices[i + 1] };
+                    for (int k = 0; k < 3; ++k) {
+                        auto it = indexMap.find(idxs[k]);
+                        if (it == indexMap.end()) {
+                            Vertex vert{};
+                            vert.pos = positions[idxs[k].v];
+                            vert.texCoord = (idxs[k].vt >= 0 && idxs[k].vt < (int)texCoords.size()) ? texCoords[idxs[k].vt] : glm::vec2(0.0f);
+                            vert.normal = (idxs[k].vn >= 0 && idxs[k].vn < (int)normals.size()) ? normals[idxs[k].vn] : glm::vec3(0.0f, 1.0f, 0.0f);
+                            vert.color = glm::vec3(1.0f);
+                            // Tangent/binormal: simple orthonormal basis
+                            glm::vec3 up = glm::abs(vert.normal.y) < 0.999f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
+                            vert.tangent = glm::normalize(glm::cross(up, vert.normal));
+                            vert.binormal = glm::normalize(glm::cross(vert.normal, vert.tangent));
+                            uint16_t idx = static_cast<uint16_t>(vertices.size());
+                            vertices.push_back(vert);
+                            indexMap[idxs[k]] = idx;
+                            indices.push_back(idx);
+                        }
+                        else {
+                            indices.push_back(it->second);
+                        }
                     }
-                    indices.push_back(static_cast<uint16_t>(idx32));
                 }
             }
-
-            vertexOffset = static_cast<uint32_t>(vertices.size());
         }
+        file.close();
 
-        // Create mesh (uses indexed overload)
         Mesh mesh;
         mesh.create(context, std::move(vertices), std::move(indices));
         return mesh;
     }
-    Mesh ModelLoader::loadObjHomebrew(VulkanContext& context, const char* filepath, float UVsize)
-    {
-        // This function is deprecated. Use loadObj() instead.
-        return loadObj(context, filepath, UVsize);
-	}
-    Mesh ModelLoader::loadOBJ(VulkanContext& context, const char* filepath, float UVsize)
-    {
-		return loadObj(context, filepath, UVsize);
-	}
+
     Mesh ModelLoader::createSphere(VulkanContext& context, float radius, int sectorCount, int stackCount)
     {
 

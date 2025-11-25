@@ -74,7 +74,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     for (int i = 0; i < numCacti; ++i) 
     {
         Engine::Object cactusObject;
-		Engine::Mesh cactusMesh = Engine::ModelLoader::loadObj(*this, "Objects/Cactus.obj", 7.5f);
+		Engine::Mesh cactusMesh = Engine::ModelLoader::loadOBJ(*this, "Objects/Cactus.obj", 7.5f);
         Engine::Pipeline cactusPipeline;
         cactusPipeline.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 		cactusObject.create(*this, std::move(cactusMesh), std::move(cactusPipeline), descriptorSetLayout, descriptorPool, uniformBuffers, cactusTexture, cactusNormal);
