@@ -19,6 +19,7 @@
 #include "Graphics/Pipelines/SkyboxPipeline.h"
 #include "Graphics/Pipelines/ParticlePipeline.h"
 #include "Graphics/Object.h"
+#include "Graphics/Texture.h"
 
 // --- Configuration ---
 const uint32_t WIDTH = 800;

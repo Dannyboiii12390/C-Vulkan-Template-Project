@@ -7,6 +7,7 @@
 #include "Mesh.h"
 #include "Pipelines/Pipeline.h"
 #include "Buffer.h"
+#include "Texture.h"
 
 // Forward declarations
 class VulkanContext;
