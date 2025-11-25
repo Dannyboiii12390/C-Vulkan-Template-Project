@@ -17,7 +17,7 @@ namespace Engine
     struct UniformBufferObject;
     struct PushConstantModel;
 
-    class Object
+    class Object final
     {
     public:
         Object() = default;

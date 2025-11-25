@@ -10,7 +10,7 @@
 
 namespace Engine {
 
-    class Camera {
+    class Camera final {
     public:
         Camera(float fov = 45.0f, float aspectRatio = 16.0f / 9.0f, float nearPlane = 0.1f, float farPlane = 100.0f);
 		void create(float fov, float aspectRatio, float nearPlane, float farPlane);

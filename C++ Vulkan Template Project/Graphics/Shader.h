@@ -10,7 +10,7 @@ class VulkanContext;
 namespace Engine
 {
 
-    struct ShaderDescriptorBinding
+    struct ShaderDescriptorBinding final
     {
         uint32_t binding;
         VkDescriptorType descriptorType;
@@ -18,7 +18,7 @@ namespace Engine
         VkShaderStageFlags stageFlags;
     };
 
-    class Shader
+    class Shader final
     {
     public:
         Shader() = default;

@@ -11,7 +11,7 @@ namespace Engine
         Anisotropic
     };
 
-    struct Texture
+    struct Texture final
     {
         VkImage image = VK_NULL_HANDLE;
         VkDeviceMemory imageMemory = VK_NULL_HANDLE;

@@ -8,7 +8,7 @@
 #include "Debug Utils.h"
 #include <cstdint>
 
-class GUI
+class GUI final
 {
 public:
     GUI() = default;

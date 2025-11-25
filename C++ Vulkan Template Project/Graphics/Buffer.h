@@ -6,7 +6,7 @@
 class VulkanContext;
 namespace Engine 
 {
-	class Buffer 
+	class Buffer final
 	{
 	public:
 

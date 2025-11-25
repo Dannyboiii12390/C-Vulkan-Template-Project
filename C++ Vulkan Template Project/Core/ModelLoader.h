@@ -10,7 +10,7 @@
 
 namespace Engine {
 
-	class ModelLoader
+	class ModelLoader final
 	{
 	public:
 		static Engine::Mesh createCube(VulkanContext& context);

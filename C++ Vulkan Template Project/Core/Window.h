@@ -5,7 +5,7 @@
 
 namespace Engine 
 {
-	class Window 
+	class Window final
 	{
 	private:
 		int width;

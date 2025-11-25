@@ -35,7 +35,7 @@ const std::vector<const char*> deviceExtensions = {
 };
 
 
-class VulkanContext {
+class VulkanContext final{
 public:
     VulkanContext();
 

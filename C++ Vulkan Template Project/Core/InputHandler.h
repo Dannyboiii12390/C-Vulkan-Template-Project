@@ -10,7 +10,7 @@ namespace Engine {
 
     class Window;
 
-    class InputHandler {
+    class InputHandler final {
     public:
         // Key and mouse button states
         enum class State {

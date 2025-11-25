@@ -5,7 +5,7 @@ class VulkanContext;
 
 namespace Engine
 {
-	class SkyboxPipeline : public Pipeline
+	class SkyboxPipeline final : public Pipeline
 	{
 	public:
 		SkyboxPipeline() = default;
