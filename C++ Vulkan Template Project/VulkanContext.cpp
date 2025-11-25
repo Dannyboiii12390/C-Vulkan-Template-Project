@@ -74,7 +74,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     for (int i = 0; i < numCacti; ++i) 
     {
         Engine::Object cactusObject;
-        Engine::Mesh cactusMesh = Engine::ModelLoader::createCylinder(*this, 1.0f, 1.0f, 50, 1.0f);
+		Engine::Mesh cactusMesh = Engine::ModelLoader::loadObj(*this, "Objects/Cactus.obj", 7.5f);
         Engine::Pipeline cactusPipeline;
         cactusPipeline.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 		cactusObject.create(*this, std::move(cactusMesh), std::move(cactusPipeline), descriptorSetLayout, descriptorPool, uniformBuffers, cactusTexture, cactusNormal);
@@ -847,13 +847,14 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     particleMesh.draw(commandBuffer);
 
 
+	glm::mat4 CactusTranslation = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, -1.0f, 0.0f));
+    CactusTranslation = glm::scale(CactusTranslation, glm::vec3(0.1f)); // Scale down the cacti
+	CactusTranslation = glm::rotate(CactusTranslation, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate to stand upright
 
 	for (int i = 0; i < cacti.size(); i++)
     {
 		auto& cactus = cacti[i];
-		glm::mat4 cactusLocation = glm::translate(glm::mat4(1.0f), glm::vec3(3 * i, 0, 3 * i));
-		cactusLocation = glm::translate(cactusLocation, glm::vec3(2.0f, 0.0f, 0.0f));
-        cactus.draw(commandBuffer, currentFrame, cactusLocation);
+        cactus.draw(commandBuffer, currentFrame, CactusTranslation);
     }
 
     vkCmdEndRendering(commandBuffer);
