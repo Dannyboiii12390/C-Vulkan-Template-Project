@@ -10,7 +10,7 @@
 
 namespace Engine {
 
-	class ModelLoader
+	class ModelLoader final
 	{
 	public:
 		static Engine::Mesh createCube(VulkanContext& context);
@@ -18,7 +18,9 @@ namespace Engine {
 		static Engine::Mesh createGrid(VulkanContext& context, int width, int depth);
 		static Engine::Mesh createTerrain(VulkanContext& context, int width, int depth, float cellSize, int uvSize = 1);
 		static Engine::Mesh createCylinder(VulkanContext& context, float radius, float height, int segmentCount, float UVsize = 1);
-		static Engine::Mesh loadObj(VulkanContext& context, const char* filepath);
+		static Engine::Mesh loadObj(VulkanContext& context, const char* filepath, float UVsize = 1);
+		static Engine::Mesh loadOBJ(VulkanContext& context, const const char* filepath, float UVsize = 1);
+		static Engine::Mesh loadObjHomebrew(VulkanContext& context, const char* filepath, float UVsize = 1);
 		static Engine::Mesh createSphere(VulkanContext& context, float radius, int sectorCount, int stackCount);
 		static Engine::Mesh createParticleSystem(VulkanContext& context, int maxParticles);
         

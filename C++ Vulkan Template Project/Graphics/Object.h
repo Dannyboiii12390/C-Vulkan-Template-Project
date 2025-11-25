@@ -7,6 +7,7 @@
 #include "Mesh.h"
 #include "Pipelines/Pipeline.h"
 #include "Buffer.h"
+#include "Texture.h"
 
 // Forward declarations
 class VulkanContext;
@@ -16,7 +17,7 @@ namespace Engine
     struct UniformBufferObject;
     struct PushConstantModel;
 
-    class Object
+    class Object final
     {
     public:
         Object() = default;

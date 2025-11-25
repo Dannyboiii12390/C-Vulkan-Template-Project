@@ -9,7 +9,7 @@ class VulkanContext;
 
 namespace Engine 
 {
-	class Mesh
+	class Mesh final
 	{
 		//VulkanContext& context;
 

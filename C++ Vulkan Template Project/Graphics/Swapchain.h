@@ -8,7 +8,8 @@
 class VulkanContext;
 namespace Engine
 {
-    class Swapchain {
+    class Swapchain final
+    {
     public:
         // Swapchain handle and associated data
         VkSwapchainKHR swapchain = VK_NULL_HANDLE;

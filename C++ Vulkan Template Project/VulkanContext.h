@@ -19,6 +19,7 @@
 #include "Graphics/Pipelines/SkyboxPipeline.h"
 #include "Graphics/Pipelines/ParticlePipeline.h"
 #include "Graphics/Object.h"
+#include "Graphics/Texture.h"
 
 // --- Configuration ---
 const uint32_t WIDTH = 800;
@@ -34,7 +35,7 @@ const std::vector<const char*> deviceExtensions = {
 };
 
 
-class VulkanContext {
+class VulkanContext final{
 public:
     VulkanContext();
 
@@ -121,7 +122,7 @@ private:
 	Engine::Pipeline terrainPipeline;*/
 	Engine::Object terrainObject;
     std::vector<Engine::Object> cacti;
-    int numCacti = 5;
+    int numCacti = 1;
 
 	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
 	int currentTextureIndex = 0;

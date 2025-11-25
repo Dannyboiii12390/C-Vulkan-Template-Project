@@ -6,7 +6,7 @@ class VulkanContext;
 
 namespace Engine
 {
-    class ParticlePipeline : public Pipeline
+    class ParticlePipeline final : public Pipeline
     {
     public:
         ParticlePipeline() = default;

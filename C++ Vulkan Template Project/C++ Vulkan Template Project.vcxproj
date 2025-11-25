@@ -157,6 +157,7 @@
     <ClCompile Include="Graphics\Pipelines\ParticlePipeline.cpp" />
     <ClCompile Include="Graphics\Shader.cpp" />
     <ClCompile Include="Graphics\Pipelines\SkyboxPipeline.cpp" />
+    <ClCompile Include="Graphics\Texture.cpp" />
     <ClCompile Include="IMGUI\imgui.cpp" />
     <ClCompile Include="IMGUI\imgui_demo.cpp" />
     <ClCompile Include="IMGUI\imgui_draw.cpp" />
@@ -182,6 +183,7 @@
     <ClInclude Include="Graphics\Pipelines\ParticlePipeline.h" />
     <ClInclude Include="Graphics\Shader.h" />
     <ClInclude Include="Graphics\Pipelines\SkyboxPipeline.h" />
+    <ClInclude Include="Graphics\Texture.h" />
     <ClInclude Include="Graphics\VulkanTypes.h" />
     <ClInclude Include="Graphics\Mesh.h" />
     <ClInclude Include="Graphics\Pipelines\Pipeline.h" />
