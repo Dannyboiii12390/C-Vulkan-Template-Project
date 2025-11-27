@@ -8,13 +8,19 @@ layout(location = 2) in vec3 inWorldNormal;
 // Output
 layout(location = 0) out vec4 outColor;
 
-// Uniform Buffer Object
-layout(binding = 0) uniform UniformBufferObject {
+// UBO (binding = 0)
+layout(std140, binding = 0) uniform UBO {
     mat4 view;
     mat4 proj;
-    vec3 lightPos;
-    vec3 redLightPos;
-    vec3 eyePos;  // FIXED: Changed from viewPos to eyePos
+    vec3 eyePos;
+    vec3 sun_pos;
+    vec3 sun_color;
+    float sun_intensity;
+    vec3 moon_pos;
+    vec3 moon_color;
+    float moon_intensity;
+
+    float time;
 } ubo;
 
 // Albedo textures (array of 2)

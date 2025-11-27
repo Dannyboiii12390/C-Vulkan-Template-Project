@@ -676,7 +676,7 @@ void VulkanContext::drawFrame() {
     }
 
     handleInput();
-    updateUniformBuffer(currentFrame);
+    updateUniformBuffer(imageIndex);
 
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
@@ -845,13 +845,14 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
         mesh.bind(commandBuffer);
         mesh.draw(commandBuffer);
     }
+
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, particlePipeline.getPipeline());
+    // bind particle descriptor set for this swapchain image
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
         particlePipeline.getLayout(), 0, 1,
-        &particleDescriptorSets[currentFrame], 0, nullptr);
+        &particleDescriptorSets[imageIndex], 0, nullptr);
     particleMesh.bind(commandBuffer);
     particleMesh.draw(commandBuffer);
-
 
 	glm::mat4 CactusTranslation = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, -1.0f, 0.0f));
     CactusTranslation = glm::scale(CactusTranslation, glm::vec3(0.1f)); // Scale down the cacti
@@ -896,9 +897,7 @@ void VulkanContext::updateUniformBuffer(uint32_t currentImage)
     moonLight.update(time);
     moonLight.applyToUBO(ubo, 1);
 
-    // keep time in the UBO
     ubo.time = time;
-
 
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
 }

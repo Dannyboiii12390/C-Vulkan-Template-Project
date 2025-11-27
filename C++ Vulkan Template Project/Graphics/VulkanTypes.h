@@ -65,11 +65,19 @@ namespace Engine
     struct UniformBufferObject {
         alignas(16) glm::mat4 view;
         alignas(16) glm::mat4 proj;
-        alignas(16) glm::vec3 sun_pos;
-        alignas(16) glm::vec3 moon_pos;
 		alignas(16) glm::vec3 eyePos;
+
+        alignas(16) glm::vec3 sun_pos;
+        alignas(16) glm::vec3 sun_color;
+		alignas(4) float sun_intensity;
+
+        alignas(16) glm::vec3 moon_pos;
+        alignas(16) glm::vec3 moon_color;
+		alignas(4) float moon_intensity;
+
         alignas(4) float time;
     };
+    static_assert(sizeof(UniformBufferObject) % 16 == 0, "UBO size must be multiple of 16 bytes (std140).");
 
     
 }

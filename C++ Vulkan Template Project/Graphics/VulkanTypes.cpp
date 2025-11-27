@@ -67,10 +67,12 @@ namespace Engine
     }
 
     // --- ParticleVertex Implementation ---
-    VkVertexInputBindingDescription ParticleVertex::getBindingDescription() {
+    VkVertexInputBindingDescription ParticleVertex::getBindingDescription()
+    {
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(ParticleVertex);
+        // The mesh uses the full Engine::Vertex buffer layout; use that stride so the pipeline reads the correct bytes.
+        bindingDescription.stride = sizeof(Vertex);
         bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         return bindingDescription;
     }
@@ -83,7 +85,8 @@ namespace Engine
         posAttr.location = 0;
         posAttr.binding = 0;
         posAttr.format = VK_FORMAT_R32G32B32_SFLOAT;
-        posAttr.offset = static_cast<uint32_t>(offsetof(ParticleVertex, particlePos));
+        // Use the offset of `pos` inside the full Vertex so the pipeline reads the particle position correctly.
+        posAttr.offset = static_cast<uint32_t>(offsetof(Vertex, pos));
         attributes.push_back(posAttr);
 
         return attributes;

@@ -11,6 +11,7 @@ void main() {
     if (dist > 0.5) {
         discard;  // Make points circular
     }
+
     
     // Fade out at edges
     float alpha = 1.0 - (dist * 2.0);

@@ -12,9 +12,14 @@ layout(location = 0) out vec4 outColor;
 layout(std140, binding = 0) uniform UBO {
     mat4 view;
     mat4 proj;
-    vec3 sun_pos;
-    vec3 moon_pos;
     vec3 eyePos;
+    vec3 sun_pos;
+    vec3 sun_color;
+    float sun_intensity;
+    vec3 moon_pos;
+    vec3 moon_color;
+    float moon_intensity;
+
     float time;
 } ubo;
 

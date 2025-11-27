@@ -240,8 +240,11 @@
     <CustomBuild Include="SHADERS\particle.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\VulkanSDK\1.4.313.2\Bin\glslc.exe .\shaders\particle.frag -o .\shaders\particle.frag.spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"%VULKAN_SDK%\bin\glslangValidator.exe" -V "$(ProjectDir)SHADERS\%(Filename).frag" -o "$(ProjectDir)SHADERS\%(Filename).frag.spv</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\shaders\particle.frag.spv;%(Outputs)</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"%VULKAN_SDK%\bin\glslangValidator.exe" -V "$(ProjectDir)SHADERS\%(Filename).frag" -o "$(ProjectDir)SHADERS\%(Filename).frag.spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"%VULKAN_SDK%\bin\glslangValidator.exe" -V "$(ProjectDir)SHADERS\%(Filename).frag" -o "$(ProjectDir)SHADERS\%(Filename).frag.spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"%VULKAN_SDK%\bin\glslangValidator.exe" -V "$(ProjectDir)SHADERS\%(Filename).frag" -o "$(ProjectDir)SHADERS\%(Filename).frag.spv</Command>
     </CustomBuild>
     <CustomBuild Include="SHADERS\particle.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>

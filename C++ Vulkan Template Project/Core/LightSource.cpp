@@ -79,10 +79,14 @@ namespace Engine
         if (slot == 0)
         {
             ubo.sun_pos = position_;
+			ubo.sun_color = color_;
+			ubo.sun_intensity = intensity_;
         }
         else if (slot == 1)
         {
             ubo.moon_pos = position_;
+            ubo.moon_color = color_;
+            ubo.moon_intensity = intensity_;
         }
     }
 

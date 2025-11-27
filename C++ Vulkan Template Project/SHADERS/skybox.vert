@@ -4,12 +4,19 @@ layout(push_constant) uniform PushConstantModel {
     mat4 model;  // Only 64 bytes - no texIndex
 } pushConstants;
 
-layout(binding = 0) uniform UniformBufferObject {
+// UBO (binding = 0)
+layout(std140, binding = 0) uniform UBO {
     mat4 view;
     mat4 proj;
-    vec3 lightPos;
-    vec3 redLightPos;
     vec3 eyePos;
+    vec3 sun_pos;
+    vec3 sun_color;
+    float sun_intensity;
+    vec3 moon_pos;
+    vec3 moon_color;
+    float moon_intensity;
+
+    float time;
 } ubo;
 
 layout(location = 0) in vec3 inPos;
