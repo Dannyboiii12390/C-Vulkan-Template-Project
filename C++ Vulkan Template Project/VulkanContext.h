@@ -20,6 +20,7 @@
 #include "Graphics/Pipelines/ParticlePipeline.h"
 #include "Graphics/Object.h"
 #include "Graphics/Texture.h"
+#include "Core/LightSource.h"
 
 // --- Configuration ---
 const uint32_t WIDTH = 800;
@@ -118,11 +119,15 @@ private:
     Engine::InputHandler inputHandler;
     Engine::Mesh mesh;
 
-    /*Engine::Mesh terrainMesh;
-	Engine::Pipeline terrainPipeline;*/
 	Engine::Object terrainObject;
     std::vector<Engine::Object> cacti;
     int numCacti = 1;
+
+    // --- Lighting ---
+
+	Engine::LightSource sunLight;
+    Engine::LightSource moonLight;
+
 
 	Engine::TextureFilterMode currentFilterMode = Engine::TextureFilterMode::Anisotropic;
 	int currentTextureIndex = 0;

@@ -167,117 +167,113 @@ namespace Engine
     }
     Mesh ModelLoader::createTerrain(VulkanContext& context, int totalWidth, int totalDepth, float cellSize, float UVsize)
     {
-        std::vector<Vertex> vertices;
+        std::vector<Vertex> finalVertices;
+        std::vector<uint16_t> indices; // use uint16_t to match Mesh::create signature
+
         // Validate inputs
         if (cellSize <= 0.0f) cellSize = 1.0f;
         if (totalWidth <= 0) totalWidth = 1;
         if (totalDepth <= 0) totalDepth = 1;
 
-        // Interpret 'totalWidth' and 'totalDepth' as the full world extents (in world units).
-        // 'cellSize' is the size of one cell (triangle square side length).
-        // Compute number of cells along each axis (at least 1).
+        // Number of cells
         int cellsX = std::max(1, static_cast<int>(std::floor(static_cast<float>(totalWidth) / cellSize)));
         int cellsZ = std::max(1, static_cast<int>(std::floor(static_cast<float>(totalDepth) / cellSize)));
 
-        // Number of vertices along each axis
         const int vertsX = cellsX + 1;
         const int vertsZ = cellsZ + 1;
 
-        // World-space half extents so the terrain is centered around the origin
         const float halfWidth = (cellsX * cellSize) * 0.5f;
         const float halfDepth = (cellsZ * cellSize) * 0.5f;
 
-        // Height function in world coordinates (can be replaced by a heightmap lookup)
-        auto heightAt = [&](int ix, int iz) -> float {
-            float wx = (static_cast<float>(ix) * cellSize) - halfWidth;
-            float wz = (static_cast<float>(iz) * cellSize) - halfDepth;
-            return std::sinf(wx) * std::cosf(wz);
+        auto heightAt = [&](int ix, int iz) -> float
+            {
+                float wx = (static_cast<float>(ix) * cellSize) - halfWidth;
+                float wz = (static_cast<float>(iz) * cellSize) - halfDepth;
+                return std::sinf(wx) * std::cosf(wz);
             };
 
-        // Reserve memory: two triangles (6 vertices) per cell
-        vertices.reserve(static_cast<size_t>(cellsX) * static_cast<size_t>(cellsZ) * 6);
-
-        // Helper to compute world position for grid coordinate (ix,iz) where ix in [0..cellsX], iz in [0..cellsZ]
-        auto positionAt = [&](int ix, int iz) -> glm::vec3 {
-            float wx = (static_cast<float>(ix) * cellSize) - halfWidth;
-            float wz = (static_cast<float>(iz) * cellSize) - halfDepth;
-            float y = heightAt(ix, iz);
-            return glm::vec3(wx, y, wz);
+        auto positionAt = [&](int ix, int iz) -> glm::vec3
+            {
+                float wx = (static_cast<float>(ix) * cellSize) - halfWidth;
+                float wz = (static_cast<float>(iz) * cellSize) - halfDepth;
+                float y = heightAt(ix, iz);
+                return glm::vec3(wx, y, wz);
             };
 
-        // Generate non-indexed triangles (two triangles per quad cell).
+        // Build grid of positions and texcoords
+        std::vector<glm::vec3> positions(vertsX * vertsZ);
+        std::vector<glm::vec2> texcoords(vertsX * vertsZ);
+        for (int iz = 0; iz < vertsZ; ++iz)
+        {
+            for (int ix = 0; ix < vertsX; ++ix)
+            {
+                int idx = iz * vertsX + ix;
+                positions[idx] = positionAt(ix, iz);
+                texcoords[idx] = glm::vec2(static_cast<float>(ix) / static_cast<float>(cellsX),
+                    static_cast<float>(iz) / static_cast<float>(cellsZ)) * UVsize;
+            }
+        }
+
+        // Build indices (two triangles per quad)
+        indices.reserve(static_cast<size_t>(cellsX) * static_cast<size_t>(cellsZ) * 6);
         for (int iz = 0; iz < cellsZ; ++iz)
         {
             for (int ix = 0; ix < cellsX; ++ix)
             {
-                // Quad corners (a = bottom-left, b = bottom-right, c = top-left, d = top-right)
-                glm::vec3 aPos = positionAt(ix, iz);
-                glm::vec3 bPos = positionAt(ix + 1, iz);
-                glm::vec3 cPos = positionAt(ix, iz + 1);
-                glm::vec3 dPos = positionAt(ix + 1, iz + 1);
-
-                // Texture coordinates span 0..1 across the whole terrain (use cell index / cell count)
-                glm::vec2 aUV = glm::vec2(static_cast<float>(ix) / static_cast<float>(cellsX), static_cast<float>(iz) / static_cast<float>(cellsZ)) * static_cast<float>(UVsize);
-                glm::vec2 bUV = glm::vec2(static_cast<float>(ix + 1) / static_cast<float>(cellsX), static_cast<float>(iz) / static_cast<float>(cellsZ)) * static_cast<float>(UVsize);
-                glm::vec2 cUV = glm::vec2(static_cast<float>(ix) / static_cast<float>(cellsX), static_cast<float>(iz + 1) / static_cast<float>(cellsZ)) * static_cast<float>(UVsize);
-                glm::vec2 dUV = glm::vec2(static_cast<float>(ix + 1) / static_cast<float>(cellsX), static_cast<float>(iz + 1) / static_cast<float>(cellsZ)) * static_cast<float>(UVsize);
-
-
+                // compute indices and cast to uint16_t
+                uint16_t a = static_cast<uint16_t>(iz * vertsX + ix);
+                uint16_t b = static_cast<uint16_t>(iz * vertsX + (ix + 1));
+                uint16_t c = static_cast<uint16_t>((iz + 1) * vertsX + ix);
+                uint16_t d = static_cast<uint16_t>((iz + 1) * vertsX + (ix + 1));
                 // First triangle: a, c, d
-                glm::vec3 n1 = glm::normalize(glm::cross(cPos - aPos, dPos - aPos));
-                {
-                    Vertex va{};
-                    va.pos = aPos;
-                    va.normal = n1;
-                    va.texCoord = aUV;
-                    va.color = glm::vec3(1.0f);
-                    vertices.push_back(va);
-
-                    Vertex vc{};
-                    vc.pos = cPos;
-                    vc.normal = n1;
-                    vc.texCoord = cUV;
-                    vc.color = glm::vec3(1.0f);
-                    vertices.push_back(vc);
-
-                    Vertex vd{};
-                    vd.pos = dPos;
-                    vd.normal = n1;
-                    vd.texCoord = dUV;
-                    vd.color = glm::vec3(1.0f);
-                    vertices.push_back(vd);
-                }
-
+                indices.push_back(a);
+                indices.push_back(c);
+                indices.push_back(d);
                 // Second triangle: a, d, b
-                glm::vec3 n2 = glm::normalize(glm::cross(dPos - aPos, bPos - aPos));
-                {
-                    Vertex va2{};
-                    va2.pos = aPos;
-                    va2.normal = n2;
-                    va2.texCoord = aUV;
-                    va2.color = glm::vec3(1.0f);
-                    vertices.push_back(va2);
-
-                    Vertex vd2{};
-                    vd2.pos = dPos;
-                    vd2.normal = n2;
-                    vd2.texCoord = dUV;
-                    vd2.color = glm::vec3(1.0f);
-                    vertices.push_back(vd2);
-
-                    Vertex vb{};
-                    vb.pos = bPos;
-                    vb.normal = n2;
-                    vb.texCoord = bUV;
-                    vb.color = glm::vec3(1.0f);
-                    vertices.push_back(vb);
-                }
+                indices.push_back(a);
+                indices.push_back(d);
+                indices.push_back(b);
             }
         }
 
+        // Compute per-vertex normals by accumulating face normals
+        std::vector<glm::vec3> normals(positions.size(), glm::vec3(0.0f));
+        for (size_t i = 0; i + 2 < indices.size(); i += 3)
+        {
+            uint32_t ia = static_cast<uint32_t>(indices[i + 0]);
+            uint32_t ib = static_cast<uint32_t>(indices[i + 1]);
+            uint32_t ic = static_cast<uint32_t>(indices[i + 2]);
+            glm::vec3 pa = positions[ia];
+            glm::vec3 pb = positions[ib];
+            glm::vec3 pc = positions[ic];
+            glm::vec3 faceNormal = glm::normalize(glm::cross(pb - pa, pc - pa));
+            normals[ia] += faceNormal;
+            normals[ib] += faceNormal;
+            normals[ic] += faceNormal;
+        }
+        for (size_t i = 0; i < normals.size(); ++i)
+        {
+            normals[i] = glm::normalize(normals[i]);
+        }
+
+        // Build final Vertex array (shared vertices)
+        finalVertices.reserve(positions.size());
+        for (size_t i = 0; i < positions.size(); ++i)
+        {
+            Vertex v{};
+            v.pos = positions[i];
+            v.normal = normals[i];
+            v.texCoord = texcoords[i];
+            v.color = glm::vec3(1.0f);
+            // Provide a simple tangent/binormal; if you need accurate tangents, compute them explicitly.
+            v.tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+            v.binormal = glm::normalize(glm::cross(v.normal, v.tangent));
+            finalVertices.push_back(v);
+        }
+
         Mesh mesh;
-        // Use the overload that creates a vertex-only (non-indexed) mesh
-        mesh.create(context, std::move(vertices));
+        // Use indexed mesh creation (indices are uint16_t to match Mesh::create)
+        mesh.create(context, std::move(finalVertices), std::move(indices));
         return mesh;
     }
     Mesh ModelLoader::createCylinder(VulkanContext & context, float radius, float height, int segmentCount, float UVsize)

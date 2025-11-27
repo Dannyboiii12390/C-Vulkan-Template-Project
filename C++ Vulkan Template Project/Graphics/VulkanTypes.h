@@ -65,8 +65,8 @@ namespace Engine
     struct UniformBufferObject {
         alignas(16) glm::mat4 view;
         alignas(16) glm::mat4 proj;
-        alignas(16) glm::vec3 lightPos;
-        alignas(16) glm::vec3 redLightPos;
+        alignas(16) glm::vec3 sun_pos;
+        alignas(16) glm::vec3 moon_pos;
 		alignas(16) glm::vec3 eyePos;
         alignas(4) float time;
     };

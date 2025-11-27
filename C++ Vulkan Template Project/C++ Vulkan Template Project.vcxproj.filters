@@ -96,6 +96,9 @@
     <ClCompile Include="Graphics\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Core\LightSource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanContext.h">
@@ -179,6 +182,9 @@
     <ClInclude Include="Graphics\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Core\LightSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -194,5 +200,7 @@
     <CustomBuild Include="SHADERS\template.vert" />
     <CustomBuild Include="SHADERS\textureVertLighting.frag" />
     <CustomBuild Include="SHADERS\textureVertLighting.vert" />
+    <CustomBuild Include="SHADERS\textureFragLighting.frag" />
+    <CustomBuild Include="SHADERS\textureFragLighting.vert" />
   </ItemGroup>
 </Project>

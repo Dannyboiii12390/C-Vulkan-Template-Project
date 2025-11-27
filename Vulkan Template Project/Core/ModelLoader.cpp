@@ -1,120 +1,124 @@
-// PSEUDOCODE / PLAN (detailed):
-// 1. Interpret width/depth as number of cells; produce (width+1)*(depth+1) vertices.
-// 2. Use cellSize to space vertices in world units; center grid around origin using halfWidth/halfDepth.
-// 3. Provide a height function heightAt(ix, iz) that returns y for grid coordinates (uses sin/cos scaled by world coords).
-// 4. Generate vertices in integer grid coordinates (ix in [0..width], iz in [0..depth]):
-//    - compute world x,z: wx = (ix - halfWidth) * cellSize; wz = (iz - halfDepth) * cellSize
-//    - compute y = heightAt(ix, iz)
-//    - set vertex.pos = (wx, y, wz)
-//    - compute normal via finite differences (central where possible, forward/backward at edges):
-//        dhdx = (heightAt(ix+1,iz)-heightAt(ix-1,iz)) / (2*cellSize)  (or forward/back)
-//        dhdz = (heightAt(ix,iz+1)-heightAt(ix,iz-1)) / (2*cellSize)
-//        normal = normalize(vec3(-dhdx, 1.0f, -dhdz))
-//    - set vertex.texCoord = (ix/width, iz/depth) so full terrain maps to [0,1] UVs
-//    - set vertex.color default (white) — optional when textured
-// 5. Generate triangle indices for each cell (two triangles per cell):
-//    for iz in [0..depth-1], for ix in [0..width-1]:
-//      a = iz*(width+1) + ix
-//      b = a + 1
-//      c = a + (width+1)
-//      d = c + 1
-//      push (a, c, d) and (a, d, b) — consistent winding (CCW) for the render pipeline
-// 6. Cast indices to uint16_t (existing Mesh API expects uint16_t). Validate vertex count <= 65535 in comments.
-// 7. Create mesh with vertices and indices and return.
+// Pseudocode / Plan:
+// 1. Build grid positions and texcoords exactly as before.
+// 2. Use an index buffer of type uint16_t (the Mesh::create overload expects uint16_t indices).
+// 3. When computing a,b,c,d for each quad convert the computed index to uint16_t.
+// 4. Reserve and fill indices accordingly, and when using them to look up positions cast to uint32_t/size_t as needed.
+// 5. Accumulate face normals and normalize them.
+// 6. Build final Vertex list and compute simple tangent/binormal.
+// 7. Call mesh.create(context, std::move(finalVertices), std::move(indices)) with uint16_t indices.
 //
-// Notes:
-// - This prepares normals and UVs so a texture can be applied.
-// - If the terrain can exceed 65535 vertices, the Mesh/Index type must be updated to 32-bit indices.
+// Note: This replaces only the createTerrain implementation to fix the overload mismatch
+// by ensuring indices are stored as uint16_t to match Mesh::create signature.
 
-Mesh ModelLoader::createTerrain(VulkanContext& context, int width, int depth, float cellSize)
+Mesh ModelLoader::createTerrain(VulkanContext& context, int totalWidth, int totalDepth, float cellSize, float UVsize)
 {
-    std::vector<Vertex> vertices;
-    std::vector<uint16_t> indices;
+    std::vector<Vertex> finalVertices;
+    std::vector<uint16_t> indices; // use uint16_t to match Mesh::create signature
 
-    // Ensure width/depth represent cell counts; vertices per row = width + 1
-    if (width <= 0) width = 1;
-    if (depth <= 0) depth = 1;
+    // Validate inputs
+    if (cellSize <= 0.0f) cellSize = 1.0f;
+    if (totalWidth <= 0) totalWidth = 1;
+    if (totalDepth <= 0) totalDepth = 1;
 
-    int halfWidth = width / 2;
-    int halfDepth = depth / 2;
+    // Number of cells
+    int cellsX = std::max(1, static_cast<int>(std::floor(static_cast<float>(totalWidth) / cellSize)));
+    int cellsZ = std::max(1, static_cast<int>(std::floor(static_cast<float>(totalDepth) / cellSize)));
 
-    const int vertsX = width + 1;
-    const int vertsZ = depth + 1;
+    const int vertsX = cellsX + 1;
+    const int vertsZ = cellsZ + 1;
 
-    // Simple height function using world coordinates (can be replaced by heightmap)
-    auto heightAt = [&](int ix, int iz) -> float {
-        float wx = (static_cast<float>(ix) - static_cast<float>(halfWidth)) * cellSize;
-        float wz = (static_cast<float>(iz) - static_cast<float>(halfDepth)) * cellSize;
-        return std::sinf(wx) * std::cosf(wz); // current height function
+    const float halfWidth = (cellsX * cellSize) * 0.5f;
+    const float halfDepth = (cellsZ * cellSize) * 0.5f;
+
+    auto heightAt = [&](int ix, int iz) -> float
+    {
+        float wx = (static_cast<float>(ix) * cellSize) - halfWidth;
+        float wz = (static_cast<float>(iz) * cellSize) - halfDepth;
+        return std::sinf(wx) * std::cosf(wz);
     };
 
-    // Reserve memory
-    vertices.reserve(static_cast<size_t>(vertsX) * static_cast<size_t>(vertsZ));
-    indices.reserve(static_cast<size_t>(width) * static_cast<size_t>(depth) * 6);
+    auto positionAt = [&](int ix, int iz) -> glm::vec3
+    {
+        float wx = (static_cast<float>(ix) * cellSize) - halfWidth;
+        float wz = (static_cast<float>(iz) * cellSize) - halfDepth;
+        float y = heightAt(ix, iz);
+        return glm::vec3(wx, y, wz);
+    };
 
-    // Generate vertices with positions, normals (computed later per-vertex using finite differences), texcoords and color.
-    // We'll compute normals on the fly using neighboring height samples.
+    // Build grid of positions and texcoords
+    std::vector<glm::vec3> positions(vertsX * vertsZ);
+    std::vector<glm::vec2> texcoords(vertsX * vertsZ);
     for (int iz = 0; iz < vertsZ; ++iz)
     {
         for (int ix = 0; ix < vertsX; ++ix)
         {
-            // world coordinates
-            float wx = (static_cast<float>(ix) - static_cast<float>(halfWidth)) * cellSize;
-            float wz = (static_cast<float>(iz) - static_cast<float>(halfDepth)) * cellSize;
-            float y = heightAt(ix, iz);
-
-            Engine::Vertex v{};
-            v.pos = glm::vec3(wx, y, wz);
-
-            // Compute finite-difference derivatives for normal
-            // X derivative (dhdx)
-            float hL = (ix > 0) ? heightAt(ix - 1, iz) : heightAt(ix, iz);
-            float hR = (ix < vertsX - 1) ? heightAt(ix + 1, iz) : heightAt(ix, iz);
-            float dhdx = (hR - hL) / ( ( (ix > 0 && ix < vertsX - 1) ? (2.0f * cellSize) : cellSize) );
-
-            // Z derivative (dhdz)
-            float hD = (iz > 0) ? heightAt(ix, iz - 1) : heightAt(ix, iz);
-            float hU = (iz < vertsZ - 1) ? heightAt(ix, iz + 1) : heightAt(ix, iz);
-            float dhdz = (hU - hD) / ( ( (iz > 0 && iz < vertsZ - 1) ? (2.0f * cellSize) : cellSize) );
-
-            glm::vec3 n = glm::normalize(glm::vec3(-dhdx, 1.0f, -dhdz));
-            v.normal = n;
-
-            // Texture coordinates mapped over entire terrain (0..1). Ready for tiling if shader multiplies UVs.
-            v.texCoord = glm::vec2(static_cast<float>(ix) / static_cast<float>(width),
-                                   static_cast<float>(iz) / static_cast<float>(depth));
-
-            // Default color (white) — texture will modulate this or replaced by sampled color.
-            v.color = glm::vec3(1.0f, 1.0f, 1.0f);
-
-            vertices.push_back(v);
+            int idx = iz * vertsX + ix;
+            positions[idx] = positionAt(ix, iz);
+            texcoords[idx] = glm::vec2(static_cast<float>(ix) / static_cast<float>(cellsX),
+                static_cast<float>(iz) / static_cast<float>(cellsZ)) * UVsize;
         }
     }
 
-    // Generate triangle indices (two triangles per quad cell)
-    for (int iz = 0; iz < depth; ++iz)
+    // Build indices (two triangles per quad)
+    indices.reserve(static_cast<size_t>(cellsX) * static_cast<size_t>(cellsZ) * 6);
+    for (int iz = 0; iz < cellsZ; ++iz)
     {
-        for (int ix = 0; ix < width; ++ix)
+        for (int ix = 0; ix < cellsX; ++ix)
         {
-            uint32_t a = static_cast<uint32_t>(iz) * vertsX + ix;
-            uint32_t b = a + 1;
-            uint32_t c = a + vertsX;
-            uint32_t d = c + 1;
-
-            // Ensure indices fit into uint16_t for current Mesh implementation.
-            // If the terrain exceeds 65535 vertices, Mesh must be updated to support 32-bit indices.
-            indices.push_back(static_cast<uint16_t>(a));
-            indices.push_back(static_cast<uint16_t>(c));
-            indices.push_back(static_cast<uint16_t>(d));
-
-            indices.push_back(static_cast<uint16_t>(a));
-            indices.push_back(static_cast<uint16_t>(d));
-            indices.push_back(static_cast<uint16_t>(b));
+            // compute indices and cast to uint16_t
+            uint16_t a = static_cast<uint16_t>(iz * vertsX + ix);
+            uint16_t b = static_cast<uint16_t>(iz * vertsX + (ix + 1));
+            uint16_t c = static_cast<uint16_t>((iz + 1) * vertsX + ix);
+            uint16_t d = static_cast<uint16_t>((iz + 1) * vertsX + (ix + 1));
+            // First triangle: a, c, d
+            indices.push_back(a);
+            indices.push_back(c);
+            indices.push_back(d);
+            // Second triangle: a, d, b
+            indices.push_back(a);
+            indices.push_back(d);
+            indices.push_back(b);
         }
+    }
+
+    // Compute per-vertex normals by accumulating face normals
+    std::vector<glm::vec3> normals(positions.size(), glm::vec3(0.0f));
+    for (size_t i = 0; i + 2 < indices.size(); i += 3)
+    {
+        uint32_t ia = static_cast<uint32_t>(indices[i + 0]);
+        uint32_t ib = static_cast<uint32_t>(indices[i + 1]);
+        uint32_t ic = static_cast<uint32_t>(indices[i + 2]);
+        glm::vec3 pa = positions[ia];
+        glm::vec3 pb = positions[ib];
+        glm::vec3 pc = positions[ic];
+        glm::vec3 faceNormal = glm::normalize(glm::cross(pb - pa, pc - pa));
+        normals[ia] += faceNormal;
+        normals[ib] += faceNormal;
+        normals[ic] += faceNormal;
+    }
+    for (size_t i = 0; i < normals.size(); ++i)
+    {
+        normals[i] = glm::normalize(normals[i]);
+    }
+
+    // Build final Vertex array (shared vertices)
+    finalVertices.reserve(positions.size());
+    for (size_t i = 0; i < positions.size(); ++i)
+    {
+        Vertex v{};
+        v.pos = positions[i];
+        v.normal = normals[i];
+        v.texCoord = texcoords[i];
+        v.color = glm::vec3(1.0f);
+        // Provide a simple tangent/binormal; if you need accurate tangents, compute them explicitly.
+        v.tangent = glm::vec3(1.0f, 0.0f, 0.0f);
+        v.binormal = glm::normalize(glm::cross(v.normal, v.tangent));
+        finalVertices.push_back(v);
     }
 
     Mesh mesh;
-    mesh.create(context, std::move(vertices), std::move(indices));
+    // Use indexed mesh creation (indices are uint16_t to match Mesh::create)
+    mesh.create(context, std::move(finalVertices), std::move(indices));
     return mesh;
 }
 

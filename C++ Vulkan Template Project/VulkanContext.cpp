@@ -40,7 +40,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     //Create Pipelines
     Engine::Pipeline terrainPipelineLocal;
     pipeline.create(*this, "shaders/shader.vert.spv", "shaders/shader.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
-    terrainPipelineLocal.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
+    terrainPipelineLocal.create(*this, "shaders/textureFragLighting.vert.spv", "shaders/textureFragLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 
     currentTextureIndex = 0;
     currentFilterMode = Engine::TextureFilterMode::Anisotropic;
@@ -146,7 +146,6 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
         vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
 
-
     createCommandBuffers();
     createSyncObjects();
 
@@ -154,6 +153,13 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     camera.create(45.0f, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 2500.0f);
     camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
     camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+
+    // Light Setup
+	sunLight.create(Engine::LightSource::Type::Directional, glm::vec3(1.0f, 0.95f, 0.8f), glm::vec3(200, 0, 0), 1.0f);
+	sunLight.enableOrbit(glm::vec3(0.0f), 200.0f, glm::radians(10.0f), 100.0f, glm::radians(-90.0f));
+	moonLight.create(Engine::LightSource::Type::Directional, glm::vec3(0.6f, 0.6f, 1.0f), glm::vec3(-200, 0, 0), 0.5f);
+	moonLight.enableOrbit(glm::vec3(0.0f), 200.0f, glm::radians(10.0f), 100.0f, glm::radians(90.0f));
+
 }
 void VulkanContext::cleanup() {
     vkDeviceWaitIdle(device);
@@ -884,15 +890,14 @@ void VulkanContext::updateUniformBuffer(uint32_t currentImage)
 	float time = std::chrono::duration<float>(currentTime - startTime).count();
 
     Engine::UniformBufferObject ubo = camera.getCameraUBO();
-	ubo.lightPos = glm::vec3(5.0f, 0.0f, 0.0f);
-	//red light moving in circle around origin
-	float radius = 3.0f;
-    ubo.redLightPos = glm::vec3(
-        radius * cos(time), // X position (radius = 3)
-        1.0f,             // Y height = 1
-        radius * sin(time)  // Z position (radius = 3)
-    );
-	ubo.time = time;
+    
+	sunLight.update(time);
+	sunLight.applyToUBO(ubo, 0);
+    moonLight.update(time);
+    moonLight.applyToUBO(ubo, 1);
+
+    // keep time in the UBO
+    ubo.time = time;
 
 
     uniformBuffers[currentImage].write(device, &ubo, sizeof(ubo));
@@ -1071,11 +1076,9 @@ void VulkanContext::handleInput()
     // Camera rotation with mouse
     double mouseX, mouseY;
     inputHandler.getMouseDelta(mouseX, mouseY);
-    if (mouseX != 0.0 || mouseY != 0.0)
-    {
-        float sensitivity = 0.1f;
-        camera.rotate(static_cast<float>(mouseX * sensitivity), static_cast<float>(-mouseY * sensitivity));
-    }
+    float sensitivity = 0.1f;
+    camera.rotate(static_cast<float>(mouseX * sensitivity), static_cast<float>(-mouseY * sensitivity));
+    
 
 }
 void VulkanContext::cleanFences(std::vector<VkFence>& fences)
