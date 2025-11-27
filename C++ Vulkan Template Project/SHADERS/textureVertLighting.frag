@@ -20,19 +20,16 @@ layout(std140, binding = 0) uniform UBO {
     float time;
 } ubo;
 
-// Texture bindings (match descriptor set layout in C++)
-layout(binding = 1) uniform sampler2D albedoMap;
-layout(binding = 2) uniform sampler2D normalMap;
-layout(binding = 3) uniform samplerCube skyboxMap; // kept for compatibility
-
-// Inputs from vertex shader (locations must match vertex outputs)
+// Inputs from vertex shader
 layout(location = 0) in vec3 vWorldPos;
 layout(location = 1) in vec3 vNormal;
 layout(location = 2) in vec2 vTexCoord;
 layout(location = 3) in vec3 vTangent;
 layout(location = 4) in vec3 vBitangent;
-// per-vertex lighting term computed in vertex shader
-layout(location = 5) in vec3 vLighting;
+
+// Texture samplers
+layout(binding = 1) uniform sampler2D albedoTex;
+layout(binding = 2) uniform sampler2D normalTex;
 
 // Output
 layout(location = 0) out vec4 outColor;
@@ -40,38 +37,23 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
     // Sample albedo
-    vec4 albedoSample = texture(albedoMap, vTexCoord);
-    vec3 albedo = albedoSample.rgb;
-    float alpha = albedoSample.a;
+    vec3 albedo = texture(albedoTex, vTexCoord).rgb;
 
-    // Alpha cutoff for simple transparency handling
-    if (alpha < 0.05) {
-        discard;
-    }
+    // Sample normal map and transform from [0,1] to [-1,1]
+    vec3 normalSample = texture(normalTex, vTexCoord).rgb;
+    vec3 tangentNormal = normalize(normalSample * 2.0 - 1.0);
 
-    // Sample normal map and convert to [-1,1]
-    vec3 nSample = texture(normalMap, vTexCoord).rgb;
-    nSample = nSample * 2.0 - 1.0;
+    // Construct TBN matrix
+    mat3 TBN = mat3(normalize(vTangent), normalize(vBitangent), normalize(vNormal));
+    vec3 worldNormal = normalize(TBN * tangentNormal);
 
-    // Reconstruct TBN (tangent, bitangent, normal are provided in world-space)
-    vec3 T = normalize(vTangent);
-    vec3 B = normalize(vBitangent);
-    vec3 N = normalize(vNormal);
-    mat3 TBN = mat3(T, B, N); // columns: tangent, bitangent, normal
+    // Lighting calculations (example: simple diffuse)
+    vec3 lightDir = normalize(ubo.sun_pos - vWorldPos);
+    float diff = max(dot(worldNormal, lightDir), 0.0);
 
-    // Transform normal-map normal into world space (bumped normal)
-    vec3 Nw = normalize(TBN * nSample);
+    // Simple ambient + diffuse
+    vec3 ambient = 0.1 * albedo;
+    vec3 diffuse = diff * albedo;
 
-    // Apply vertex-provided lighting to albedo (linear lighting)
-    vec3 color = albedo * vLighting;
-
-    // Slight modulation between geometric normal and bumped normal
-    color *= mix(0.98, 1.06, clamp(dot(N, Nw) * 0.5 + 0.5, 0.0, 1.0));
-
-    // NOTE: remove manual gamma conversion here.
-    // If your swapchain uses an sRGB format (preferred), the GPU will
-    // perform the linear->sRGB conversion automatically when writing the color.
-    // color = pow(color, vec3(1.0 / 2.2));
-
-    outColor = vec4(color, alpha);
+    outColor = vec4(ambient + diffuse, 1.0);
 }

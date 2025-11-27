@@ -35,8 +35,6 @@ layout(location = 1) out vec3 vNormal;
 layout(location = 2) out vec2 vTexCoord;
 layout(location = 3) out vec3 vTangent;
 layout(location = 4) out vec3 vBitangent;
-// per-vertex lighting term (ambient + contribution from lights) — fragment can modulate with albedo/normal-map
-layout(location = 5) out vec3 vLighting;
 
 void main()
 {
@@ -65,38 +63,4 @@ void main()
     vBitangent = B;
 
     vTexCoord = inTexCoord;
-
-    // --- Per-vertex Blinn-Phong lighting (basic) ---
-    // Material parameters (tweakable)
-    vec3 ambientColor = vec3(0.08); // low ambient
-    vec3 sunColor = vec3(1.0, 0.95, 0.85);   // warm sun
-    vec3 moonColor = vec3(0.6, 0.7, 1.0);    // cool moon
-    float diffuseStrength = 1.0;
-    float specularStrength = 0.5;
-    float shininess = 32.0;
-
-    // View direction
-    vec3 V = normalize(ubo.eyePos - vWorldPos);
-
-    // Sun contribution
-    vec3 Ls = normalize(ubo.sun_pos - vWorldPos);
-    float NdotLs = max(dot(N, Ls), 0.0);
-    vec3 diffuseSun = diffuseStrength * NdotLs * sunColor;
-    vec3 Hs = normalize(Ls + V);
-    float specSun = pow(max(dot(N, Hs), 0.0), shininess) * specularStrength;
-    vec3 specularSun = specSun * sunColor;
-
-    // Moon contribution
-    vec3 Lm = normalize(ubo.moon_pos - vWorldPos);
-    float NdotLm = max(dot(N, Lm), 0.0);
-    vec3 diffuseMoon = diffuseStrength * NdotLm * moonColor * 0.5; // weaker moon light
-    vec3 Hm = normalize(Lm + V);
-    float specMoon = pow(max(dot(N, Hm), 0.0), shininess) * specularStrength * 0.25;
-    vec3 specularMoon = specMoon * moonColor;
-
-    // Combine lighting: ambient + diffuse + specular
-    vLighting = ambientColor + (diffuseSun + specularSun) + (diffuseMoon + specularMoon);
-
-    // clamp to avoid extreme values
-    vLighting = clamp(vLighting, 0.0, 4.0);
 }

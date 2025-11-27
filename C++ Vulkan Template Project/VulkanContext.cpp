@@ -76,7 +76,7 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
         Engine::Object cactusObject;
 		Engine::Mesh cactusMesh = Engine::ModelLoader::loadOBJ(*this, "Objects/Cactus.obj", 7.5f);
         Engine::Pipeline cactusPipeline;
-        cactusPipeline.create(*this, "shaders/textureVertLighting.vert.spv", "shaders/textureVertLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
+        cactusPipeline.create(*this, "shaders/textureFragLighting.vert.spv", "shaders/textureFragLighting.frag.spv", swapChain.imageFormat, swapChain.depthFormat, descriptorSetLayout);
 		cactusObject.create(*this, std::move(cactusMesh), std::move(cactusPipeline), descriptorSetLayout, descriptorPool, uniformBuffers, cactusTexture, cactusNormal);
         cactusObject.addPushconstantStage(VK_SHADER_STAGE_FRAGMENT_BIT);
 		cacti.push_back(std::move(cactusObject));
@@ -155,10 +155,20 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
 
     // Light Setup
-	sunLight.create(Engine::LightSource::Type::Directional, glm::vec3(1.0f, 0.95f, 0.8f), glm::vec3(200, 0, 0), 1.0f);
-	sunLight.enableOrbit(glm::vec3(0.0f), 200.0f, glm::radians(10.0f), 100.0f, glm::radians(-90.0f));
-	moonLight.create(Engine::LightSource::Type::Directional, glm::vec3(0.6f, 0.6f, 1.0f), glm::vec3(-200, 0, 0), 0.5f);
-	moonLight.enableOrbit(glm::vec3(0.0f), 200.0f, glm::radians(10.0f), 100.0f, glm::radians(90.0f));
+    sunLight.create(Engine::LightSource::Type::Directional, glm::vec3(1.0f, 0.95f, 0.8f), glm::vec3(0.0f), 1.0f);
+
+	// Simulated solar parameters
+	const float dayLengthSeconds = 60.0f;                // one simulated "day" = 60 seconds (adjust as needed)
+	const float angularSpeed = glm::two_pi<float>() / dayLengthSeconds; // radians per second
+	const float earthTilt = glm::radians(23.44f);        // Earth's axial tilt ~23.44 degrees
+	const float orbitRadius = 200.0f;                    // distance from origin (tweak for visual scale)
+	const float startAngle = glm::radians(-90.0f);       // starting angle (sunrise orientation)
+
+    // Enable orbit using computed, physically-inspired parameters
+    sunLight.enableOrbit(glm::vec3(0.0f), orbitRadius, angularSpeed, earthTilt, startAngle);
+
+    moonLight.create(Engine::LightSource::Type::Directional, glm::vec3(0.6f, 0.6f, 1.0f), glm::vec3(0.0f), 0.5f);
+    moonLight.enableOrbit(glm::vec3(0.0f), orbitRadius, angularSpeed, earthTilt, startAngle + glm::pi<float>());
 
 }
 void VulkanContext::cleanup() {
