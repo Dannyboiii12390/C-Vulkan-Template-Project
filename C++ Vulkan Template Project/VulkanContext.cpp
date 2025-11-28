@@ -1096,6 +1096,11 @@ void VulkanContext::handleInput()
             break;
         }
     }
+    //TODO: input logic here
+    // 'r' should reset the scene - need to do config file first
+    // 'F4' starts a particle effect on demand (burning cactus) - camera need to be changed in order to see this
+    // 't'/'T' speeds up time, slows down time respectively
+
 
     window.setShouldClose(inputHandler.isKeyPressed(GLFW_KEY_ESCAPE));
 
