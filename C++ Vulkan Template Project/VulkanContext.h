@@ -144,6 +144,8 @@ private:
 	VkImageView skyboxCubemapView = VK_NULL_HANDLE;
 	VkSampler skyboxCubemapSampler = VK_NULL_HANDLE;
     Engine::Mesh skyboxMesh;
+    
+    Engine::Object testObject;
 
     Engine::ParticlePipeline particlePipeline;
     Engine::Mesh particleMesh;
@@ -154,7 +156,10 @@ private:
 	VkDeviceMemory skyboxCubemapMemory = VK_NULL_HANDLE;
 
     // --- Camera ---
-    Engine::Camera camera;
+    Engine::Camera C1;
+    Engine::Camera C2;
+    Engine::Camera C3;
+    Engine::Camera* camera = &C2;
 
     // --- Buffers ---
     std::vector<Engine::Buffer> uniformBuffers;

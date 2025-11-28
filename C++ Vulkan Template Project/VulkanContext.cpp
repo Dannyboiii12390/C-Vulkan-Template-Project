@@ -10,6 +10,7 @@
 #include <array>
 #include <set>
 #include <chrono>
+#include <unordered_map>
 
 
 
@@ -84,7 +85,6 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     cactusTexture.destroy(device);
     cactusNormal.destroy(device);
 
-
     createDescriptorSets();
 
     // create skybox pipeline after descriptor set layout is available (see next step)
@@ -150,9 +150,19 @@ VulkanContext::VulkanContext() : window(1280, 720, "Vulkan 3D Application"), inp
     createSyncObjects();
 
     // --- Initialize camera ---
-    camera.create(45.0f, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 2500.0f);
-    camera.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
-    camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+    C1.create(90, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 100.0f);
+    C1.setPosition(glm::vec3(0.0f, 100.0f, 10.0f));
+    C1.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+
+    C2.create(45.0f, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 2500.0f);
+    C2.setPosition(glm::vec3(0.0f, 5.0f, 10.0f));
+    C2.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+
+    C3.create(135.0f, static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight()), 0.1f, 250.0f);
+    C3.setPosition(glm::vec3(0.0f, 5.0f, 100.0f));
+    C3.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+
+    camera = &C2;
 
     // Light Setup
     sunLight.create(Engine::LightSource::Type::Directional, glm::vec3(1.0f, 0.95f, 0.8f), glm::vec3(0.0f), 1.0f);
@@ -531,7 +541,7 @@ void VulkanContext::createDescriptorPool() {
     //  - main mesh (1)
     //  - terrainObject (1)
     //  - cacti (numCacti)
-    uint32_t mainObjectCount = 2 + static_cast<uint32_t>(numCacti); // adjust if you add more
+    uint32_t mainObjectCount = 3 + static_cast<uint32_t>(numCacti); // adjust if you add more
     const uint32_t mainSets = n * mainObjectCount;
     const uint32_t skyboxSets = n;
     const uint32_t particleSets = n;
@@ -865,7 +875,8 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     particleMesh.draw(commandBuffer);
 
 	glm::mat4 CactusTranslation = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, -1.0f, 0.0f));
-    CactusTranslation = glm::scale(CactusTranslation, glm::vec3(0.1f)); // Scale down the cacti
+    float unitScale = 0.0025f;
+    CactusTranslation = glm::scale(CactusTranslation, glm::vec3(unitScale*20)); // Scale down the cacti
 	CactusTranslation = glm::rotate(CactusTranslation, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate to stand upright
 
 	for (int i = 0; i < cacti.size(); i++)
@@ -873,7 +884,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 		auto& cactus = cacti[i];
         cactus.draw(commandBuffer, currentFrame, CactusTranslation);
     }
-
+	
     vkCmdEndRendering(commandBuffer);
 
     VkImageMemoryBarrier2 imageBarrierToPresent{};
@@ -900,7 +911,7 @@ void VulkanContext::updateUniformBuffer(uint32_t currentImage)
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float>(currentTime - startTime).count();
 
-    Engine::UniformBufferObject ubo = camera.getCameraUBO();
+    Engine::UniformBufferObject ubo = camera->getCameraUBO();
     
 	sunLight.update(time);
 	sunLight.applyToUBO(ubo, 0);
@@ -1060,7 +1071,7 @@ glm::mat4 VulkanContext::rotateAboutPoint(const glm::vec3& pivot, const float an
     return modelMatrix;
 }
 
-void VulkanContext::handleInput() 
+void VulkanContext::handleInput()
 {
     //calculate delta time
     static auto lastFrameTime = std::chrono::high_resolution_clock::now();
@@ -1069,25 +1080,57 @@ void VulkanContext::handleInput()
     lastFrameTime = currentFrameTime;
     float sprintSpeed = 20.0f;
 
-    // keyboard input to move camera
-    //branchless
-    window.setShouldClose(inputHandler.isKeyPressed(GLFW_KEY_ESCAPE));
-	deltaTime = deltaTime + deltaTime * (sprintSpeed - 1.0f) * inputHandler.isKeyPressed(GLFW_KEY_LEFT_SHIFT);  // speed up when shift is held
-    float movespeed = 3.0f * deltaTime;
+    // Map function keys to camera instances
+    std::unordered_map<int, decltype(camera)> cameraMap = {
+        { GLFW_KEY_F1, &C1 },
+        { GLFW_KEY_F2, &C2 },
+        { GLFW_KEY_F3, &C3 }
+    };
 
-    camera.moveForward(movespeed * inputHandler.isKeyPressed(GLFW_KEY_W));
-    camera.moveForward(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_S));
-    camera.moveRight(movespeed * inputHandler.isKeyPressed(GLFW_KEY_D));
-    camera.moveRight(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_A));
-    camera.moveUp(movespeed * inputHandler.isKeyPressed(GLFW_KEY_SPACE));
-    camera.moveUp(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_LEFT_CONTROL));
+    // Switch active camera if corresponding key is pressed
+    for (const auto& [key, camPtr] : cameraMap)
+    {
+        if (inputHandler.isKeyPressed(key) && camPtr != nullptr)
+        {
+            camera = camPtr;
+            break;
+        }
+    }
+
+    window.setShouldClose(inputHandler.isKeyPressed(GLFW_KEY_ESCAPE));
+
+    // Compute movement speed; when Left Shift is pressed apply sprint multiplier.
+    // Use static_cast<float> to convert the boolean/int returned by isKeyPressed into a float (0.0 or 1.0).
+    float movespeed = 3.0f * deltaTime * (1.0f + sprintSpeed * static_cast<float>(inputHandler.isKeyPressed(GLFW_KEY_LEFT_SHIFT)));
+
+    camera->moveForward(movespeed * inputHandler.isKeyPressed(GLFW_KEY_W));
+    camera->moveForward(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_S));
+    camera->moveRight(movespeed * inputHandler.isKeyPressed(GLFW_KEY_D));
+    camera->moveRight(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_A));
+    //TODO: need to change for final version
+    camera->moveUp(movespeed * inputHandler.isKeyPressed(GLFW_KEY_SPACE));
+    camera->moveUp(-movespeed * inputHandler.isKeyPressed(GLFW_KEY_LEFT_ALT));
+
+    //rotate camera i,j,k,l
+    // Branchless camera rotation using I/J/K/L keys
+    // Key layout:
+    //   I = pitch up
+    //   K = pitch down
+    //   J = yaw left
+    //   L = yaw right
+    // Compute key-based rotation deltas (scaled by deltaTime to be frame-rate independent)
+    const float keyRotSpeed = 90.0f; // degrees (or units expected by camera->rotate) per second
+    float keyYawDelta = keyRotSpeed * deltaTime * (static_cast<float>(inputHandler.isKeyPressed(GLFW_KEY_L)) - static_cast<float>(inputHandler.isKeyPressed(GLFW_KEY_J)));
+    float keyPitchDelta = keyRotSpeed * deltaTime * (static_cast<float>(inputHandler.isKeyPressed(GLFW_KEY_I)) - static_cast<float>(inputHandler.isKeyPressed(GLFW_KEY_K)));
+
+    camera->rotate(keyYawDelta, keyPitchDelta);
+
 
     // Camera rotation with mouse
     double mouseX, mouseY;
     inputHandler.getMouseDelta(mouseX, mouseY);
     float sensitivity = 0.1f;
-    camera.rotate(static_cast<float>(mouseX * sensitivity), static_cast<float>(-mouseY * sensitivity));
-    
+    camera->rotate(static_cast<float>(mouseX * sensitivity), static_cast<float>(-mouseY * sensitivity));
 
 }
 void VulkanContext::cleanFences(std::vector<VkFence>& fences)

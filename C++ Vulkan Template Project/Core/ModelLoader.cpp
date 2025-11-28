@@ -276,6 +276,7 @@ namespace Engine
         mesh.create(context, std::move(finalVertices), std::move(indices));
         return mesh;
     }
+
     Mesh ModelLoader::createCylinder(VulkanContext & context, float radius, float height, int segmentCount, float UVsize)
     {
         std::vector<Vertex> vertices;

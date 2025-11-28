@@ -17,6 +17,7 @@ namespace Engine {
 		static Engine::Mesh createCubeWithoutIndex(VulkanContext& context);
 		static Engine::Mesh createGrid(VulkanContext& context, int width, int depth);
 		static Engine::Mesh createTerrain(VulkanContext& context, int width, int depth, float cellSize, float UVsize = 1);
+
 		static Engine::Mesh createCylinder(VulkanContext& context, float radius, float height, int segmentCount, float UVsize = 1);
 
 		static Engine::Mesh loadOBJ(VulkanContext& context, const const char* filepath, float UVsize = 1);
