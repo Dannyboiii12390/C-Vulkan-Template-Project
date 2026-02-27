@@ -4,48 +4,13 @@
 #include "../Core/Debug Utils.h"
 namespace Engine
 {
-    struct Texture::SharedImage
-    {
-        VkDevice device = VK_NULL_HANDLE;
-        VkImage image = VK_NULL_HANDLE;
-        VkDeviceMemory imageMemory = VK_NULL_HANDLE;
-        VkImageView imageView = VK_NULL_HANDLE;
-
-        SharedImage(VkDevice d, VkImage i, VkDeviceMemory m, VkImageView v)
-            : device(d), image(i), imageMemory(m), imageView(v)
-        {
-        }
-
-        ~SharedImage()
-        {
-            if (device == VK_NULL_HANDLE) return;
-            if (imageView != VK_NULL_HANDLE)
-            {
-                vkDestroyImageView(device, imageView, nullptr);
-                imageView = VK_NULL_HANDLE;
-            }
-            if (image != VK_NULL_HANDLE)
-            {
-                vkDestroyImage(device, image, nullptr);
-                image = VK_NULL_HANDLE;
-            }
-            if (imageMemory != VK_NULL_HANDLE)
-            {
-                vkFreeMemory(device, imageMemory, nullptr);
-                imageMemory = VK_NULL_HANDLE;
-            }
-        }
-
-        SharedImage(const SharedImage&) = delete;
-        SharedImage& operator=(const SharedImage&) = delete;
-    };
     VkSampler createSamplerDefault(VkDevice device,
         VkFilter magFilter,
         VkFilter minFilter,
         VkSamplerMipmapMode mipmapMode,
         bool enableAnisotropy)
     {
-        ASSERT_MSG(device != VK_NULL_HANDLE, "createSamplerDefault requires a valid VkDevice");
+        ASSERT(device != VK_NULL_HANDLE, "createSamplerDefault requires a valid VkDevice");
 
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -68,7 +33,7 @@ namespace Engine
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
 
         VkSampler sampler = VK_NULL_HANDLE;
-        VkResult res = vkCreateSampler(device, &samplerInfo, nullptr, &sampler);
+        const VkResult res = vkCreateSampler(device, &samplerInfo, nullptr, &sampler);
         if (res != VK_SUCCESS)
         {
             return VK_NULL_HANDLE;
@@ -145,7 +110,7 @@ namespace Engine
 
     Texture Texture::clone(VkDevice device)
     {
-        ASSERT_MSG(device != VK_NULL_HANDLE, "clone requires a valid VkDevice");
+        ASSERT(device != VK_NULL_HANDLE, "clone requires a valid VkDevice");
 
         Texture copyTexture;
 
@@ -155,15 +120,21 @@ namespace Engine
             // move ownership of raw image resources into a new SharedImage
             // The SharedImage destructor will free these when last reference is gone.
             sharedImage = std::make_shared<SharedImage>(device, image, imageMemory, imageView);
+
+            // IMPORTANT: transfer ownership into sharedImage by clearing the source raw handles.
+            // This prevents accidental double-free or leaks if the source is destroyed or moved later.
+            image = VK_NULL_HANDLE;
+            imageMemory = VK_NULL_HANDLE;
+            imageView = VK_NULL_HANDLE;
         }
 
         // Share the SharedImage with the clone
         copyTexture.sharedImage = sharedImage;
 
-        // Mirror the raw handles so existing code accessing image/imageView still works
-        copyTexture.image = image;
-        copyTexture.imageMemory = imageMemory;
-        copyTexture.imageView = imageView;
+        // Mirror the raw handles on the clone so existing code can still read them.
+        copyTexture.image = copyTexture.sharedImage->image;
+        copyTexture.imageMemory = copyTexture.sharedImage->imageMemory;
+        copyTexture.imageView = copyTexture.sharedImage->imageView;
 
         // Create independent sampler objects for the clone
         copyTexture.nearestSampler = createSamplerDefault(device, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST, false);

@@ -10,7 +10,41 @@ namespace Engine
         Trilinear,
         Anisotropic
     };
+    struct SharedImage
+    {
+        VkDevice device = VK_NULL_HANDLE;
+        VkImage image = VK_NULL_HANDLE;
+        VkDeviceMemory imageMemory = VK_NULL_HANDLE;
+        VkImageView imageView = VK_NULL_HANDLE;
 
+        SharedImage(VkDevice d, VkImage i, VkDeviceMemory m, VkImageView v)
+            : device(d), image(i), imageMemory(m), imageView(v)
+        {
+        }
+
+        ~SharedImage()
+        {
+            if (device == VK_NULL_HANDLE) return;
+            if (imageView != VK_NULL_HANDLE)
+            {
+                vkDestroyImageView(device, imageView, nullptr);
+                imageView = VK_NULL_HANDLE;
+            }
+            if (image != VK_NULL_HANDLE)
+            {
+                vkDestroyImage(device, image, nullptr);
+                image = VK_NULL_HANDLE;
+            }
+            if (imageMemory != VK_NULL_HANDLE)
+            {
+                vkFreeMemory(device, imageMemory, nullptr);
+                imageMemory = VK_NULL_HANDLE;
+            }
+        }
+
+        SharedImage(const SharedImage&) = delete;
+        SharedImage& operator=(const SharedImage&) = delete;
+    };
     struct Texture final
     {
         VkImage image = VK_NULL_HANDLE;
@@ -22,8 +56,6 @@ namespace Engine
         VkSampler trilinearSampler = VK_NULL_HANDLE;
         VkSampler anisotropicSampler = VK_NULL_HANDLE;
 
-        // Shared wrapper forward declaration (defined in VulkanTypes.cpp)
-        struct SharedImage;
         std::shared_ptr<SharedImage> sharedImage;
 
         Texture() = default;

@@ -1,3 +1,4 @@
+/* parasoft suppress all */
 // dear imgui, v1.92.5 WIP
 // (main code and documentation)
 

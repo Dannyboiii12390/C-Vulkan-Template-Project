@@ -1,0 +1,176 @@
+Severity 3 - Medium	[Line 1094] Duplicated code: 'ConfigureRepeatAddressModes(samplerInfo);        samplerInfo...'	ModelLoader.cpp
+Severity 3 - Medium	[Line 113] Duplicated code: 'depthStencil.depthBoundsTestEnable = VK_FALSE;        depthS...'	ParticlePipeline.cpp
+Severity 3 - Medium	[Line 128] Duplicated code: 'const VkImageView skyView = context.getSkyboxCubemapView();    ...'	Object.cpp
+Severity 3 - Medium	[Line 1294] Duplicated code: 'std::string path = "Objects/Cubemap.png";        int srcW = ...'	ModelLoader.cpp
+Severity 3 - Medium	[Line 1369] Duplicated code: 'const std::array<std::pair<int, int>, 6> cell = {           ...'	ModelLoader.cpp
+Severity 3 - Medium	[Line 194] Duplicated code: 'float sinPhi = std::sin(phi);                float cosPhi = ...'	ModelLoader.cpp
+Severity 3 - Medium	[Line 19] Duplicated code: 'const VkDevice device = context.getDevice();        // Load ...'	ParticlePipeline.cpp
+Severity 3 - Medium	[Line 39] Duplicated code: 'if (!textureLine.empty())        {            std::istringst...'	ModelLoader.cpp
+Severity 3 - Medium	[Line 70] Duplicated code: 'VkDescriptorBufferInfo bufferInfo{};            bufferInfo.buffer = u...'	Object.cpp
+Severity 3 - Medium	[Line 871] Duplicated code: 'imageInfo.mipLevels = 1;        imageInfo.arrayLayers = 1;  ...'	ModelLoader.cpp
+Severity 3 - Medium	[Line 89] Duplicated code: 'pipelineLayoutInfo.pushConstantRangeCount = 1;        pipeli...'	ParticlePipeline.cpp
+Severity 3 - Medium	[Line 902] Duplicated code: 'transitionImageLayout(context, textureImage,            VK_I...'	ModelLoader.cpp
+Severity 3 - Medium	[Line 96] Member variable 'window' is used to initialize member variable 'inputHandler'	VulkanContext.cpp
+Severity 4 - Low	[Line 107] Function 'cleanup' is not inlined	LightSource.cpp
+Severity 4 - Low	[Line 150] The 'darkPixel' array should not be used	VulkanContext.cpp
+Severity 4 - Low	[Line 151] The 'normalPixel' array should not be used	VulkanContext.cpp
+Severity 4 - Low	[Line 1793] Local variable 'cellSize' declared but not used	ModelLoader.cpp
+Severity 4 - Low	[Line 1856] The 'whitePixel' array should not be used	ModelLoader.cpp
+Severity 4 - Low	[Line 1857] The 'normalPixel' array should not be used	ModelLoader.cpp
+Severity 4 - Low	[Line 194] The 'normalPixel' array should not be used	VulkanContext.cpp
+Severity 4 - Low	[Line 21] Function 'setShouldClose' is not inlined	Window.cpp
+Severity 4 - Low	[Line 41] The 'shaderStages' array should not be used	ParticlePipeline.cpp
+Severity 4 - Low	[Line 41] The 'shaderStages' array should not be used	SkyboxPipeline.cpp
+Severity 4 - Low	[Line 50] The 'shaderStages' array should not be used	Pipeline.cpp
+Severity 4 - Low	[Line 52] The 'normalPixel' array should not be used	LightSource.cpp
+Severity 4 - Low	[Line 92] The 'queueFamilyIndices' array should not be used	Swapchain.cpp
+Severity 4 - Low	[Line 997] The 'swapChains' array should not be used	VulkanContext.cpp
+Severity 5 - Lowest	[Line 102] Returned value from function 'getImages' is passed by value	Object.h
+Severity 5 - Lowest	[Line 103] Member function 'getAlbedoTexture' returns handles to member data: 'albedoTexture'	Object.h
+Severity 5 - Lowest	[Line 104] Member function 'getNormalTexture' returns handles to member data: 'normalTexture'	Object.h
+Severity 5 - Lowest	[Line 107] Returned value from function 'copy' is passed by value	Pipeline.h
+Severity 5 - Lowest	[Line 111] Returned value from function 'clone' is passed by value	Texture.cpp
+Severity 5 - Lowest	[Line 11] Members 'depthImage, depthImageView, swapchain' of class 'Swapchain' are declared in suboptimal order for memory layout	Swapchain.h
+Severity 5 - Lowest	[Line 11] Members 'extent, imageViews, images' of class 'Swapchain' are declared in suboptimal order for memory layout	Swapchain.h
+Severity 5 - Lowest	[Line 11] Members 'obj' of class 'LightSource' are declared in suboptimal order for memory layout	LightSource.h
+Severity 5 - Lowest	[Line 1227] Returned value from function 'createTextureImageFromMemory' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 126] Assignment in constructor 'VulkanContext' found. Use constructor initialization list instead	VulkanContext.cpp
+Severity 5 - Lowest	[Line 127] Assignment in constructor 'VulkanContext' found. Use constructor initialization list instead	VulkanContext.cpp
+Severity 5 - Lowest	[Line 128] Assignment in constructor 'VulkanContext' found. Use constructor initialization list instead	VulkanContext.cpp
+Severity 5 - Lowest	[Line 128] Returned value from function 'readFile' is passed by value	Pipeline.h
+Severity 5 - Lowest	[Line 1292] Returned value from function 'LoadCubemapForSkybox' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 129] Assignment in constructor 'VulkanContext' found. Use constructor initialization list instead	VulkanContext.cpp
+Severity 5 - Lowest	[Line 12] Members 'cactusGrowths' of class 'ParticleManager' are declared in suboptimal order for memory layout	ParticleManager.h
+Severity 5 - Lowest	[Line 131] Returned value from function 'createVertexBuffer' is passed by value	Buffer.cpp
+Severity 5 - Lowest	[Line 132] Returned value from function 'createVertexInputState' is passed by value	Pipeline.h
+Severity 5 - Lowest	[Line 133] Returned value from function 'createInputAssemblyState' is passed by value	Pipeline.h
+Severity 5 - Lowest	[Line 134] Returned value from function 'createViewportState' is passed by value	Pipeline.h
+Severity 5 - Lowest	[Line 135] Returned value from function 'createRasterizationState' is passed by value	Pipeline.h
+Severity 5 - Lowest	[Line 136] Returned value from function 'createMultisampleState' is passed by value	Pipeline.h
+Severity 5 - Lowest	[Line 137] Returned value from function 'createColorBlendState' is passed by value	Pipeline.h
+Severity 5 - Lowest	[Line 138] Returned value from function 'createDynamicState' is passed by value	Pipeline.h
+Severity 5 - Lowest	[Line 1399] Returned value from function 'findQueueFamilies' is passed by value	VulkanContext.cpp
+Severity 5 - Lowest	[Line 1422] Returned value from function 'querySwapChainSupport' is passed by value	VulkanContext.cpp
+Severity 5 - Lowest	[Line 1439] Returned value from function 'chooseSwapSurfaceFormat' is passed by value	VulkanContext.cpp
+Severity 5 - Lowest	[Line 1455] Returned value from function 'chooseSwapExtent' is passed by value	VulkanContext.cpp
+Severity 5 - Lowest	[Line 1471] Returned value from function 'getRequiredExtensions' is passed by value	VulkanContext.cpp
+Severity 5 - Lowest	[Line 149] Returned value from function 'createInputAssemblyState' is passed by value	ParticlePipeline.cpp
+Severity 5 - Lowest	[Line 14] Members 'm_keyCallbacks, m_keyStates, m_mouseButtonCallbacks, m_mouseButtonStates, m_mouseMoveCallbacks, m_scrollCallbacks' of class 'InputHandler' are declared in suboptimal order for memory layout	InputHandler.h
+Severity 5 - Lowest	[Line 14] Returned value from function 'findParticleSystemIndexByName' is passed by value	ParticleManager.cpp
+Severity 5 - Lowest	[Line 14] Returned value from function 'getBindingDescriptions' is passed by value	VulkanTypes.cpp
+Severity 5 - Lowest	[Line 153] Returned value from function 'createIndexBuffer' is passed by value	Buffer.cpp
+Severity 5 - Lowest	[Line 154] Returned value from function 'copy' is passed by value	Pipeline.cpp
+Severity 5 - Lowest	[Line 1580] Returned value from function 'LoadCubemapForGlobe' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 158] Returned value from function 'createRasterizationState' is passed by value	ParticlePipeline.cpp
+Severity 5 - Lowest	[Line 15] Members 'dynamicStates, fragShaderPath, vertShaderPath' of class 'Pipeline' are declared in suboptimal order for memory layout	Pipeline.h
+Severity 5 - Lowest	[Line 161] Assignment in constructor 'VulkanContext' found. Use constructor initialization list instead	VulkanContext.cpp
+Severity 5 - Lowest	[Line 161] Returned value from function 'createSphere' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 1670] Returned value from function 'loadFromConfig' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 171] Returned value from function 'createUniformBuffer' is passed by value	Buffer.cpp
+Severity 5 - Lowest	[Line 171] Returned value from function 'readFile' is passed by value	Pipeline.cpp
+Severity 5 - Lowest	[Line 197] Returned value from function 'createVertexInputState' is passed by value	Pipeline.cpp
+Severity 5 - Lowest	[Line 208] Returned value from function 'createInputAssemblyState' is passed by value	Pipeline.cpp
+Severity 5 - Lowest	[Line 20] Returned value from function 'getAttributeDescriptions' is passed by value	VulkanTypes.cpp
+Severity 5 - Lowest	[Line 215] Returned value from function 'createViewportState' is passed by value	Pipeline.cpp
+Severity 5 - Lowest	[Line 218] Assignment in constructor 'VulkanContext' found. Use constructor initialization list instead	VulkanContext.cpp
+Severity 5 - Lowest	[Line 219] Assignment in constructor 'VulkanContext' found. Use constructor initialization list instead	VulkanContext.cpp
+Severity 5 - Lowest	[Line 21] Members 'albedoTexture, normalTexture' of class 'Object' are declared in suboptimal order for memory layout	Object.h
+Severity 5 - Lowest	[Line 21] Returned value from function 'getDeviceFeatures' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 222] Returned value from function 'createRasterizationState' is passed by value	Pipeline.cpp
+Severity 5 - Lowest	[Line 22] Member function 'getPosition' returns handles to member data: 'position_'	LightSource.h
+Severity 5 - Lowest	[Line 22] Returned value from function 'getCameraUBO' is passed by value	Camera.h
+Severity 5 - Lowest	[Line 234] Returned value from function 'createMultisampleState' is passed by value	Pipeline.cpp
+Severity 5 - Lowest	[Line 241] Returned value from function 'createColorBlendState' is passed by value	Pipeline.cpp
+Severity 5 - Lowest	[Line 24] Member function 'getColor' returns handles to member data: 'color_'	LightSource.h
+Severity 5 - Lowest	[Line 24] Returned value from function 'findObjectsIndexesByNameSubstring' is passed by value	ParticleManager.cpp
+Severity 5 - Lowest	[Line 24] Returned value from function 'getBindingDescription' is passed by value	VulkanTypes.h
+Severity 5 - Lowest	[Line 24] Returned value from function 'parseFaceToken' is passed by value	Flattener.cpp
+Severity 5 - Lowest	[Line 250] Returned value from function 'createDynamicState' is passed by value	Pipeline.cpp
+Severity 5 - Lowest	[Line 257] Returned value from function 'querySwapchainSupport' is passed by value	Swapchain.cpp
+Severity 5 - Lowest	[Line 25] Returned value from function 'getBindingDescriptions' is passed by value	VulkanTypes.h
+Severity 5 - Lowest	[Line 265] Returned value from function 'createTorus' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 26] Returned value from function 'getAttributeDescriptions' is passed by value	VulkanTypes.h
+Severity 5 - Lowest	[Line 284] Returned value from function 'chooseSwapSurfaceFormat' is passed by value	Swapchain.cpp
+Severity 5 - Lowest	[Line 299] Returned value from function 'getImages' is passed by value	Object.cpp
+Severity 5 - Lowest	[Line 308] Assignment in constructor 'VulkanContext' found. Use constructor initialization list instead	VulkanContext.cpp
+Severity 5 - Lowest	[Line 309] Returned value from function 'chooseSwapExtent' is passed by value	Swapchain.cpp
+Severity 5 - Lowest	[Line 32] Returned value from function 'getBindingDescription' is passed by value	VulkanTypes.h
+Severity 5 - Lowest	[Line 32] Returned value from function 'getCameraUBO' is passed by value	Camera.cpp
+Severity 5 - Lowest	[Line 35] Returned value from function 'copy' is passed by value	Mesh.h
+Severity 5 - Lowest	[Line 385] Returned value from function 'createGrid' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 38] Returned value from function 'getBindingDescription' is passed by value	VulkanTypes.h
+Severity 5 - Lowest	[Line 39] Returned value from function 'getAttributeDescriptions' is passed by value	VulkanTypes.h
+Severity 5 - Lowest	[Line 41] Member function 'getPosition' returns handles to member data: 'position'	Camera.h
+Severity 5 - Lowest	[Line 42] Returned value from function 'createVertexBuffer' is passed by value	Buffer.h
+Severity 5 - Lowest	[Line 430] Returned value from function 'createQuad' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 43] Members 'C1, C2, C3, commandBuffers, descriptorSets, globeAlbedoTexture, globeCenter, globeDescriptorSets, globeInteriorPipeline, gui, imageAvailableSemaphores, inFlightFences, inputHandler, instanceB...	VulkanContext.h
+Severity 5 - Lowest	[Line 43] Members 'camera, descriptorPool, descriptorSetLayout, imguiRenderPass, particleDescriptorSetLayout, shadowCasterObject, skyboxCubeImage, skyboxCubemapMemory, skyboxCubemapSampler, skyboxCubemapView, s...	VulkanContext.h
+Severity 5 - Lowest	[Line 43] Returned value from function 'createIndexBuffer' is passed by value	Buffer.h
+Severity 5 - Lowest	[Line 44] Member function 'getForward' returns handles to member data: 'front'	Camera.h
+Severity 5 - Lowest	[Line 44] Returned value from function 'createUniformBuffer' is passed by value	Buffer.h
+Severity 5 - Lowest	[Line 46] Member function 'getExtent' returns handles to member data: 'extent'	Swapchain.h
+Severity 5 - Lowest	[Line 47] Member function 'getRight' returns handles to member data: 'right'	Camera.h
+Severity 5 - Lowest	[Line 48] Members 'sharedImage' of structure 'Texture' are declared in suboptimal order for memory layout	Texture.h
+Severity 5 - Lowest	[Line 50] Member function 'getUp' returns handles to member data: 'up'	Camera.h
+Severity 5 - Lowest	[Line 50] Returned value from function 'copy' is passed by value	Mesh.cpp
+Severity 5 - Lowest	[Line 50] Returned value from function 'createCube' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 50] Returned value from function 'createInputAssemblyState' is passed by value	ParticlePipeline.h
+Severity 5 - Lowest	[Line 516] Returned value from function 'createTerrain' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 51] Returned value from function 'createCubeWithoutIndex' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 51] Returned value from function 'createRasterizationState' is passed by value	ParticlePipeline.h
+Severity 5 - Lowest	[Line 52] Returned value from function 'createTorus' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 53] Returned value from function 'createGrid' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 54] Member function 'getPosition' returns handles to member data: 'position'	ParticleSystem.h
+Severity 5 - Lowest	[Line 54] Returned value from function 'createTerrain' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 55] Member function 'getScale' returns handles to member data: 'scale'	ParticleSystem.h
+Severity 5 - Lowest	[Line 55] Returned value from function 'createQuad' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 56] Returned value from function 'createCylinder' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 57] Returned value from function 'createSphere' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 58] Members 'startScale, targetScale' of structure 'CactusGrowth' are declared in suboptimal order for memory layout	ParticleManager.h
+Severity 5 - Lowest	[Line 58] Returned value from function 'createCube' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 58] Returned value from function 'loadOBJ' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 60] Returned value from function 'createSemiSphere' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 61] Returned value from function 'createParticleSystem' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 62] Member function 'getWindow' returns handles to member data: 'window'	VulkanContext.h
+Severity 5 - Lowest	[Line 636] Returned value from function 'loadOBJ' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 63] Member function 'getInputHandler' returns handles to member data: 'inputHandler'	VulkanContext.h
+Severity 5 - Lowest	[Line 63] Returned value from function 'createTextureImage' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 64] Member function 'getSwapchain' returns handles to member data: 'swapChain'	VulkanContext.h
+Severity 5 - Lowest	[Line 64] Returned value from function 'querySwapchainSupport' is passed by value	Swapchain.h
+Severity 5 - Lowest	[Line 66] Member function 'getMesh' returns handles to member data: 'mesh'	ParticleSystem.h
+Severity 5 - Lowest	[Line 67] Member function 'getDescriptorSets' returns handles to member data: 'descriptorSets'	ParticleSystem.h
+Severity 5 - Lowest	[Line 67] Returned value from function 'chooseSwapSurfaceFormat' is passed by value	Swapchain.h
+Severity 5 - Lowest	[Line 68] Member function 'getPipeline' returns handles to member data: 'pipeline'	ParticleSystem.h
+Severity 5 - Lowest	[Line 70] Members 'moon_color, moon_pos' of structure 'UniformBufferObject' are declared in suboptimal order for memory layout	VulkanTypes.h
+Severity 5 - Lowest	[Line 70] Returned value from function 'getBindingDescription' is passed by value	VulkanTypes.cpp
+Severity 5 - Lowest	[Line 73] Returned value from function 'chooseSwapExtent' is passed by value	Swapchain.h
+Severity 5 - Lowest	[Line 73] Returned value from function 'findQueueFamilies' is passed by value	VulkanContext.h
+Severity 5 - Lowest	[Line 744] Returned value from function 'createSemiSphere' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 74] Returned value from function 'querySwapChainSupport' is passed by value	VulkanContext.h
+Severity 5 - Lowest	[Line 75] Returned value from function 'chooseSwapSurfaceFormat' is passed by value	VulkanContext.h
+Severity 5 - Lowest	[Line 75] Returned value from function 'createTextureImageFromMemory' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 77] Returned value from function 'LoadCubemapForSkybox' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 77] Returned value from function 'chooseSwapExtent' is passed by value	VulkanContext.h
+Severity 5 - Lowest	[Line 77] Returned value from function 'findParticleSystemIndexByName' is passed by value	ParticleManager.h
+Severity 5 - Lowest	[Line 78] Returned value from function 'LoadCubemapForGlobe' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 78] Returned value from function 'findObjectsIndexesByNameSubstring' is passed by value	ParticleManager.h
+Severity 5 - Lowest	[Line 78] Returned value from function 'getRequiredExtensions' is passed by value	VulkanContext.h
+Severity 5 - Lowest	[Line 79] Returned value from function 'loadFromConfig' is passed by value	ModelLoader.h
+Severity 5 - Lowest	[Line 7] Returned value from function 'getBindingDescription' is passed by value	VulkanTypes.cpp
+Severity 5 - Lowest	[Line 80] Returned value from function 'getAttributeDescriptions' is passed by value	VulkanTypes.cpp
+Severity 5 - Lowest	[Line 825] Returned value from function 'createParticleSystem' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 82] Returned value from function 'clone' is passed by value	Texture.h
+Severity 5 - Lowest	[Line 83] Member function 'getC1' returns handles to member data: 'C1'	VulkanContext.h
+Severity 5 - Lowest	[Line 847] Returned value from function 'createTextureImage' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 84] Member function 'getC2' returns handles to member data: 'C2'	VulkanContext.h
+Severity 5 - Lowest	[Line 85] Member function 'getC3' returns handles to member data: 'C3'	VulkanContext.h
+Severity 5 - Lowest	[Line 85] Member function 'getMesh' returns handles to member data: 'mesh'	Object.h
+Severity 5 - Lowest	[Line 86] Member function 'getPipeline' returns handles to member data: 'pipeline'	Object.h
+Severity 5 - Lowest	[Line 87] Member function 'getDescriptorSets' returns handles to member data: 'descriptorSets'	Object.h
+Severity 5 - Lowest	[Line 8] Members 'title, window' of class 'Window' are declared in suboptimal order for memory layout	Window.h
+Severity 5 - Lowest	[Line 92] Returned value from function 'createCubeWithoutIndex' is passed by value	ModelLoader.cpp
+Severity 5 - Lowest	[Line 96] Returned value from function 'getBindingDescription' is passed by value	VulkanTypes.cpp
+Severity 5 - Lowest	[Line 97] Member function 'getPosition' returns handles to member data: 'position'	Object.h
+Severity 5 - Lowest	[Line 98] Member function 'getScale' returns handles to member data: 'scale'	Object.h
+Severity 5 - Lowest	[Line 99] Member function 'getRotation' returns handles to member data: 'rotation'	Object.h
+Severity 5 - Lowest	[Line 9] Assignment in constructor 'Window' found. Use constructor initialization list instead	Window.cpp

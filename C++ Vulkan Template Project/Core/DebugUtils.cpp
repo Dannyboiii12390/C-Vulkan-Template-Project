@@ -2,7 +2,8 @@
 #include <vulkan/vulkan.h>
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger) {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"); // TODO ask warren if these are ok to suppress
+                                                                                                                       // as its sort of vulkan code
     if (func != nullptr) {
         return func(instance, pCreateInfo, pAllocator, pMessenger);
     } else {

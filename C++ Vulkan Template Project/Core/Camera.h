@@ -12,7 +12,7 @@ namespace Engine {
 
     class Camera final {
     public:
-        Camera(float fov = 45.0f, float aspectRatio = 16.0f / 9.0f, float nearPlane = 0.1f, float farPlane = 100.0f);
+        explicit Camera(float fov = 45.0f, float aspectRatio = 16.0f / 9.0f, float nearPlane = 0.1f, float farPlane = 2500.0f);
 		void create(float fov, float aspectRatio, float nearPlane, float farPlane);
 
 
@@ -30,15 +30,29 @@ namespace Engine {
         void rotate(const float yaw, const float pitch);
         void lookAt(const glm::vec3& target);
 
-        // Window resize handler
-        void setAspectRatio(float aspectRatio);
 
-        // Position and orientation getters/setters
-        void setPosition(const glm::vec3& position);
-        glm::vec3 getPosition() const;
-        glm::vec3 getForward() const;
-        glm::vec3 getRight() const;
-        glm::vec3 getUp() const;
+        inline void setAspectRatio(const float ratio) {
+            aspectRatio = ratio;
+        }
+        inline void setPosition(const glm::vec3& pos) {
+            position = pos;
+        }
+        inline const glm::vec3& getPosition() const {
+            return position;
+        }
+        inline const glm::vec3& getForward() const {
+            return front;
+        }
+        inline const glm::vec3& getRight() const {
+            return right;
+        }
+        inline const glm::vec3& getUp() const {
+            return up;
+        }
+        inline const glm::vec3& getLookAt() const
+        {
+			return position + front;
+        }
 
         // Projection settings
         void setPerspective(const float fov, const float aspectRatio, const float nearPlane, const float farPlane);

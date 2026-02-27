@@ -7,20 +7,18 @@ namespace Engine {
     // Initialize static member
     std::unordered_map<GLFWwindow*, InputHandler*> InputHandler::s_instances;
 
-    InputHandler::InputHandler(Window& window) : m_window(&window) {
-        GLFWwindow* win = m_window->getGLFWwindow();
-        if (!win) {
-            std::cerr << "ERROR: Null GLFW window in InputHandler constructor" << std::endl;
-            return;
-        }
-
+    InputHandler::InputHandler(Window& window) : m_window(&window), m_lastMouseX(0), m_lastMouseY(0) {
+        GLFWwindow* const win = m_window->getGLFWwindow();
+      
         // Register this instance in the static map
         s_instances[win] = this;
 
         // Set up GLFW callbacks
         glfwSetKeyCallback(win, keyCallback);
         glfwSetMouseButtonCallback(win, mouseButtonCallback);
-        glfwSetCursorPosCallback(win, cursorPosCallback);
+        
+        if(!CURSOR) glfwSetCursorPosCallback(win, cursorPosCallback);
+        
         glfwSetScrollCallback(win, scrollCallback);
 
         // Initialize mouse position
@@ -29,11 +27,13 @@ namespace Engine {
         m_lastMouseY = m_mouseY;
         
         // Enable cursor capture for reliable mouse movement
-        glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        if(CURSOR) glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		else glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
     InputHandler::~InputHandler() {
-        if (m_window && m_window->getGLFWwindow()) {
-            s_instances.erase(m_window->getGLFWwindow());
+		GLFWwindow* const win = m_window->getGLFWwindow();
+        if (m_window && win) {
+            s_instances.erase(win);
         }
     }
     void InputHandler::update() {
@@ -71,19 +71,19 @@ namespace Engine {
 	// Keyboard methods
     bool InputHandler::isKeyPressed(int key) const {
 		//return glfwGetKey(m_window->getGLFWwindow(), key) == GLFW_PRESS;
-        auto it = m_keyStates.find(key);
+        const auto it = m_keyStates.find(key);
         return it != m_keyStates.end() && (it->second == State::PRESSED || it->second == State::HELD);
     }
     bool InputHandler::isKeyHeld(int key) const {
-        auto it = m_keyStates.find(key);
+        const auto it = m_keyStates.find(key);
         return it != m_keyStates.end() && (it->second == State::PRESSED || it->second == State::HELD);
     }
     bool InputHandler::isKeyReleased(int key) const {
-        auto it = m_keyStates.find(key);
+        const auto it = m_keyStates.find(key);
         return it != m_keyStates.end() && it->second == State::RELEASED_THIS_FRAME;
     }
     InputHandler::State InputHandler::getKeyState(int key) const {
-        auto it = m_keyStates.find(key);
+        const auto it = m_keyStates.find(key);
         return it != m_keyStates.end() ? it->second : State::RELEASED;
     }
 
@@ -94,15 +94,15 @@ namespace Engine {
         return it != m_mouseButtonStates.end() && (it->second == State::PRESSED || it->second == State::HELD);*/
     }
     bool InputHandler::isMouseButtonHeld(int button) const {
-        auto it = m_mouseButtonStates.find(button);
+        const auto it = m_mouseButtonStates.find(button);
         return it != m_mouseButtonStates.end() && (it->second == State::PRESSED || it->second == State::HELD);
     }
     bool InputHandler::isMouseButtonReleased(int button) const {
-        auto it = m_mouseButtonStates.find(button);
+        const auto it = m_mouseButtonStates.find(button);
         return it != m_mouseButtonStates.end() && it->second == State::RELEASED_THIS_FRAME;
     }
     InputHandler::State InputHandler::getMouseButtonState(int button) const {
-        auto it = m_mouseButtonStates.find(button);
+        const auto it = m_mouseButtonStates.find(button);
         return it != m_mouseButtonStates.end() ? it->second : State::RELEASED;
     }
     void InputHandler::getMouseDelta(double& outDeltaX, double& outDeltaY) const noexcept {
@@ -111,25 +111,25 @@ namespace Engine {
     }
 
 	// Callback registration
-    void InputHandler::registerKeyCallback(KeyCallback callback) {
+    void InputHandler::registerKeyCallback(KeyCallback& callback) {
         m_keyCallbacks.push_back(std::move(callback));
     }
-    void InputHandler::registerMouseButtonCallback(MouseButtonCallback callback) {
+    void InputHandler::registerMouseButtonCallback(MouseButtonCallback& callback) {
         m_mouseButtonCallbacks.push_back(std::move(callback));
     }
-    void InputHandler::registerMouseMoveCallback(MouseMoveCallback callback) {
+    void InputHandler::registerMouseMoveCallback(MouseMoveCallback& callback) {
         m_mouseMoveCallbacks.push_back(std::move(callback));
     }
-    void InputHandler::registerMouseScrollCallback(MouseScrollCallback callback) {
+    void InputHandler::registerMouseScrollCallback(MouseScrollCallback& callback) {
         m_scrollCallbacks.push_back(std::move(callback));
     }
 
     // Static GLFW callback functions
     void InputHandler::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-        auto it = s_instances.find(window);
+        const auto it = s_instances.find(window);
         if (it == s_instances.end()) return;
 
-        InputHandler* instance = it->second;
+        InputHandler* const instance = it->second;
 
         if (action == GLFW_PRESS) {
             instance->m_keyStates[key] = State::PRESSED;
@@ -143,10 +143,10 @@ namespace Engine {
         }
     }
     void InputHandler::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-        auto it = s_instances.find(window);
+        const auto it = s_instances.find(window);
         if (it == s_instances.end()) return;
 
-        InputHandler* instance = it->second;
+        InputHandler* const instance = it->second;
 
         if (action == GLFW_PRESS) {
             instance->m_mouseButtonStates[button] = State::PRESSED;
@@ -160,10 +160,10 @@ namespace Engine {
         }
     }
     void InputHandler::cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-        auto it = s_instances.find(window);
+        const auto it = s_instances.find(window);
         if (it == s_instances.end()) return;
 
-        InputHandler* instance = it->second;
+        InputHandler* const instance = it->second;
         instance->m_mouseX = xpos;
         instance->m_mouseY = ypos;
 
@@ -172,10 +172,10 @@ namespace Engine {
         }
     }
     void InputHandler::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-        auto it = s_instances.find(window);
+        const auto it = s_instances.find(window);
         if (it == s_instances.end()) return;
 
-        InputHandler* instance = it->second;
+        InputHandler* const instance = it->second;
         instance->m_scrollX += xoffset;
         instance->m_scrollY += yoffset;
 

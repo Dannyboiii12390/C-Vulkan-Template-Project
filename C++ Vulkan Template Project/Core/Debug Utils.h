@@ -4,18 +4,15 @@
 #include <vulkan/vulkan.h>
 #include <iostream>
 
-#ifdef DEBUG
-#define ASSERT(x) if(!(x)) __debugbreak()
-#define ASSERT_MSG(x, msg) if(!(x)) { std::cout << msg << std::endl; __debugbreak();}
-#define LOG(msg) std::cout << msg << std::endl
-
-#else
-#define ASSERT(x) x
-#define ASSERT_MSG(x, msg) x
-#define LOG(msg)
-
-
-#endif
+inline void ASSERT(bool condition, const char* message = "")
+{
+    if (!condition)
+    {
+		std::cerr << "Assertion failed: " << message << std::endl;
+        __debugbreak();
+    }
+        
+}
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -38,7 +35,7 @@ inline VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData,
-    void* pUserData)
+    void* const pUserData)
 {
 
     std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl;

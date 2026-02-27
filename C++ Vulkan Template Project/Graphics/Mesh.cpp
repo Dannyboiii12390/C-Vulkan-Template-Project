@@ -1,8 +1,9 @@
 #include "Mesh.h"
 #include "../VulkanContext.h"
+#include <array>
 namespace Engine
 {
-    void Mesh::create(VulkanContext& context, std::vector<Vertex>&& pVertices, std::vector<uint16_t>&& pIndices)
+    void Mesh::create(const VulkanContext& context, std::vector<Vertex>&& pVertices, std::vector<uint16_t>&& pIndices)
     {
         //LOG("Creating Mesh with move semantics");
         vertices = std::move(pVertices);
@@ -13,58 +14,40 @@ namespace Engine
         vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
         indexBuffer = Buffer::createIndexBuffer(context, indices.data(), sizeof(indices[0]) * indices.size());
     }
-    void Mesh::create(VulkanContext& context, std::vector<Vertex>&& pVertices)
+    void Mesh::create(const VulkanContext& context, std::vector<Vertex>&& pVertices)
     {
         //LOG("Creating Mesh with move semantics - non indexed");
         vertices = std::move(pVertices);
         indexCount = 0;
         vertexBuffer = Buffer::createVertexBuffer(context, vertices.data(), sizeof(vertices[0]) * vertices.size());
     }
-    void Mesh::cleanup(VulkanContext& context)
+    void Mesh::cleanup(const VulkanContext& context)
     {
         if(isIndexed()) indexBuffer.destroy(context.getDevice());
         vertexBuffer.destroy(context.getDevice());
     }
-    void Mesh::bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer)
+    void Mesh::bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer) const 
     {
         if (instanceBuffer != VK_NULL_HANDLE) {
             // Bind vertex buffer (binding 0) and instance buffer (binding 1)
-            VkBuffer vertexBuffers[] = { vertexBuffer.buffer, instanceBuffer };
-            VkDeviceSize offsets[] = { 0, 0 };
-            vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+            std::array<VkBuffer, 2> vertexBuffers = { vertexBuffer.getBuffer(), instanceBuffer };
+            std::array<VkDeviceSize, 2> offsets = { 0, 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers.data(), offsets.data());
         }
         else {
-            VkBuffer vertexBuffers[] = { vertexBuffer.buffer };
-            VkDeviceSize offsets[] = { 0 };
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+            std::array<VkBuffer, 2> vertexBuffers = { vertexBuffer.getBuffer(), VK_NULL_HANDLE };
+            std::array<VkDeviceSize, 2> offsets = { 0, 0 };
+            // bind only the first buffer when no instance buffer is provided
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers.data(), offsets.data());
         }
-        if (isIndexed()) vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+        if (isIndexed()) vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT16);
     }
-    void Mesh::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount) {
-        if(isIndexed()) vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
+    void Mesh::draw(VkCommandBuffer commandBuffer, uint32_t instanceCount) const
+    {
+        if (isIndexed()) vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, 0, 0, 0);
         else vkCmdDraw(commandBuffer, vertices.size(), instanceCount, 0, 0);
-
-
     }
-
-    /*
-    Pseudocode / Plan (detailed):
-    - Create a new Mesh object 'newMesh'.
-    - Determine if 'other' is indexed by calling 'other.isIndexed()' (preferred over checking indexCount).
-    - If not indexed:
-        - Make a copy of 'other.vertices' into a temporary std::vector<Vertex> (prvalue).
-        - Call 'newMesh.create(context, <temp_vertices>)' which takes an rvalue reference.
-    - If indexed:
-        - Make copies of 'other.vertices' and 'other.indices' into temporary prvalue vectors
-          of matching element types (Vertex and uint16_t).
-        - Call 'newMesh.create(context, <temp_vertices>, <temp_indices>)'.
-    - Return the newly created mesh.
-    Notes:
-    - Use direct prvalue construction of std::vector to bind to rvalue references; do NOT use
-      non-existent std::make_move. Avoid incorrect element-type conversions (e.g., uint32_t).
-    */
-
-    Mesh Mesh::copy(VulkanContext& context, const Mesh& other)
+    Mesh Mesh::copy(const VulkanContext& context, const Mesh& other)
     {
         Mesh newMesh;
         // Create GPU resources by copying CPU-side data and forwarding prvalue vectors

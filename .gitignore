@@ -416,3 +416,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+.cpptest
+.parasoft.dat
+/C++ Vulkan Template Project/.parasoft
+/C++ Vulkan Template Project/fps_log.txt
+/C++ Vulkan Template Project/fps_log.txt

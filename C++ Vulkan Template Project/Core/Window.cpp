@@ -18,15 +18,15 @@ namespace Engine {
 		glfwDestroyWindow(window);
 		glfwTerminate();
 	}
-	void Window::setShouldClose(bool value) {
+	void Window::setShouldClose(bool value) const {
 		glfwSetWindowShouldClose(window, value);
 	}
 
-	void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+	void Window::framebufferResizeCallback(GLFWwindow* pWindow, int pWidth, int pHeight)
 	{
-		auto app = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+		auto app = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pWindow));
 		app->framebufferResized = true;
-		app->width = width;
-		app->height = height;
+		app->width = pWidth;
+		app->height = pHeight;
 	}
 }

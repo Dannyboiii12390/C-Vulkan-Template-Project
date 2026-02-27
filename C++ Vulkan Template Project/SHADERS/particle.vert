@@ -12,7 +12,13 @@ layout(std140, binding = 0) uniform UniformBufferObject {
     vec3 moon_color;
     float moon_intensity;
     float time;
+    int inside_globe;
 } ubo;
+
+// Push constants
+layout(push_constant) uniform PushConstants {
+    mat4 model;
+} pushConstants;
 
 layout(location = 0) in vec3 inPosition;
 
@@ -36,7 +42,7 @@ void main() {
     float lifetime = mod(ubo.time + randomLifetime, 3.0);
     float lifeRatio = lifetime / 3.0;
     
-    // Animate position
+    // Start from the mesh-provided particle position
     vec3 animatedPos = inPosition;
     
     // Upward motion with gravity
@@ -46,13 +52,16 @@ void main() {
     animatedPos.x += cos(randomAngle) * randomSpeed * lifetime;
     animatedPos.z += sin(randomAngle) * randomSpeed * lifetime;
     
+    // Apply per-system model transform (from push constants)
+    vec3 worldPos = (pushConstants.model * vec4(animatedPos, 1.0)).xyz;
+
     // Transform to clip space
-    gl_Position = ubo.proj * ubo.view * vec4(animatedPos, 1.0);
+    gl_Position = ubo.proj * ubo.view * vec4(worldPos, 1.0);
     
-    // Calculate point size based on distance and lifetime
-    float distance = length((ubo.view * vec4(animatedPos, 1.0)).xyz);
+    // Calculate point size based on distance and lifetime, guard divide-by-zero
+    float distance = length((ubo.view * vec4(worldPos, 1.0)).xyz);
     float sizeFade = 1.0 - lifeRatio;  // Shrink as particle ages
-    gl_PointSize = clamp((300.0 / distance) * sizeFade, 0.0, 20.0);
+    gl_PointSize = clamp((300.0 / max(distance, 0.0001)) * sizeFade, 0.0, 20.0);
     
     // Color based on lifetime (fire gradient)
     if (lifeRatio < 0.3) {

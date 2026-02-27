@@ -17,6 +17,7 @@ layout(std140, binding = 0) uniform UBO {
     float moon_intensity;
 
     float time;
+    int inside_globe;
 } ubo;
 
 layout(location = 0) in vec3 inPos;

@@ -61,7 +61,7 @@ namespace Engine {
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, WIDTH, HEIGHT);
+        VkExtent2D local_extent = chooseSwapExtent(swapChainSupport.capabilities, WIDTH, HEIGHT);
 
         // Request one more image than the minimum to avoid waiting for the driver
         imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -75,7 +75,7 @@ namespace Engine {
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
+        createInfo.imageExtent = local_extent;
         createInfo.imageArrayLayers = 1;  // Always 1 unless stereoscopic 3D
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -87,12 +87,13 @@ namespace Engine {
             throw std::runtime_error("Failed to find required queue family indices for swapchain");
         }
 
-        uint32_t queueFamilyIndices[] = {
-            indices.graphicsFamily.value(),
-            indices.presentFamily.value()
-        };
-
         if (indices.graphicsFamily.value() != indices.presentFamily.value()) {
+
+            uint32_t queueFamilyIndices[] = {
+                indices.graphicsFamily.value(),
+                indices.presentFamily.value()
+            };
+
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -120,7 +121,7 @@ namespace Engine {
 
         // Save the format and extent for later use
         imageFormat = surfaceFormat.format;
-        this->extent = extent;
+        this->extent = local_extent;
 
         // Create image views for each swapchain image
         imageViews.resize(images.size());
@@ -325,7 +326,7 @@ namespace Engine {
         }
     }
 
-    uint32_t Swapchain::acquireNextImage(VkDevice device, VkSemaphore imageAvailableSemaphore, uint64_t timeout) {
+    uint32_t Swapchain::acquireNextImage(VkDevice device, VkSemaphore imageAvailableSemaphore, uint64_t timeout) const {
         uint32_t imageIndex;
         VkResult result = vkAcquireNextImageKHR(
             device,
@@ -346,7 +347,7 @@ namespace Engine {
         return imageIndex;
     }
 
-    VkResult Swapchain::present(VkQueue presentQueue, uint32_t imageIndex, VkSemaphore renderFinishedSemaphore) {
+    VkResult Swapchain::present(VkQueue presentQueue, uint32_t imageIndex, VkSemaphore renderFinishedSemaphore) const {
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 

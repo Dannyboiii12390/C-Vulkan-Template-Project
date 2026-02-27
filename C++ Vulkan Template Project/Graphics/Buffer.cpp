@@ -2,6 +2,7 @@
 #include "../VulkanContext.h"
 #include <stdexcept>
 #include <cstring>
+#include <cctype>
 namespace Engine
 {
     void Buffer::create(const VulkanContext& ctx, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memProperties) {
@@ -10,7 +11,7 @@ namespace Engine
         usage = bufferUsage;
         properties = memProperties;
 
-        VkDevice device = ctx.getDevice();
+        const VkDevice device = ctx.getDevice();
 
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -51,33 +52,33 @@ namespace Engine
         usage = 0;
         properties = 0;
     }
-    void Buffer::bind(VkDevice device, VkDeviceSize offset) {
+    void Buffer::bind(VkDevice device, VkDeviceSize offset) const {
         if (buffer != VK_NULL_HANDLE && memory != VK_NULL_HANDLE) {
             vkBindBufferMemory(device, buffer, memory, offset);
         }
     }
-    void* Buffer::map(VkDevice device, VkDeviceSize offset, VkDeviceSize mapSize) {
+    void* Buffer::map(VkDevice device, VkDeviceSize offset, VkDeviceSize mapSize) const {
         void* mapped = nullptr;
         if (vkMapMemory(device, memory, offset, mapSize, 0, &mapped) != VK_SUCCESS) {
             throw std::runtime_error("Failed to map buffer memory");
         }
         return mapped;
     }
-    void Buffer::unmap(VkDevice device) {
+    void Buffer::unmap(VkDevice device) const {
         if (memory != VK_NULL_HANDLE) {
             vkUnmapMemory(device, memory);
         }
     }
-    void Buffer::write(VkDevice device, const void* srcData, VkDeviceSize writeSize, VkDeviceSize offset) {
+    void Buffer::write(VkDevice device, const void* srcData, VkDeviceSize writeSize, VkDeviceSize offset) const {
         if (writeSize == 0 || srcData == nullptr) return;
-        void* dst = map(device, offset, writeSize);
+        void* const dst = map(device, offset, writeSize);
         std::memcpy(dst, srcData, static_cast<size_t>(writeSize));
         if ((properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0) {
             flush(device, offset, writeSize);
         }
         unmap(device);
     }
-    void Buffer::flush(VkDevice device, VkDeviceSize offset, VkDeviceSize flushSize) {
+    void Buffer::flush(VkDevice device, VkDeviceSize offset, VkDeviceSize flushSize) const {
         if ((properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0) return; // not required
         VkMappedMemoryRange range{};
         range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
@@ -86,7 +87,7 @@ namespace Engine
         range.size = flushSize;
         vkFlushMappedMemoryRanges(device, 1, &range);
     }
-    void Buffer::invalidate(VkDevice device, VkDeviceSize offset, VkDeviceSize invalidateSize) {
+    void Buffer::invalidate(VkDevice device, VkDeviceSize offset, VkDeviceSize invalidateSize) const {
         if ((properties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0) return;
         VkMappedMemoryRange range{};
         range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
@@ -95,7 +96,7 @@ namespace Engine
         range.size = invalidateSize;
         vkInvalidateMappedMemoryRanges(device, 1, &range);
     }
-    void Buffer::copy(VulkanContext& context, const Buffer& src, Buffer& dst, VkDeviceSize copySize) {
+    void Buffer::copy(const VulkanContext& context, const Buffer& src, Buffer& dst, VkDeviceSize copySize) {
         if (copySize == 0) copySize = src.size;
         //ctx.copyBuffer(src.buffer, dst.buffer, copySize);
         VkCommandBufferAllocateInfo allocInfo{};
@@ -127,7 +128,7 @@ namespace Engine
         vkFreeCommandBuffers(context.getDevice(), context.getCommandPool(), 1, &commandBuffer);
     }
 
-    Buffer Buffer::createVertexBuffer(VulkanContext& ctx, const void* data, VkDeviceSize dataSize) {
+    Buffer Buffer::createVertexBuffer(const VulkanContext& ctx, const void* data, VkDeviceSize dataSize) {
         // Create staging buffer
         Buffer staging{};
         staging.create(ctx, dataSize,
@@ -149,7 +150,7 @@ namespace Engine
 
         return vertex;
     }
-    Buffer Buffer::createIndexBuffer(VulkanContext& ctx, const void* data, VkDeviceSize dataSize) {
+    Buffer Buffer::createIndexBuffer(const VulkanContext& ctx, const void* data, VkDeviceSize dataSize) {
         // Reuse the same flow as vertex: staging -> device local
         Buffer staging{};
         staging.create(ctx, dataSize,
@@ -167,7 +168,7 @@ namespace Engine
 
         return index;
     }
-    Buffer Buffer::createUniformBuffer(VulkanContext& ctx, VkDeviceSize dataSize) {
+    Buffer Buffer::createUniformBuffer(const VulkanContext& ctx, VkDeviceSize dataSize) {
         Buffer ub{};
         ub.create(ctx, dataSize,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -175,14 +176,14 @@ namespace Engine
         return ub;
     }
 
-    uint32_t Buffer::findMemoryType(const VulkanContext& context, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    uint32_t Buffer::findMemoryType(const VulkanContext& context, uint32_t typeFilter, VkMemoryPropertyFlags pProperties) const {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(context.getPhysicalDevice(), &memProperties);
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & pProperties) == pProperties) {
                 return i;
             }
         }
-        ASSERT(1 != 0); // Failed to find suitable memory type!
+
     }
 }

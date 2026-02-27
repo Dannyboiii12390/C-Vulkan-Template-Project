@@ -4,7 +4,7 @@
 
 namespace Engine
 {
-    Pipeline::~Pipeline() {}
+    Pipeline::~Pipeline() = default;
 
     void Pipeline::create(
         VulkanContext& context,
@@ -12,14 +12,19 @@ namespace Engine
         const std::string& pFragShaderPath,
         VkFormat pColorFormat,
         VkFormat pDepthFormat,
-        VkDescriptorSetLayout pDescriptorSetLayout) {
+        VkDescriptorSetLayout pDescriptorSetLayout,
+        VkCullModeFlags pCullMode, // default defined in header
+        bool pDepthWrite          // default defined in header
+    ) {
 
-        VkDevice device = context.getDevice();
-		vertShaderPath = pVertShaderPath;
-		fragShaderPath = pFragShaderPath;
+        const VkDevice device = context.getDevice();
+		this->vertShaderPath = pVertShaderPath;
+		this->fragShaderPath = pFragShaderPath;
 		this->colorFormat = pColorFormat;
 		this->depthFormat = pDepthFormat;
 		this->descriptorSetLayout = pDescriptorSetLayout;
+        this->cullMode = pCullMode;
+        this->depthWrite = pDepthWrite;
 
 
         // Load shaders
@@ -34,13 +39,13 @@ namespace Engine
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
         vertShaderStageInfo.module = vertShaderModule;
-        vertShaderStageInfo.pName = "main";
+        vertShaderStageInfo.pName = getName();
 
         VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
         fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         fragShaderStageInfo.module = fragShaderModule;
-        fragShaderStageInfo.pName = "main";
+        fragShaderStageInfo.pName = getName();
 
         VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
@@ -55,6 +60,8 @@ namespace Engine
         VkPipelineViewportStateCreateInfo viewportState = createViewportState();
         VkPipelineRasterizationStateCreateInfo rasterizer = createRasterizationState();
         VkPipelineMultisampleStateCreateInfo multisampling = createMultisampleState();
+
+		rasterizer.cullMode = cullMode; // Set desired cull mode
 
         // Color blend attachment
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
@@ -120,14 +127,14 @@ namespace Engine
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         depthStencil.depthTestEnable = VK_TRUE;
-        depthStencil.depthWriteEnable = VK_TRUE;
+        depthStencil.depthWriteEnable = depthWrite? VK_TRUE : VK_FALSE;
         depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.front = {}; depthStencil.back = {};
 
         pipelineInfo.pDepthStencilState = &depthStencil;
-
-        ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) == VK_SUCCESS);
+        VkResult result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
+        ASSERT(result == VK_SUCCESS);
 
         // Cleanup shader modules
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
@@ -154,12 +161,14 @@ namespace Engine
             original.fragShaderPath,
             original.colorFormat,
             original.depthFormat,
-            original.descriptorSetLayout
+            original.descriptorSetLayout,
+            original.cullMode,
+            original.depthWrite
         );
 
         return newPipeline;
     }
-    std::vector<char> Pipeline::readFile(const std::string& filename) {
+    std::vector<char> Pipeline::readFile(const std::string& filename) const {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         ASSERT(file.is_open());
@@ -173,7 +182,7 @@ namespace Engine
 
         return buffer;
     }
-    VkShaderModule Pipeline::createShaderModule(VkDevice device, const std::vector<char>& code) {
+    VkShaderModule Pipeline::createShaderModule(VkDevice device, const std::vector<char>& code) const {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();

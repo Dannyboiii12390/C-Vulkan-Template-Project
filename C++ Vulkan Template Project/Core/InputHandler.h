@@ -5,6 +5,7 @@
 #include <vector>
 #include "Window.h"
 
+constexpr int CURSOR = 1;
 
 namespace Engine {
 
@@ -21,7 +22,7 @@ namespace Engine {
         };
 
         InputHandler() = default;
-        InputHandler(Window& window);
+        explicit InputHandler(Window& window);
 
 		InputHandler(const InputHandler&) = delete;
 		InputHandler& operator=(const InputHandler&) = delete;
@@ -61,29 +62,29 @@ namespace Engine {
         using MouseMoveCallback = std::function<void(double xpos, double ypos)>;
         using MouseScrollCallback = std::function<void(double xoffset, double yoffset)>;
 
-        void registerKeyCallback(KeyCallback callback);
-        void registerMouseButtonCallback(MouseButtonCallback callback);
-        void registerMouseMoveCallback(MouseMoveCallback callback);
-        void registerMouseScrollCallback(MouseScrollCallback callback);
+        void registerKeyCallback(KeyCallback& callback);
+        void registerMouseButtonCallback(MouseButtonCallback& callback);
+        void registerMouseMoveCallback(MouseMoveCallback& callback);
+        void registerMouseScrollCallback(MouseScrollCallback& callback);
 
     private:
         Window* m_window;
 
-        // Input state tracking
+        // Group callbacks with their corresponding state containers to improve layout/cache locality
+        std::vector<KeyCallback> m_keyCallbacks;
         std::unordered_map<int, State> m_keyStates;
+
+        std::vector<MouseButtonCallback> m_mouseButtonCallbacks;
         std::unordered_map<int, State> m_mouseButtonStates;
 
-        // Mouse position tracking
+        std::vector<MouseMoveCallback> m_mouseMoveCallbacks;
+        std::vector<MouseScrollCallback> m_scrollCallbacks;
+
+        // Mouse position tracking (grouped fixed-size doubles)
         double m_mouseX = 0.0, m_mouseY = 0.0;
         double m_lastMouseX = 0.0, m_lastMouseY = 0.0;
         double m_mouseDeltaX = 0.0, m_mouseDeltaY = 0.0;
         double m_scrollX = 0.0, m_scrollY = 0.0;
-
-        // Registered callbacks
-        std::vector<KeyCallback> m_keyCallbacks;
-        std::vector<MouseButtonCallback> m_mouseButtonCallbacks;
-        std::vector<MouseMoveCallback> m_mouseMoveCallbacks;
-        std::vector<MouseScrollCallback> m_scrollCallbacks;
 
         // Static GLFW callback handlers
         static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);

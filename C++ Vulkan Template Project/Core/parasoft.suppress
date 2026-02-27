@@ -1,0 +1,55 @@
+# Define suppressions to prevent reporting of selected violations
+# detected by Parasoft analysis.
+# Note: One suppression entry can affect more than one violation.
+#
+# Example:
+#
+# suppression-begin
+# file: file.ext               (required)
+# line: 12                     (optional)
+# rule-id: BD-PB-VOVR          (optional)
+# message: Avoid unused values (optional)
+# reason: Approved             (optional)
+# author: devel                (optional)
+# date: 2020-09-21             (optional)
+# suppression-end
+
+suppression-begin
+file: DebugUtils.cpp
+rule-id: CODSTA-CPP-11
+message: Use a C++-style cast instead of a C-style cast to the 'PFN_vkDestroyDebugUtilsMessengerEXT' type
+reason: Vulkan Code
+author: djhow
+suppression-end
+
+suppression-begin
+file: DebugUtils.cpp
+rule-id: CODSTA-CPP-11
+message: Use a C++-style cast instead of a C-style cast to the 'PFN_vkCreateDebugUtilsMessengerEXT' type
+reason: Vulkan Code
+author: djhow
+suppression-end
+
+suppression-begin
+file: Debug Utils.h
+rule-id: MISRA2004-16_7
+message: Pass parameter "pUserData" with const specifier
+reason: Vulkan Code
+author: djhow
+suppression-end
+
+suppression-begin
+file: LightSource.cpp
+rule-id: OPT-14
+message: The parameter 'texPath' of function 'create' is passed by value
+reason: string_view is supposed to be passed by value.
+author: djhow
+suppression-end
+
+suppression-begin
+file: LightSource.h
+rule-id: OPT-14
+message: The parameter 'texPath' of function 'create' is passed by value
+reason: string_view 
+author: djhow
+suppression-end

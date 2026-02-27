@@ -32,21 +32,20 @@ namespace Engine
 		// instead i made a static copy method, that makes a copy of index and vertex data, then creates a new mesh with new GPU resources
 		//Mesh(const Mesh& other) = delete; // disable copy constructor
 		//Mesh& operator=(const Mesh& other) = delete; // disable copy assignment
-		static Mesh copy(VulkanContext& context, const Mesh& other);
+		static Mesh copy(const VulkanContext& context, const Mesh& other);
 
-		void create(VulkanContext& context, std::vector<Vertex>&& pVertices, std::vector<uint16_t>&& pIndices);
-		void create(VulkanContext& context, std::vector<Vertex>&& pVertices);
-		void cleanup(VulkanContext& context);
-		void bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer = VK_NULL_HANDLE);
-		void draw(VkCommandBuffer commandBuffer, uint32_t instanceCount = 1);
+		void create(const VulkanContext& context, std::vector<Vertex>&& pVertices, std::vector<uint16_t>&& pIndices);
+		void create(const VulkanContext& context, std::vector<Vertex>&& pVertices);
+		void cleanup(const VulkanContext& context);
+		void bind(VkCommandBuffer commandBuffer, VkBuffer instanceBuffer = VK_NULL_HANDLE) const;
+		void draw(VkCommandBuffer commandBuffer, uint32_t instanceCount = 1) const;
 		bool isIndexed() const { return indices.size() != 0; }
 
 		bool operator==(const Mesh& other) const
 		{
 			return (vertices.size() == other.vertices.size()) && (indices.size() == other.indices.size());
 		}
-		
-
+		int getVertexCount() const { return static_cast<int>(vertices.size()); }
 
 	};
 }

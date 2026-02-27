@@ -18,6 +18,7 @@ layout(std140, binding = 0) uniform UBO {
     float moon_intensity;
 
     float time;
+    int inside_globe;
 } ubo;
 
 // Vertex inputs (Engine::Vertex layout)

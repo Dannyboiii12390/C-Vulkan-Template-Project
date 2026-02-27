@@ -46,9 +46,14 @@ namespace Engine
         VkImage image = VK_NULL_HANDLE;
         VkDeviceMemory imageMemory = VK_NULL_HANDLE;
 		VkImageView imageView = VK_NULL_HANDLE;
+
+        // Use defaulted copy/move operations to allow vector operations (push_back, erase, assignment).
+        Image() = default;
+        Image(const Image&) = default;
+        Image& operator=(const Image&) = default;
+        Image(Image&&) noexcept = default;
+        Image& operator=(Image&&) noexcept = default;
     };
-
-
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
         std::optional<uint32_t> presentFamily;
@@ -76,10 +81,12 @@ namespace Engine
 		alignas(4) float moon_intensity;
 
         alignas(4) float time;
+		alignas(4) int inside_globe;
+
+		alignas(16) glm::mat4 lightSpaceMatrix;
     };
     static_assert(sizeof(UniformBufferObject) % 16 == 0, "UBO size must be multiple of 16 bytes (std140).");
 
-    
 }
 
 

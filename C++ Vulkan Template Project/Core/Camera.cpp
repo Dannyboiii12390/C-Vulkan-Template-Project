@@ -3,14 +3,14 @@
 
 namespace Engine {
 
-    Camera::Camera(float fov, float aspectRatio, float nearPlane, float farPlane)
-        : fieldOfView(fov), aspectRatio(aspectRatio), near(nearPlane), far(farPlane) {
+    Camera::Camera(float fov, float pAspectRatio, float nearPlane, float farPlane)
+        : fieldOfView(fov), aspectRatio(pAspectRatio), near(nearPlane), far(farPlane) {
         updateVectors();
     }
-    void Camera::create(float fov, float aspectRatio, float nearPlane, float farPlane)
+    void Camera::create(float fov, float pAspectRatio, float nearPlane, float farPlane)
     {
 		fieldOfView = fov;
-		aspectRatio = aspectRatio;
+		aspectRatio = pAspectRatio;
 		near = nearPlane;
 		far = farPlane;
 		updateVectors();
@@ -70,30 +70,6 @@ namespace Engine {
         updateVectors();
     }
 
-    void Camera::setAspectRatio(const float ratio) {
-        aspectRatio = ratio;
-    }
-
-    void Camera::setPosition(const glm::vec3& pos) {
-        position = pos;
-    }
-
-    glm::vec3 Camera::getPosition() const {
-        return position;
-    }
-
-    glm::vec3 Camera::getForward() const {
-        return front;
-    }
-
-    glm::vec3 Camera::getRight() const {
-        return right;
-    }
-
-    glm::vec3 Camera::getUp() const {
-        return up;
-    }
-
     void Camera::setPerspective(const float fov, const float ratio, const float nearPlane, const float farPlane) {
         fieldOfView = fov;
         aspectRatio = ratio;
@@ -102,9 +78,9 @@ namespace Engine {
         isPerspective = true;
     }
 
-    void Camera::setOrthographic(const float left, const float right, const float bottom, const float top, const float nearPlane, const float farPlane) {
+    void Camera::setOrthographic(const float left, const float pRight, const float bottom, const float top, const float nearPlane, const float farPlane) {
         orthoLeft = left;
-        orthoRight = right;
+        orthoRight = pRight;
         orthoBottom = bottom;
         orthoTop = top;
         near = nearPlane;

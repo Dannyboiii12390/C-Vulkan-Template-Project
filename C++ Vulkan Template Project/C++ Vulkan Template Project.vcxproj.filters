@@ -75,9 +75,6 @@
     <ClCompile Include="IMGUI\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Shader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\Object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -97,6 +94,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Core\LightSource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\ParticleSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ParticleManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Flattener.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Pipelines\ShadowMapPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -164,9 +176,6 @@
     <ClInclude Include="IMGUI\imstb_truetype.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -183,6 +192,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Core\LightSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\ParticleSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Transform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ParticleManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Flattener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Pipelines\ShadowMapPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -202,5 +229,25 @@
     <CustomBuild Include="SHADERS\textureVertLighting.vert" />
     <CustomBuild Include="SHADERS\textureFragLighting.frag" />
     <CustomBuild Include="SHADERS\textureFragLighting.vert" />
+    <CustomBuild Include="SHADERS\textureFragHeightLighting.frag" />
+    <CustomBuild Include="SHADERS\rainParticle.frag" />
+    <CustomBuild Include="SHADERS\rainParticle.vert" />
+    <CustomBuild Include="SHADERS\snowParticle.frag" />
+    <CustomBuild Include="SHADERS\snowParticle.vert" />
+    <CustomBuild Include="SHADERS\fireParticle.frag" />
+    <CustomBuild Include="SHADERS\fireParticle.vert" />
+    <CustomBuild Include="SHADERS\dustParticle.frag" />
+    <CustomBuild Include="SHADERS\dustParticle.vert" />
+    <CustomBuild Include="SHADERS\bump.frag" />
+    <CustomBuild Include="SHADERS\bump.vert" />
+    <CustomBuild Include="SHADERS\globe.frag" />
+    <CustomBuild Include="SHADERS\globe.vert" />
+    <CustomBuild Include="SHADERS\LightSource.frag" />
+    <CustomBuild Include="SHADERS\LightSource.vert" />
+    <CustomBuild Include="SHADERS\shadow_map.vert" />
+    <CustomBuild Include="SHADERS\shadow_map.frag" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="config.txt" />
   </ItemGroup>
 </Project>

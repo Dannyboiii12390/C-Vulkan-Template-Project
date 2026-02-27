@@ -4,42 +4,46 @@
 
 namespace Engine
 {
+	SkyboxPipeline::~SkyboxPipeline() = default;
+
 	void SkyboxPipeline::create(
 		VulkanContext& context,
-		const std::string& vertShaderPath,
-		const std::string& fragShaderPath,
-		VkFormat colorFormat,
-		VkFormat depthFormat,
-		VkDescriptorSetLayout descriptorSetLayout)
-	{
-		VkDevice device = context.getDevice();
+		const std::string& pVertShaderPath,
+		const std::string& pFragShaderPath,
+		VkFormat pColorFormat,
+		VkFormat pDepthFormat,
+		VkDescriptorSetLayout pDescriptorSetLayout,
+		VkCullModeFlags cullMode,				// NEW: desired cull mode
+		bool depthWrite							// NEW: depth write enable
+	) {
+		const VkDevice device = context.getDevice();
 
 		// Load shaders
-		auto vertShaderCode = readFile(vertShaderPath);
-		auto fragShaderCode = readFile(fragShaderPath);
+		const auto vertShaderCode = readFile(pVertShaderPath);
+		const auto fragShaderCode = readFile(pFragShaderPath);
 
-		VkShaderModule vertShaderModule = createShaderModule(device, vertShaderCode);
-		VkShaderModule fragShaderModule = createShaderModule(device, fragShaderCode);
+		const VkShaderModule vertShaderModule = createShaderModule(device, vertShaderCode);
+		const VkShaderModule fragShaderModule = createShaderModule(device, fragShaderCode);
 
 		// Shader stage creation
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		vertShaderStageInfo.module = vertShaderModule;
-		vertShaderStageInfo.pName = "main";
+		vertShaderStageInfo.pName = getName();
 
 		VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
 		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		fragShaderStageInfo.module = fragShaderModule;
-		fragShaderStageInfo.pName = "main";
+		fragShaderStageInfo.pName = getName();
 
 		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
 		// Use the same vertex binding/attribute descriptions if compatible.
 		// Skybox shader uses only position; reusing Engine::Vertex descriptors is OK if mesh matches.
-		auto attributeDescriptions = Engine::Vertex::getAttributeDescriptions();
-		auto bindingDescriptions = Engine::Vertex::getBindingDescriptions();
+		const auto attributeDescriptions = Engine::Vertex::getAttributeDescriptions();
+		const auto bindingDescriptions = Engine::Vertex::getBindingDescriptions();
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = createVertexInputState(attributeDescriptions, bindingDescriptions);
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = createInputAssemblyState();
@@ -71,22 +75,24 @@ namespace Engine
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+		pipelineLayoutInfo.pSetLayouts = &pDescriptorSetLayout;
 		pipelineLayoutInfo.pushConstantRangeCount = 1;
 		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-		ASSERT(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+		VkPipelineLayout createdLayout = VK_NULL_HANDLE;
+		ASSERT(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &createdLayout) == VK_SUCCESS);
+		setLayout(createdLayout);
 
 		// Dynamic rendering info
 		VkPipelineRenderingCreateInfo renderingCreateInfo{};
 		renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
 		renderingCreateInfo.colorAttachmentCount = 1;
-		renderingCreateInfo.pColorAttachmentFormats = &colorFormat;
-		renderingCreateInfo.depthAttachmentFormat = depthFormat;
+		renderingCreateInfo.pColorAttachmentFormats = &pColorFormat;
+		renderingCreateInfo.depthAttachmentFormat = pDepthFormat;
 		// set stencil format only when depthFormat has a stencil component
 		renderingCreateInfo.stencilAttachmentFormat =
-			(depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || depthFormat == VK_FORMAT_D24_UNORM_S8_UINT)
-			? depthFormat
+			(pDepthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || pDepthFormat == VK_FORMAT_D24_UNORM_S8_UINT)
+			? pDepthFormat
 			: VK_FORMAT_UNDEFINED;
 
 		// Depth stencil state: depth test enabled, but depth write disabled so skybox sits at far plane
@@ -111,12 +117,14 @@ namespace Engine
 		pipelineInfo.pMultisampleState = &multisampling;
 		pipelineInfo.pColorBlendState = &colorBlending;
 		pipelineInfo.pDynamicState = &dynamicState;
-		pipelineInfo.layout = pipelineLayout;
+		pipelineInfo.layout = createdLayout;
 		pipelineInfo.renderPass = VK_NULL_HANDLE;
 		pipelineInfo.subpass = 0;
 		pipelineInfo.pDepthStencilState = &depthStencil;
 
-		ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) == VK_SUCCESS);
+		VkPipeline createdPipeline = VK_NULL_HANDLE;
+		ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &createdPipeline) == VK_SUCCESS);
+		setPipeline(createdPipeline);
 
 		// Cleanup shader modules
 		vkDestroyShaderModule(device, fragShaderModule, nullptr);

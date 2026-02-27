@@ -1,0 +1,31 @@
+# Define suppressions to prevent reporting of selected violations
+# detected by Parasoft analysis.
+# Note: One suppression entry can affect more than one violation.
+#
+# Example:
+#
+# suppression-begin
+# file: file.ext               (required)
+# line: 12                     (optional)
+# rule-id: BD-PB-VOVR          (optional)
+# message: Avoid unused values (optional)
+# reason: Approved             (optional)
+# author: devel                (optional)
+# date: 2020-09-21             (optional)
+# suppression-end
+
+suppression-begin
+file: ParticleSystem.h
+rule-id: OPT-14
+message: The parameter 'n' of function 'setName' is passed by value
+reason: String_view is supposed to be passed by value. parasoft not updated to newest cpp version
+author: djhow
+suppression-end
+
+suppression-begin
+file: Object.h
+rule-id: OPT-14
+message: The parameter 'newName' of function 'setName' is passed by value
+reason: String_view is supposed to be passed by value. parasoft not updated to newest cpp version
+author: djhow
+suppression-end

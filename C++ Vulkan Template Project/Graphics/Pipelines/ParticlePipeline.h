@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pipeline.h"
+#include <utility>
 
 class VulkanContext;
 
@@ -10,7 +11,7 @@ namespace Engine
     {
     public:
         ParticlePipeline() = default;
-        ~ParticlePipeline() override = default;
+        ~ParticlePipeline() final override;
 
         // Prevent copying
         ParticlePipeline(const ParticlePipeline&) = delete;
@@ -23,13 +24,31 @@ namespace Engine
             const std::string& fragShaderPath,
             VkFormat colorFormat,
             VkFormat depthFormat,
-            VkDescriptorSetLayout descriptorSetLayout
-        ) override;
+            VkDescriptorSetLayout descriptorSetLayout,
+            VkCullModeFlags cullMode = VK_CULL_MODE_NONE, // NEW: desired cull mode
+            bool depthWrite = true                            // NEW: depth write enable
+        ) final override;
 
-        void destroy(VkDevice device) override;
+        // Move constructor - delegates to base class
+        ParticlePipeline(ParticlePipeline&& other) noexcept
+            : Pipeline(std::move(other))
+        {
+        }
 
-        VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState() override;
-        VkPipelineRasterizationStateCreateInfo createRasterizationState() override;
+        // Move assignment - delegates to base class
+        ParticlePipeline& operator=(ParticlePipeline&& other) noexcept
+        {
+            if (this != &other)
+            {
+                Pipeline::operator=(std::move(other));
+            }
+            return *this;
+        }
+
+        void destroy(VkDevice device) final override;
+
+        VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState() final override;
+        VkPipelineRasterizationStateCreateInfo createRasterizationState() final override;
 
     };
 }

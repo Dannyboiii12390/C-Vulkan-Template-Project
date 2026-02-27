@@ -18,6 +18,7 @@ layout(std140, binding = 0) uniform UBO {
     float moon_intensity;
 
     float time;
+    int inside_globe;
 } ubo;
 
 // Inputs from vertex shader (locations must match)
@@ -57,6 +58,12 @@ vec3 CalcLightBase(vec3 lightPos, vec3 lightColor, float intensity, vec3 N, vec3
     return intensity * (ambient + diffuse);
 }
 
+// Maps light world Y to linear strength: y = 0 -> 0.0, y = 200 -> 1.0, clamped.
+// Adjust baseline or range if your terrain baseline isn't y=0.
+float HeightStrength(vec3 lightPos) {
+    return clamp(lightPos.y / 200.0, 0.0, 1.0);
+}
+
 void main()
 {
     // IMPORTANT: this shader assumes your albedo textures are created with an sRGB view
@@ -89,15 +96,33 @@ void main()
     // View vector
     vec3 V = normalize(ubo.eyePos - vFragPos);
 
+    // Compute height-based strength for each light (200 -> 100%, 0 -> 0%)
+    float sunHeightFactor = HeightStrength(ubo.sun_pos);
+    float moonHeightFactor = HeightStrength(ubo.moon_pos);
+
     // Accumulate lighting from sun and moon, separating specular so it is not modulated by albedo
     vec3 baseLighting = vec3(0.0);
     vec3 specularAccum = vec3(0.0);
     vec3 specOut;
 
-    baseLighting += CalcLightBase(ubo.sun_pos, ubo.sun_color, ubo.sun_intensity, N_world, V, vFragPos, specOut);
-    specularAccum += specOut;
-    baseLighting += CalcLightBase(ubo.moon_pos, ubo.moon_color, ubo.moon_intensity, N_world, V, vFragPos, specOut);
-    specularAccum += specOut;
+    if (sunHeightFactor > 0.0) {
+        baseLighting += CalcLightBase(ubo.sun_pos, ubo.sun_color, ubo.sun_intensity * sunHeightFactor, N_world, V, vFragPos, specOut);
+        specularAccum += specOut;
+    }
+
+    if (moonHeightFactor > 0.0) {
+        baseLighting += CalcLightBase(ubo.moon_pos, ubo.moon_color, ubo.moon_intensity * moonHeightFactor, N_world, V, vFragPos, specOut);
+        specularAccum += specOut;
+    }
+
+    // Guaranteed tiny ambient so terrain never fully black, plus a stronger fallback when both lights are inactive.
+    const float guaranteedAmbient = 0.025; // always present
+    const float fallbackAmbient = 0.02;    // added when both lights are fully inactive
+    baseLighting += guaranteedAmbient * vec3(1.0);
+
+    if (sunHeightFactor <= 0.0 && moonHeightFactor <= 0.0) {
+        baseLighting += fallbackAmbient * vec3(1.0);
+    }
 
     // Combine: albedo modulates ambient+diffuse, specular is added on top (no manual gamma here)
     vec3 colorLinear = albedo * baseLighting + specularAccum;
