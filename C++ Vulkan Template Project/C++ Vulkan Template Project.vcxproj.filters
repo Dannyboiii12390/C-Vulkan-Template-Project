@@ -215,6 +215,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Objects\sand_normal.exr" />
+    <None Include="Objects\sand_rough.exr" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders\shader.frag" />
@@ -249,5 +251,60 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="config.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Objects\bark_albedo.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\bark_height.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\Cactus_Albedo.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\Cactus_Normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\Cubemap.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\gravelly_sand_albedo.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\gravelly_sand_normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\gray_backround.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\moon_alb.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\mud_cracked_alb.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\mud_cracked_disp.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\sand_alb.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\sand_disp.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\sky.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Objects\sun_alb.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="Objects\Cactus.obj" />
+    <Object Include="Objects\DeadTree.obj" />
+    <Object Include="Objects\Grotto.obj" />
+    <Object Include="Objects\sandstone_rock.obj" />
+    <Object Include="Objects\sandstone_rock_flattened.obj" />
+    <Object Include="Objects\Stump.obj" />
   </ItemGroup>
 </Project>
