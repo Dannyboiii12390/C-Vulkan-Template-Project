@@ -538,14 +538,6 @@
     <Image Include="Objects\sky.jpg" />
     <Image Include="Objects\sun_alb.jpg" />
   </ItemGroup>
-  <ItemGroup>
-    <Object Include="Objects\Cactus.obj" />
-    <Object Include="Objects\DeadTree.obj" />
-    <Object Include="Objects\Grotto.obj" />
-    <Object Include="Objects\sandstone_rock.obj" />
-    <Object Include="Objects\sandstone_rock_flattened.obj" />
-    <Object Include="Objects\Stump.obj" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Assimp.redist.3.0.0\build\native\Assimp.redist.targets" Condition="Exists('..\packages\Assimp.redist.3.0.0\build\native\Assimp.redist.targets')" />
